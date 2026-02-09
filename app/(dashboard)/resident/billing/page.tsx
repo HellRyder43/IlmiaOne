@@ -212,7 +212,7 @@ export default function BillingPage() {
                             <div>
                               <div className="flex items-center gap-2 mb-1">
                                 <h4 className="text-xl font-bold text-slate-900">{invoice.month}</h4>
-                                <Badge variant="warning">Unpaid</Badge>
+                                <Badge variant="destructive" className="bg-amber-100 text-amber-700 hover:bg-amber-200 border-transparent">Unpaid</Badge>
                               </div>
                               <p className="text-sm text-slate-500">Due Date: <span className="font-medium text-slate-700">{new Date(invoice.dueDate).toLocaleDateString()}</span></p>
                             </div>

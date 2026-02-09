@@ -33,9 +33,14 @@ export default function VisitorsPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Form State
-  const [newPass, setNewPass] = useState({
+  const [newPass, setNewPass] = useState<{
+    name: string;
+    type: 'VISITOR' | 'DELIVERY' | 'CONTRACTOR';
+    date: string;
+    notes: string;
+  }>({
     name: '',
-    type: 'VISITOR' as const,
+    type: 'VISITOR',
     date: new Date().toISOString().split('T')[0],
     notes: ''
   });
@@ -251,7 +256,13 @@ export default function VisitorsPage() {
                     {pass.type}
                  </div>
 
-                 <Badge variant={pass.status === 'ACTIVE' ? 'success' : 'secondary'} className="text-[10px]">
+                 <Badge
+                   variant={pass.status === 'ACTIVE' ? 'default' : 'secondary'}
+                   className={cn(
+                     "text-[10px]",
+                     pass.status === 'ACTIVE' && "bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-transparent"
+                   )}
+                 >
                    {pass.status}
                  </Badge>
               </div>

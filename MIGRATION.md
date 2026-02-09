@@ -54,11 +54,11 @@
 - [x] Community Calendar (`app/(dashboard)/resident/calendar/page.tsx`)
 - [x] Activity Log (`app/(dashboard)/resident/activity/page.tsx`)
 
-### Phase 6: Treasurer Pages (4 pages) 📋 PENDING
-- [ ] Overview (`app/(dashboard)/treasurer/page.tsx`)
-- [ ] Financial Reports (`app/(dashboard)/treasurer/reports/page.tsx`)
-- [ ] Defaulters (`app/(dashboard)/treasurer/defaulters/page.tsx`)
-- [ ] Calendar Management (`app/(dashboard)/treasurer/calendar/page.tsx`)
+### Phase 6: Treasurer Pages (4 pages) ✅ COMPLETED
+- [x] Overview (`app/(dashboard)/treasurer/page.tsx`)
+- [x] Financial Reports (`app/(dashboard)/treasurer/reports/page.tsx`)
+- [x] Defaulters (`app/(dashboard)/treasurer/defaulters/page.tsx`)
+- [x] Calendar Management (`app/(dashboard)/treasurer/calendar/page.tsx`)
 
 ### Phase 7: Guard Pages (3 pages) 📋 PENDING
 - [ ] Guard Dashboard (`app/(dashboard)/guard/page.tsx`)
@@ -167,12 +167,12 @@
    - Updated globals.css for Tailwind v4 compatibility
    - Test pages for resident and login routes
 
-4. **Phase 5: Complete authentication and layout** (933eae6)
+4. **Phase 4: Complete authentication page** (933eae6)
    - Complete authentication page with login and register
    - Split-screen design with beautiful animations
    - Demo credentials display
 
-5. **Phase 5: All Resident Pages** (Pending Commit)
+5. **Phase 5: All Resident Pages** (4d3d6aa)
    - Resident Dashboard with quick actions and invoice overview
    - Billing page with payment system and invoice management
    - Visitors page with QR pass generation and visitor tracking
@@ -180,6 +180,12 @@
    - Pets page with pet registry and community gallery
    - Community Calendar with events and calendar views
    - Activity Log with grouped timeline
+
+6. **Phase 6: All Treasurer Pages** (Pending Commit)
+   - Treasurer Overview dashboard with financial KPIs
+   - Financial Reports with income/expense tracking and charts
+   - Defaulters management with arrears tracking
+   - Calendar Management with event CRUD operations
 
 ---
 
@@ -313,4 +319,4 @@ D:\Vibe Engineering\IlmiaOne\
 ---
 
 **Last Updated:** 2026-02-09
-**Status:** Phase 1-5 Complete, Phase 6 Next (Treasurer Pages)
+**Status:** Phase 1-6 Complete, Phase 7 Next (Guard Pages)

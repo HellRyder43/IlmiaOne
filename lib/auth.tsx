@@ -61,26 +61,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
       // Mock authentication - Check against mock credentials
-      let authenticatedUser: User | null = null
-
-      Object.entries(MOCK_CREDENTIALS).forEach(([key, mockCred]) => {
-        if (
+      const matchedCredential = Object.entries(MOCK_CREDENTIALS).find(
+        ([key, mockCred]) =>
           mockCred.email === credentials.email &&
           mockCred.password === credentials.password
-        ) {
-          authenticatedUser = {
-            id: `${mockCred.role.toLowerCase()}-001`,
-            name: getMockUserName(mockCred.role),
-            email: credentials.email,
-            role: mockCred.role,
-            avatarUrl: getMockAvatar(mockCred.role),
-            houseNumber: mockCred.role === 'RESIDENT' ? 'A-12-03' : undefined,
-          }
-        }
-      })
+      )
 
-      if (!authenticatedUser) {
+      if (!matchedCredential) {
         throw new Error('Invalid email or password')
+      }
+
+      const [, mockCred] = matchedCredential
+      const authenticatedUser: User = {
+        id: `${mockCred.role.toLowerCase()}-001`,
+        name: getMockUserName(mockCred.role),
+        email: credentials.email,
+        role: mockCred.role,
+        avatarUrl: getMockAvatar(mockCred.role),
+        houseNumber: mockCred.role === 'RESIDENT' ? 'A-12-03' : undefined,
       }
 
       // Store user and token
@@ -213,7 +211,6 @@ export function hasAccessToRoute(user: User | null, pathname: string): boolean {
   if (pathname.startsWith('/resident') && user.role === 'RESIDENT') return true
   if (pathname.startsWith('/treasurer') && user.role === 'TREASURER') return true
   if (pathname.startsWith('/guard') && user.role === 'GUARD') return true
-  if (pathname.startsWith('/admin') && user.role === 'ADMIN') return true
 
   return false
 }

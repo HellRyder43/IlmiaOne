@@ -26,8 +26,8 @@ export default function TreasurerOverview() {
                   <ArrowUpRight className="w-3 h-3" /> +4.5% this month
                 </span>
               </div>
-              <div className="p-3 bg-blue-50 rounded-lg">
-                <DollarSign className="w-6 h-6 text-blue-600" />
+              <div className="p-3 bg-indigo-50 rounded-lg">
+                <DollarSign className="w-6 h-6 text-indigo-600" />
               </div>
             </div>
           </CardContent>

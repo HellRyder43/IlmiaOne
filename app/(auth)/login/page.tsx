@@ -22,11 +22,13 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('Form submitted', { email: formData.email, isRegister })
     setIsLoading(true)
     setError(null)
 
     try {
       if (isRegister) {
+        console.log('Attempting registration...')
         await register({
           email: formData.email,
           password: formData.password,
@@ -35,13 +37,16 @@ export default function LoginPage() {
           icNumber: formData.icNumber
         })
       } else {
+        console.log('Attempting login...')
         await login({
           email: formData.email,
           password: formData.password
         })
       }
+      console.log('Authentication successful')
       // Redirect is handled in auth.tsx
     } catch (err) {
+      console.error('Authentication error:', err)
       setIsLoading(false)
       setError(err instanceof Error ? err.message : 'An error occurred')
     }
@@ -52,7 +57,6 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="max-w-4xl w-full bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row h-auto md:h-[700px]">
 
         {/* Left Side - Visual / Branding */}
@@ -239,16 +243,15 @@ export default function LoginPage() {
               <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <p className="text-xs font-semibold text-blue-900 mb-2">Demo Credentials:</p>
                 <div className="text-xs text-blue-700 space-y-1">
-                  <div><strong>Resident:</strong> resident@ilmia.one / password123</div>
-                  <div><strong>Treasurer:</strong> treasurer@ilmia.one / password123</div>
-                  <div><strong>Guard:</strong> guard@ilmia.one / password123</div>
-                  <div><strong>Admin:</strong> admin@ilmia.one / password123</div>
+                  <div><strong>Resident:</strong> resident@ilmiaone.com / resident123</div>
+                  <div><strong>Treasurer:</strong> treasurer@ilmiaone.com / treasurer123</div>
+                  <div><strong>Guard:</strong> guard@ilmiaone.com / guard123</div>
+                  <div><strong>Admin:</strong> admin@ilmiaone.com / admin123</div>
                 </div>
               </div>
             )}
           </div>
         </div>
       </div>
-    </div>
   )
 }

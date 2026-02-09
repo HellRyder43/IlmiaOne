@@ -134,7 +134,7 @@ export default function BillingPage() {
         {/* Monthly Commitment */}
         <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex justify-between items-start mb-4">
-            <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600 shadow-sm border border-blue-100">
+            <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600 shadow-sm border border-indigo-100">
               <Building2 className="w-6 h-6" />
             </div>
           </div>

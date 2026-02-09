@@ -26,7 +26,7 @@ const activities: Activity[] = [
 
 const getActivityIcon = (type: string) => {
   switch (type) {
-    case 'VISITOR': return { icon: Scan, bg: 'bg-blue-50', color: 'text-blue-600' };
+    case 'VISITOR': return { icon: Scan, bg: 'bg-indigo-50', color: 'text-indigo-600' };
     case 'PAYMENT': return { icon: Wallet, bg: 'bg-emerald-50', color: 'text-emerald-600' };
     case 'MAINTENANCE': return { icon: AlertCircle, bg: 'bg-amber-50', color: 'text-amber-600' };
     case 'DOCUMENT': return { icon: Calendar, bg: 'bg-purple-50', color: 'text-purple-600' };

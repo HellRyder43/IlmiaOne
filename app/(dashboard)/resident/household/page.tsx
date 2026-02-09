@@ -70,7 +70,7 @@ export default function HouseholdPage() {
             onClick={handleSave}
             disabled={isSaving}
             className={cn(
-                "min-w-[140px] transition-all",
+                "min-w-[140px] transition-all text-white",
                 showSuccess ? "bg-emerald-600 hover:bg-emerald-700" : "bg-slate-900 hover:bg-slate-800"
             )}
            >
@@ -101,16 +101,16 @@ export default function HouseholdPage() {
                      className={cn(
                        "relative flex flex-col items-center p-4 rounded-xl border-2 transition-all duration-200",
                        residentType === 'OWNER'
-                         ? "border-primary-600 bg-primary-50 text-primary-700"
-                         : "border-slate-200 hover:border-slate-300 text-slate-600"
+                         ? "border-indigo-600 bg-indigo-50 text-indigo-700"
+                         : "border-slate-200 hover:border-slate-300 bg-white text-slate-600"
                      )}
                    >
                      {residentType === 'OWNER' && (
-                         <div className="absolute top-2 right-2 text-primary-600">
+                         <div className="absolute top-2 right-2 text-indigo-600">
                              <CheckCircle2 className="w-5 h-5" />
                          </div>
                      )}
-                     <ShieldCheck className={cn("w-8 h-8 mb-2", residentType === 'OWNER' ? "text-primary-600" : "text-slate-400")} />
+                     <ShieldCheck className={cn("w-8 h-8 mb-2", residentType === 'OWNER' ? "text-indigo-600" : "text-slate-400")} />
                      <span className="font-bold">Owner</span>
                      <span className="text-xs mt-1 text-center opacity-80">I own this house</span>
                    </button>
@@ -120,16 +120,16 @@ export default function HouseholdPage() {
                      className={cn(
                        "relative flex flex-col items-center p-4 rounded-xl border-2 transition-all duration-200",
                        residentType === 'TENANT'
-                         ? "border-primary-600 bg-primary-50 text-primary-700"
-                         : "border-slate-200 hover:border-slate-300 text-slate-600"
+                         ? "border-indigo-600 bg-indigo-50 text-indigo-700"
+                         : "border-slate-200 hover:border-slate-300 bg-white text-slate-600"
                      )}
                    >
                      {residentType === 'TENANT' && (
-                         <div className="absolute top-2 right-2 text-primary-600">
+                         <div className="absolute top-2 right-2 text-indigo-600">
                              <CheckCircle2 className="w-5 h-5" />
                          </div>
                      )}
-                     <Key className={cn("w-8 h-8 mb-2", residentType === 'TENANT' ? "text-primary-600" : "text-slate-400")} />
+                     <Key className={cn("w-8 h-8 mb-2", residentType === 'TENANT' ? "text-indigo-600" : "text-slate-400")} />
                      <span className="font-bold">Tenant</span>
                      <span className="text-xs mt-1 text-center opacity-80">I am renting this house</span>
                    </button>

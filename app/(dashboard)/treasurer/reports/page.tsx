@@ -150,7 +150,7 @@ export default function FinancialReports() {
                icon={Wallet}
                trend="up"
                trendValue="+8.2%"
-               colorClass="bg-blue-50 text-blue-600"
+               colorClass="bg-indigo-50 text-indigo-600"
              />
              <StatCard
                title="Total Income"
@@ -216,7 +216,7 @@ export default function FinancialReports() {
                              <span className="font-medium text-slate-900">75% Used</span>
                           </div>
                           <div className="w-full bg-slate-100 rounded-full h-2">
-                             <div className="bg-blue-600 h-2 rounded-full" style={{ width: '75%' }}></div>
+                             <div className="bg-indigo-600 h-2 rounded-full" style={{ width: '75%' }}></div>
                           </div>
                        </div>
                        <div>
@@ -279,7 +279,7 @@ export default function FinancialReports() {
             <Card className="border-slate-200 shadow-sm">
               <CardContent className="p-4">
                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Advance Payments</p>
-                 <p className="text-2xl font-bold text-blue-600 mt-1">RM 5,600</p>
+                 <p className="text-2xl font-bold text-indigo-600 mt-1">RM 5,600</p>
                  <p className="text-xs text-slate-500 mt-1">Prepaid for 2024</p>
               </CardContent>
             </Card>

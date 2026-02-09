@@ -66,7 +66,7 @@ export default function AdminDashboard() {
             </div>
             <p className="text-lg font-bold text-slate-900">78% Used</p>
             <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2">
-              <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: '78%' }}></div>
+              <div className="bg-indigo-500 h-1.5 rounded-full" style={{ width: '78%' }}></div>
             </div>
           </CardContent>
         </Card>
@@ -138,8 +138,8 @@ export default function AdminDashboard() {
               <CardContent className="space-y-4">
                 <div className="flex justify-between items-center py-3 border-b border-slate-100">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-50 rounded-lg">
-                      <Home className="w-4 h-4 text-blue-600" />
+                    <div className="p-2 bg-indigo-50 rounded-lg">
+                      <Home className="w-4 h-4 text-indigo-600" />
                     </div>
                     <span className="font-medium text-slate-700">Total Houses</span>
                   </div>
@@ -192,7 +192,7 @@ export default function AdminDashboard() {
                       <div className={`p-2 rounded-full mt-0.5 ${
                         activity.type === 'success' ? 'bg-emerald-50 text-emerald-600' :
                         activity.type === 'warning' ? 'bg-amber-50 text-amber-600' :
-                        'bg-blue-50 text-blue-600'
+                        'bg-indigo-50 text-indigo-600'
                       }`}>
                         {activity.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> :
                          activity.type === 'warning' ? <AlertCircle className="w-4 h-4" /> :
@@ -566,7 +566,7 @@ export default function AdminDashboard() {
                         <div className="flex flex-col items-center">
                           <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                             log.type === 'create' ? 'bg-emerald-100 text-emerald-600' :
-                            log.type === 'update' ? 'bg-blue-100 text-blue-600' :
+                            log.type === 'update' ? 'bg-indigo-100 text-indigo-600' :
                             log.type === 'delete' ? 'bg-red-100 text-red-600' :
                             'bg-slate-100 text-slate-600'
                           }`}>

@@ -110,13 +110,13 @@ export default function Defaulters() {
                 <h3 className="text-3xl font-bold text-slate-900 mt-2">82%</h3>
                 <p className="text-xs text-slate-500 mt-1">Current Month Performance</p>
               </div>
-              <div className="p-3 bg-blue-100 rounded-lg text-blue-600">
+              <div className="p-3 bg-indigo-100 rounded-lg text-indigo-600">
                 <ArrowUpRight className="w-6 h-6" />
               </div>
             </div>
             {/* Simple progress bar */}
             <div className="w-full bg-slate-100 h-1.5 rounded-full mt-4">
-              <div className="bg-blue-600 h-1.5 rounded-full" style={{ width: '82%' }}></div>
+              <div className="bg-indigo-600 h-1.5 rounded-full" style={{ width: '82%' }}></div>
             </div>
           </CardContent>
         </Card>
@@ -209,7 +209,7 @@ export default function Defaulters() {
                    </td>
                    <td className="px-6 py-4">
                       <div className="flex items-center justify-center gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
-                         <Button variant="outline" size="icon" className="h-8 w-8 text-blue-600 border-blue-100 hover:bg-blue-50" title="Send WhatsApp">
+                         <Button variant="outline" size="icon" className="h-8 w-8 text-indigo-600 border-indigo-100 hover:bg-indigo-50" title="Send WhatsApp">
                            <MessageCircle className="w-4 h-4" />
                          </Button>
                          <Button variant="outline" size="icon" className="h-8 w-8 text-slate-600 hover:bg-slate-50" title="Send Email">

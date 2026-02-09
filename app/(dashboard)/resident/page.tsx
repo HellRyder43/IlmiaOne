@@ -25,14 +25,14 @@ export default function ResidentDashboard() {
       {/* Quick Actions Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Link href="/resident/billing" className="group">
-           <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
+           <Card className="h-full hover:shadow-md transition-shadow">
              <CardContent className="pt-6">
-               <div className="w-12 h-12 bg-primary-100 rounded-lg shadow-sm flex items-center justify-center mb-4 text-primary-600 group-hover:scale-110 transition-transform">
+               <div className="w-12 h-12 bg-indigo-100 rounded-lg shadow-sm flex items-center justify-center mb-4 text-indigo-600 group-hover:scale-110 transition-transform">
                  <Wallet className="w-6 h-6" />
                </div>
                <h3 className="font-semibold text-slate-900">Pay Maintenance</h3>
                <p className="text-sm text-slate-500 mt-1 mb-4">You have 1 pending invoice due soon.</p>
-               <div className="flex items-center text-primary-600 text-sm font-medium">
+               <div className="flex items-center text-indigo-600 text-sm font-medium">
                  View Invoices <ArrowRight className="w-4 h-4 ml-1" />
                </div>
              </CardContent>
@@ -70,10 +70,8 @@ export default function ResidentDashboard() {
       <Card className="overflow-hidden border border-slate-200 shadow-sm bg-white">
         <CardHeader className="border-b border-slate-100 px-6 py-5 flex flex-row items-center justify-between">
           <CardTitle className="text-lg font-bold text-slate-900">Latest Invoices</CardTitle>
-          <Link href="/resident/billing">
-            <Button variant="ghost" size="sm" className="text-primary-600 hover:text-primary-700 hover:bg-primary-50">
-              View All Billing
-            </Button>
+          <Link href="/resident/billing" className="text-indigo-600 hover:text-indigo-700 text-sm font-semibold transition-colors">
+            View All Billing
           </Link>
         </CardHeader>
         <div className="overflow-x-auto">
@@ -130,14 +128,14 @@ export default function ResidentDashboard() {
       <Card className="border border-slate-200 shadow-sm bg-white">
         <CardHeader className="flex flex-row items-center justify-between border-b border-slate-100 px-6 py-5 space-y-0">
            <CardTitle className="text-lg font-bold text-slate-900">Recent Activity</CardTitle>
-           <Link href="/resident/activity" className="text-primary-600 hover:text-primary-700 text-sm font-semibold hover:underline">
+           <Link href="/resident/activity" className="text-indigo-600 hover:text-indigo-700 text-sm font-semibold transition-colors">
              View All
            </Link>
         </CardHeader>
         <CardContent className="p-0">
            <div className="divide-y divide-slate-100">
              <div className="flex items-center p-6 hover:bg-slate-50/50 transition-colors">
-                <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+                <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
                    <Scan className="w-5 h-5" />
                 </div>
                 <div className="ml-4 flex-1">

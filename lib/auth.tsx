@@ -54,11 +54,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Login function
   const login = async (credentials: LoginCredentials): Promise<void> => {
+    console.log('Login function called', { email: credentials.email })
     setIsLoading(true)
 
     try {
       // Simulate network delay
       await new Promise((resolve) => setTimeout(resolve, 1000))
+
+      console.log('Checking credentials against:', MOCK_CREDENTIALS)
 
       // Mock authentication - Check against mock credentials
       const matchedCredential = Object.entries(MOCK_CREDENTIALS).find(
@@ -66,6 +69,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           mockCred.email === credentials.email &&
           mockCred.password === credentials.password
       )
+
+      console.log('Matched credential:', matchedCredential)
 
       if (!matchedCredential) {
         throw new Error('Invalid email or password')
@@ -81,17 +86,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         houseNumber: mockCred.role === 'RESIDENT' ? 'A-12-03' : undefined,
       }
 
+      console.log('Authenticated user:', authenticatedUser)
+
       // Store user and token
       const mockToken = generateMockToken(authenticatedUser.id)
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(authenticatedUser))
       localStorage.setItem(TOKEN_STORAGE_KEY, mockToken)
 
+      // Also set cookies for middleware authentication
+      document.cookie = `ilmia_token=${mockToken}; path=/; max-age=86400; SameSite=Lax`
+      document.cookie = `ilmia_user=${encodeURIComponent(JSON.stringify(authenticatedUser))}; path=/; max-age=86400; SameSite=Lax`
+
       setUser(authenticatedUser)
 
       // Redirect to role-based dashboard
       const dashboard = ROLE_DASHBOARD[authenticatedUser.role]
+      console.log('Redirecting to:', dashboard)
       window.location.href = dashboard
     } catch (error) {
+      console.error('Login error:', error)
       setIsLoading(false)
       throw error
     }
@@ -121,6 +134,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(newUser))
       localStorage.setItem(TOKEN_STORAGE_KEY, mockToken)
 
+      // Also set cookies for middleware authentication
+      document.cookie = `ilmia_token=${mockToken}; path=/; max-age=86400; SameSite=Lax`
+      document.cookie = `ilmia_user=${encodeURIComponent(JSON.stringify(newUser))}; path=/; max-age=86400; SameSite=Lax`
+
       setUser(newUser)
 
       // Redirect to resident dashboard
@@ -136,6 +153,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Clear storage
     localStorage.removeItem(USER_STORAGE_KEY)
     localStorage.removeItem(TOKEN_STORAGE_KEY)
+
+    // Clear cookies
+    document.cookie = 'ilmia_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    document.cookie = 'ilmia_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
 
     // Clear state
     setUser(null)

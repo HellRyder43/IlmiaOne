@@ -83,13 +83,13 @@ export default function GuardDashboard() {
             </Link>
 
             <Link href="/guard/logs">
-              <Card className="hover:shadow-md transition-shadow hover:border-blue-200 group cursor-pointer border-slate-200">
+              <Card className="hover:shadow-md transition-shadow hover:border-indigo-200 group cursor-pointer border-slate-200">
                 <CardContent className="p-6 flex items-center gap-6">
-                  <div className="w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
+                  <div className="w-16 h-16 rounded-2xl bg-indigo-100 flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
                     <FileText className="w-8 h-8" />
                   </div>
                   <div>
-                    <h4 className="text-xl font-bold text-slate-900 group-hover:text-blue-700 transition-colors">View Entry Logs</h4>
+                    <h4 className="text-xl font-bold text-slate-900 group-hover:text-indigo-700 transition-colors">View Entry Logs</h4>
                     <p className="text-slate-500 mt-1">Check history, check-out visitors manually.</p>
                   </div>
                 </CardContent>
@@ -116,7 +116,7 @@ export default function GuardDashboard() {
                 </div>
                 <div className="p-4 flex gap-4 hover:bg-slate-50">
                   <div className="mt-1">
-                    <ShieldCheck className="w-5 h-5 text-blue-500" />
+                    <ShieldCheck className="w-5 h-5 text-indigo-500" />
                   </div>
                   <div>
                     <p className="font-bold text-slate-900 text-sm">Road Repair Works</p>

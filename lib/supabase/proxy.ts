@@ -56,7 +56,8 @@ export async function updateSession(request: NextRequest) {
 
   // If accessing login page while authenticated, redirect to role dashboard
   if (isPublicRoute && user) {
-    const role = user.user_role as string | undefined
+    // Check root-level claim (set by JWT hook) then fall back to app_metadata
+    const role = (user.user_role ?? user.app_metadata?.user_role) as string | undefined
     const dashboardMap: Record<string, string> = {
       RESIDENT: "/resident",
       TREASURER: "/treasurer",
@@ -83,7 +84,7 @@ export async function updateSession(request: NextRequest) {
 
   // If authenticated, check role-based access
   if (!isPublicRoute && user) {
-    const role = user.user_role as string | undefined
+    const role = (user.user_role ?? user.app_metadata?.user_role) as string | undefined
     const roleRoutes: Record<string, RegExp> = {
       RESIDENT: /^\/resident/,
       TREASURER: /^\/treasurer/,

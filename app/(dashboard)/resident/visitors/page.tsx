@@ -18,12 +18,12 @@ import {
   Check
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { VisitorPass } from '@/lib/types';
+import type { VisitorPass, VisitorType } from '@/lib/types';
 
 const mockPasses: VisitorPass[] = [
-  { id: 'v1', visitorName: 'Alice Smith', type: 'VISITOR', date: '2023-10-25', status: 'ACTIVE', qrCodeUrl: '' },
-  { id: 'v2', visitorName: 'PosLaju Courier', type: 'DELIVERY', date: '2023-10-24', status: 'USED', qrCodeUrl: '' },
-  { id: 'v3', visitorName: 'AirCond Service', type: 'CONTRACTOR', date: '2023-10-20', status: 'EXPIRED', qrCodeUrl: '' },
+  { id: 'v1', residentId: '', houseId: '', visitorName: 'Alice Smith', visitorType: 'VISITOR', visitReason: 'Social visit', expectedDate: '2023-10-25', status: 'ACTIVE', qrCode: 'qr-v1', expiresAt: '2023-10-25T23:59:00Z', createdAt: '2023-10-24T10:00:00Z' },
+  { id: 'v2', residentId: '', houseId: '', visitorName: 'PosLaju Courier', visitorType: 'COURIER', visitReason: 'Package delivery', expectedDate: '2023-10-24', status: 'USED', qrCode: 'qr-v2', expiresAt: '2023-10-24T23:59:00Z', createdAt: '2023-10-23T09:00:00Z' },
+  { id: 'v3', residentId: '', houseId: '', visitorName: 'AirCond Service', visitorType: 'CONTRACTOR', visitReason: 'Air conditioning repair', expectedDate: '2023-10-20', status: 'EXPIRED', qrCode: 'qr-v3', expiresAt: '2023-10-20T23:59:00Z', createdAt: '2023-10-19T08:00:00Z' },
 ];
 
 export default function VisitorsPage() {
@@ -35,29 +35,35 @@ export default function VisitorsPage() {
   // Form State
   const [newPass, setNewPass] = useState<{
     name: string;
-    type: 'VISITOR' | 'DELIVERY' | 'CONTRACTOR';
-    date: string;
-    notes: string;
+    visitorType: VisitorType;
+    expectedDate: string;
+    visitReason: string;
   }>({
     name: '',
-    type: 'VISITOR',
-    date: new Date().toISOString().split('T')[0],
-    notes: ''
+    visitorType: 'VISITOR',
+    expectedDate: new Date().toISOString().split('T')[0],
+    visitReason: ''
   });
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
+    const expectedDate = newPass.expectedDate;
     const pass: VisitorPass = {
       id: Math.random().toString(36).substr(2, 9),
+      residentId: '',
+      houseId: '',
       visitorName: newPass.name,
-      type: newPass.type,
-      date: newPass.date,
+      visitorType: newPass.visitorType,
+      visitReason: newPass.visitReason,
+      expectedDate,
       status: 'ACTIVE',
-      qrCodeUrl: 'mock-url'
+      qrCode: Math.random().toString(36).substr(2, 9),
+      expiresAt: `${expectedDate}T23:59:00Z`,
+      createdAt: new Date().toISOString(),
     };
     setPasses([pass, ...passes]);
     setIsCreating(false);
-    setNewPass({ name: '', type: 'VISITOR', date: new Date().toISOString().split('T')[0], notes: '' });
+    setNewPass({ name: '', visitorType: 'VISITOR', expectedDate: new Date().toISOString().split('T')[0], visitReason: '' });
   };
 
   const handleCopy = (id: string) => {
@@ -67,7 +73,7 @@ export default function VisitorsPage() {
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'DELIVERY': return <Truck className="w-4 h-4" />;
+      case 'COURIER': return <Truck className="w-4 h-4" />;
       case 'CONTRACTOR': return <Hammer className="w-4 h-4" />;
       default: return <User className="w-4 h-4" />;
     }
@@ -75,7 +81,8 @@ export default function VisitorsPage() {
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'DELIVERY': return 'bg-orange-100 text-orange-700 border-orange-200';
+      case 'COURIER': return 'bg-orange-100 text-orange-700 border-orange-200';
+      case 'E_HAILING': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
       case 'CONTRACTOR': return 'bg-blue-100 text-blue-700 border-blue-200';
       default: return 'bg-purple-100 text-purple-700 border-purple-200';
     }
@@ -159,20 +166,20 @@ export default function VisitorsPage() {
                   <div className="space-y-2">
                      <label className="text-sm font-medium text-slate-700">Visitor Type</label>
                      <div className="grid grid-cols-3 gap-3">
-                        {(['VISITOR', 'DELIVERY', 'CONTRACTOR'] as const).map((type) => (
+                        {(['VISITOR', 'CONTRACTOR', 'E_HAILING', 'COURIER', 'OTHERS'] as const).map((type) => (
                           <button
                             key={type}
                             type="button"
-                            onClick={() => setNewPass({...newPass, type})}
+                            onClick={() => setNewPass({...newPass, visitorType: type})}
                             className={cn(
                               "flex flex-col items-center justify-center gap-1 py-2 rounded-lg border text-xs font-medium transition-all",
-                              newPass.type === type
+                              newPass.visitorType === type
                                 ? "bg-primary-50 border-primary-500 text-primary-700"
                                 : "bg-white border-slate-300 text-slate-600 hover:bg-slate-50"
                             )}
                           >
                             {getTypeIcon(type)}
-                            <span className="capitalize">{type.toLowerCase()}</span>
+                            <span>{type.replace('_', ' ')}</span>
                           </button>
                         ))}
                      </div>
@@ -187,21 +194,22 @@ export default function VisitorsPage() {
                         required
                         type="date"
                         className="flex h-11 w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all shadow-sm"
-                        value={newPass.date}
+                        value={newPass.expectedDate}
                         min={new Date().toISOString().split('T')[0]}
-                        onChange={e => setNewPass({...newPass, date: e.target.value})}
+                        onChange={e => setNewPass({...newPass, expectedDate: e.target.value})}
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                     <label className="text-sm font-medium text-slate-700">Notes (Optional)</label>
+                     <label className="text-sm font-medium text-slate-700">Reason for Visit</label>
                      <input
                         type="text"
+                        required
                         className="flex h-11 w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all shadow-sm"
-                        placeholder="e.g., Car Plate WXX 1234"
-                        value={newPass.notes}
-                        onChange={e => setNewPass({...newPass, notes: e.target.value})}
+                        placeholder="e.g., Family visit, delivery"
+                        value={newPass.visitReason}
+                        onChange={e => setNewPass({...newPass, visitReason: e.target.value})}
                       />
                   </div>
                 </div>
@@ -250,10 +258,10 @@ export default function VisitorsPage() {
               <div className="flex justify-between items-start mb-4">
                  <div className={cn(
                    "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider border",
-                   getTypeColor(pass.type)
+                   getTypeColor(pass.visitorType)
                  )}>
-                    {getTypeIcon(pass.type)}
-                    {pass.type}
+                    {getTypeIcon(pass.visitorType)}
+                    {pass.visitorType}
                  </div>
 
                  <Badge
@@ -270,7 +278,7 @@ export default function VisitorsPage() {
               <h3 className="text-xl font-bold text-slate-900 mb-1">{pass.visitorName}</h3>
               <div className="flex items-center text-slate-500 text-sm mb-6">
                  <CalendarDays className="w-4 h-4 mr-2" />
-                 {new Date(pass.date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                 {new Date(pass.expectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
               </div>
 
               {/* Action Row */}

@@ -2,6 +2,10 @@
 
 export type UserRole = 'RESIDENT' | 'TREASURER' | 'GUARD' | 'ADMIN'
 
+export type ResidencyType = 'OWNER' | 'TENANT'
+
+export type Relationship = 'SPOUSE' | 'CHILD' | 'RELATIVE' | 'TENANT'
+
 export interface User {
   id: string
   name: string
@@ -9,7 +13,10 @@ export interface User {
   role: UserRole
   avatarUrl?: string
   houseNumber?: string
+  houseId?: string
   icNumber?: string
+  residentType?: ResidencyType
+  status: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'INACTIVE'
 }
 
 // Authentication types
@@ -24,42 +31,44 @@ export interface RegisterData {
   icNumber: string
   email: string
   password: string
+  residentType: ResidencyType
 }
 
 // Invoice types
-export interface Invoice {
-  id: string
-  month: string
-  amount: number
-  status: 'PAID' | 'PENDING' | 'OVERDUE'
-  dueDate: string
-}
-
 export interface InvoiceBreakdown {
   maintenance: number
   sinkingFund: number
   water?: number
-  lateInterest?: number
 }
 
-export interface DetailedInvoice extends Invoice {
+export interface Invoice {
+  id: string
+  houseId: string
+  month: string // format: 'YYYY-MM'
+  amount: number
+  status: 'PAID' | 'PENDING' | 'OVERDUE'
+  dueDate: string
   breakdown: InvoiceBreakdown
 }
 
-// Visitor Pass types
-export type VisitorType = 'VISITOR' | 'CONTRACTOR' | 'DELIVERY'
+// Visitor Pass types (pre-registration by resident)
+export type VisitorType = 'VISITOR' | 'CONTRACTOR' | 'E_HAILING' | 'COURIER' | 'OTHERS'
 export type VisitorStatus = 'ACTIVE' | 'EXPIRED' | 'USED'
 
 export interface VisitorPass {
   id: string
+  residentId: string
+  houseId: string
   visitorName: string
-  type: VisitorType
-  date: string
-  time?: string
-  status: VisitorStatus
-  qrCodeUrl: string
+  visitorType: VisitorType
+  visitReason: string
+  expectedDate: string
   phoneNumber?: string
-  purpose?: string
+  vehicleNumber?: string
+  qrCode: string
+  status: VisitorStatus
+  expiresAt: string
+  createdAt: string
 }
 
 // Pet Registry types
@@ -77,13 +86,11 @@ export interface Pet {
 }
 
 // Household types
-export type ResidencyType = 'OWNER' | 'TENANT' | 'FAMILY_MEMBER'
-
 export interface FamilyMember {
   id: string
+  houseId: string
   name: string
-  relationship: string
-  icNumber: string
+  relationship: Relationship
   phoneNumber?: string
 }
 
@@ -127,7 +134,7 @@ export interface Activity {
   title: string
   description: string
   timestamp: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 // Financial types (for Treasurer)
@@ -164,14 +171,19 @@ export interface Transaction {
 // Guard types
 export interface EntryLog {
   id: string
+  preRegistrationId?: string
   visitorName: string
+  visitorType: VisitorType
+  visitReason: string
   houseNumber: string
-  type: VisitorType
+  icNumber?: string
+  vehicleNumber?: string
+  phoneNumber?: string
   checkInTime: string
   checkOutTime?: string
   status: 'INSIDE' | 'EXITED'
-  guardName?: string
-  vehicleNumber?: string
+  guardId: string
+  entryMethod: 'QR_SCAN' | 'WALK_IN' | 'MANUAL'
 }
 
 export interface GuardStats {
@@ -186,17 +198,18 @@ export interface SystemConfig {
   siteName: string
   monthlyMaintenanceFee: number
   sinkingFundRate: number
-  latePaymentInterestRate: number
   gracePeriodDays: number
   waterChargePerUnit: number
 }
 
 export interface House {
+  id: string
   houseNumber: string
+  street?: string
   ownerName: string
   ownerEmail: string
   ownerPhone: string
-  residencyStatus: 'OCCUPIED' | 'VACANT' | 'UNDER_RENOVATION'
+  occupancyStatus: 'OCCUPIED' | 'VACANT' | 'UNDER_RENOVATION'
   registrationDate: string
 }
 

@@ -1,257 +1,434 @@
 'use client'
 
 import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import { Button } from '@/components/ui/button'
-import { Building2, Mail, Lock, User, Home, CreditCard, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react'
+import {
+  Building2, Mail, Lock, User, Home, CreditCard,
+  ArrowRight, Loader2, CheckCircle2, ChevronDown,
+} from 'lucide-react'
 import { useAuth } from '@/lib/auth'
+import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
-export default function LoginPage() {
-  const [isRegister, setIsRegister] = useState(false)
+const loginSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(1, 'Password is required'),
+})
+
+const registerSchema = z.object({
+  fullName: z.string().min(2, 'Name must be at least 2 characters'),
+  houseNumber: z.string().min(1, 'House number is required'),
+  icNumber: z.string().min(4, 'IC number must be at least 4 characters'),
+  residentType: z.enum(['OWNER', 'TENANT'] as const, { message: 'Please select your resident type' }),
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+})
+
+type LoginData = z.infer<typeof loginSchema>
+type RegisterFormData = z.infer<typeof registerSchema>
+
+function LoginForm({ onForgotPassword }: { onForgotPassword: () => void }) {
+  const { login } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    fullName: '',
-    houseNumber: '',
-    icNumber: ''
-  })
 
-  const { login, register } = useAuth()
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginData>({ resolver: zodResolver(loginSchema) })
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    console.log('Form submitted', { email: formData.email, isRegister })
+  const onSubmit = async (data: LoginData) => {
     setIsLoading(true)
-    setError(null)
-
     try {
-      if (isRegister) {
-        console.log('Attempting registration...')
-        await register({
-          email: formData.email,
-          password: formData.password,
-          fullName: formData.fullName,
-          houseNumber: formData.houseNumber,
-          icNumber: formData.icNumber
-        })
-      } else {
-        console.log('Attempting login...')
-        await login({
-          email: formData.email,
-          password: formData.password
-        })
-      }
-      console.log('Authentication successful')
-      // Redirect is handled in auth.tsx
+      await login(data)
     } catch (err) {
-      console.error('Authentication error:', err)
       setIsLoading(false)
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      toast.error(err instanceof Error ? err.message : 'Login failed')
     }
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <div>
+        <div className="relative">
+          <Mail className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+          <input
+            type="email"
+            placeholder="Email Address"
+            autoComplete="email"
+            className={cn(
+              'w-full pl-10 pr-4 py-2.5 rounded-lg border bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-sm shadow-sm',
+              errors.email ? 'border-red-400' : 'border-slate-300'
+            )}
+            {...register('email')}
+          />
+        </div>
+        {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>}
+      </div>
+
+      <div>
+        <div className="relative">
+          <Lock className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+          <input
+            type="password"
+            placeholder="Password"
+            autoComplete="current-password"
+            className={cn(
+              'w-full pl-10 pr-4 py-2.5 rounded-lg border bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-sm shadow-sm',
+              errors.password ? 'border-red-400' : 'border-slate-300'
+            )}
+            {...register('password')}
+          />
+        </div>
+        {errors.password && <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>}
+      </div>
+
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={onForgotPassword}
+          className="text-xs font-medium text-emerald-600 hover:text-emerald-700"
+        >
+          Forgot Password?
+        </button>
+      </div>
+
+      <Button
+        type="submit"
+        className="w-full bg-slate-900 hover:bg-slate-800 text-white h-11 text-base font-medium shadow-lg shadow-slate-900/10"
+        disabled={isLoading}
+      >
+        {isLoading ? (
+          <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Signing In...</>
+        ) : (
+          <>Sign In<ArrowRight className="w-4 h-4 ml-2" /></>
+        )}
+      </Button>
+    </form>
+  )
+}
+
+function RegisterForm() {
+  const { register: registerUser } = useAuth()
+  const [isLoading, setIsLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<RegisterFormData>({ resolver: zodResolver(registerSchema) })
+
+  const onSubmit = async (data: RegisterFormData) => {
+    setIsLoading(true)
+    try {
+      await registerUser(data)
+      setSuccess(true)
+    } catch (err) {
+      setIsLoading(false)
+      toast.error(err instanceof Error ? err.message : 'Registration failed')
+    }
+  }
+
+  if (success) {
+    return (
+      <div className="text-center space-y-4 py-4">
+        <div className="flex justify-center">
+          <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center">
+            <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+          </div>
+        </div>
+        <h3 className="text-lg font-semibold text-slate-900">Registration Submitted</h3>
+        <p className="text-sm text-slate-500 leading-relaxed">
+          Your account is pending approval from the Treasurer. You will be notified once approved.
+          Please verify your email address in the meantime.
+        </p>
+      </div>
+    )
   }
 
   return (
-      <div className="max-w-4xl w-full bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row h-auto md:h-[700px]">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+      <div>
+        <div className="relative">
+          <User className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Full Name"
+            autoComplete="name"
+            className={cn(
+              'w-full pl-10 pr-4 py-2.5 rounded-lg border bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-sm shadow-sm',
+              errors.fullName ? 'border-red-400' : 'border-slate-300'
+            )}
+            {...register('fullName')}
+          />
+        </div>
+        {errors.fullName && <p className="mt-1 text-xs text-red-600">{errors.fullName.message}</p>}
+      </div>
 
-        {/* Left Side - Visual / Branding */}
-        <div className="hidden md:flex flex-col justify-between w-1/2 bg-slate-900 p-12 text-white relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-full bg-[url('https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?q=80&w=1000&auto=format&fit=crop')] bg-cover opacity-20"></div>
-          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-slate-900/50 to-slate-900"></div>
-
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 text-emerald-400 mb-6">
-              <div className="w-10 h-10 bg-emerald-500/20 backdrop-blur-sm rounded-lg flex items-center justify-center border border-emerald-500/30">
-                <Building2 className="w-6 h-6" />
-              </div>
-              <span className="text-2xl font-bold tracking-tight">Ilmia One</span>
-            </div>
-            <h1 className="text-4xl font-bold leading-tight mb-4">
-              Modern Living,<br/>Simplified.
-            </h1>
-            <p className="text-slate-400 text-lg">
-              Manage your bills, visitors, and community connection all in one place.
-            </p>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <div className="relative">
+            <Home className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+            <input
+              type="text"
+              placeholder="House No."
+              className={cn(
+                'w-full pl-10 pr-4 py-2.5 rounded-lg border bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-sm shadow-sm',
+                errors.houseNumber ? 'border-red-400' : 'border-slate-300'
+              )}
+              {...register('houseNumber')}
+            />
           </div>
-
-          <div className="relative z-10 space-y-4">
-            <div className="flex items-center gap-3 text-sm text-slate-300">
-               <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-               </div>
-               <span>Secure Payment Gateway</span>
-            </div>
-            <div className="flex items-center gap-3 text-sm text-slate-300">
-               <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-               </div>
-               <span>Instant Visitor Passes</span>
-            </div>
-            <div className="flex items-center gap-3 text-sm text-slate-300">
-               <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-               </div>
-               <span>Community Updates</span>
-            </div>
-          </div>
-
-          <div className="relative z-10 text-xs text-slate-500 mt-12">
-            © 2026 Ilmia One Management. All rights reserved.
-          </div>
+          {errors.houseNumber && <p className="mt-1 text-xs text-red-600">{errors.houseNumber.message}</p>}
         </div>
 
-        {/* Right Side - Form */}
-        <div className="flex-1 flex flex-col justify-center p-8 md:p-12 relative">
-          <div className="max-w-sm mx-auto w-full">
+        <div>
+          <div className="relative">
+            <CreditCard className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+            <input
+              type="text"
+              placeholder="IC Number"
+              className={cn(
+                'w-full pl-10 pr-4 py-2.5 rounded-lg border bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-sm shadow-sm',
+                errors.icNumber ? 'border-red-400' : 'border-slate-300'
+              )}
+              {...register('icNumber')}
+            />
+          </div>
+          {errors.icNumber && <p className="mt-1 text-xs text-red-600">{errors.icNumber.message}</p>}
+        </div>
+      </div>
+
+      <div>
+        <div className="relative">
+          <ChevronDown className="absolute right-3 top-3 w-5 h-5 text-slate-400 pointer-events-none" />
+          <select
+            className={cn(
+              'w-full px-4 py-2.5 rounded-lg border bg-white text-slate-900 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-sm shadow-sm appearance-none',
+              errors.residentType ? 'border-red-400' : 'border-slate-300'
+            )}
+            {...register('residentType')}
+          >
+            <option value="">Resident Type</option>
+            <option value="OWNER">Owner</option>
+            <option value="TENANT">Tenant</option>
+          </select>
+        </div>
+        {errors.residentType && <p className="mt-1 text-xs text-red-600">{errors.residentType.message}</p>}
+      </div>
+
+      <div>
+        <div className="relative">
+          <Mail className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+          <input
+            type="email"
+            placeholder="Email Address"
+            autoComplete="email"
+            className={cn(
+              'w-full pl-10 pr-4 py-2.5 rounded-lg border bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-sm shadow-sm',
+              errors.email ? 'border-red-400' : 'border-slate-300'
+            )}
+            {...register('email')}
+          />
+        </div>
+        {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>}
+      </div>
+
+      <div>
+        <div className="relative">
+          <Lock className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+          <input
+            type="password"
+            placeholder="Password (min 8 characters)"
+            autoComplete="new-password"
+            className={cn(
+              'w-full pl-10 pr-4 py-2.5 rounded-lg border bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-sm shadow-sm',
+              errors.password ? 'border-red-400' : 'border-slate-300'
+            )}
+            {...register('password')}
+          />
+        </div>
+        {errors.password && <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>}
+      </div>
+
+      <Button
+        type="submit"
+        className="w-full bg-slate-900 hover:bg-slate-800 text-white h-11 text-base font-medium shadow-lg shadow-slate-900/10"
+        disabled={isLoading}
+      >
+        {isLoading ? (
+          <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating Account...</>
+        ) : (
+          <>Create Account<ArrowRight className="w-4 h-4 ml-2" /></>
+        )}
+      </Button>
+    </form>
+  )
+}
+
+function ForgotPasswordPanel({ onBack }: { onBack: () => void }) {
+  const [email, setEmail] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [sent, setSent] = useState(false)
+  const supabase = createClient()
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/reset-password`,
+    })
+    setIsLoading(false)
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+    setSent(true)
+  }
+
+  if (sent) {
+    return (
+      <div className="text-center space-y-4 py-4">
+        <div className="flex justify-center">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+            <Mail className="w-8 h-8 text-blue-600" />
+          </div>
+        </div>
+        <h3 className="text-lg font-semibold text-slate-900">Check Your Email</h3>
+        <p className="text-sm text-slate-500 leading-relaxed">
+          If an account exists for <strong>{email}</strong>, a password reset link has been sent.
+        </p>
+        <button
+          type="button"
+          onClick={onBack}
+          className="text-sm font-medium text-emerald-600 hover:text-emerald-700"
+        >
+          Back to Sign In
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-lg font-semibold text-slate-900 mb-1">Reset Password</h3>
+        <p className="text-sm text-slate-500">Enter your email and we&apos;ll send a reset link.</p>
+      </div>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="relative">
+          <Mail className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+          <input
+            type="email"
+            required
+            placeholder="Email Address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-sm shadow-sm"
+          />
+        </div>
+        <Button
+          type="submit"
+          className="w-full bg-slate-900 hover:bg-slate-800 text-white h-11 text-base font-medium"
+          disabled={isLoading}
+        >
+          {isLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending...</> : 'Send Reset Link'}
+        </Button>
+      </form>
+      <button
+        type="button"
+        onClick={onBack}
+        className="block w-full text-center text-sm text-slate-500 hover:text-slate-700"
+      >
+        Back to Sign In
+      </button>
+    </div>
+  )
+}
+
+export default function LoginPage() {
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login')
+
+  return (
+    <div className="max-w-4xl w-full bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row h-auto md:h-[700px]">
+
+      {/* Left Side — Branding */}
+      <div className="hidden md:flex flex-col justify-between w-1/2 bg-slate-900 p-12 text-white relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-full bg-[url('https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?q=80&w=1000&auto=format&fit=crop')] bg-cover opacity-20" />
+        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-slate-900/50 to-slate-900" />
+
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 text-emerald-400 mb-6">
+            <div className="w-10 h-10 bg-emerald-500/20 backdrop-blur-sm rounded-lg flex items-center justify-center border border-emerald-500/30">
+              <Building2 className="w-6 h-6" />
+            </div>
+            <span className="text-2xl font-bold tracking-tight">Ilmia One</span>
+          </div>
+          <h1 className="text-4xl font-bold leading-tight mb-4">
+            Modern Living,<br />Simplified.
+          </h1>
+          <p className="text-slate-400 text-lg">
+            Manage your bills, visitors, and community connection all in one place.
+          </p>
+        </div>
+
+        <div className="relative z-10 space-y-4">
+          {['Secure Payment Gateway', 'Instant Visitor Passes', 'Community Updates'].map((item) => (
+            <div key={item} className="flex items-center gap-3 text-sm text-slate-300">
+              <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              </div>
+              <span>{item}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="relative z-10 text-xs text-slate-500 mt-12">
+          © 2026 Ilmia One Management. All rights reserved.
+        </div>
+      </div>
+
+      {/* Right Side — Form */}
+      <div className="flex-1 flex flex-col justify-center p-8 md:p-12">
+        <div className="max-w-sm mx-auto w-full">
+          {mode !== 'forgot' && (
             <div className="text-center mb-8">
               <h2 className="text-2xl font-bold text-slate-900 mb-2">
-                {isRegister ? 'Create an Account' : 'Welcome Back'}
+                {mode === 'register' ? 'Create an Account' : 'Welcome Back'}
               </h2>
               <p className="text-slate-500 text-sm">
-                {isRegister
+                {mode === 'register'
                   ? 'Join your community today.'
                   : 'Enter your credentials to access your account.'}
               </p>
             </div>
+          )}
 
-            {error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">
-                {error}
-              </div>
-            )}
+          {mode === 'login' && <LoginForm onForgotPassword={() => setMode('forgot')} />}
+          {mode === 'register' && <RegisterForm />}
+          {mode === 'forgot' && <ForgotPasswordPanel onBack={() => setMode('login')} />}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {isRegister && (
-                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
-                    <input
-                      name="fullName"
-                      required
-                      type="text"
-                      placeholder="Full Name"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-sm shadow-sm"
-                      value={formData.fullName}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="relative">
-                      <Home className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
-                      <input
-                        name="houseNumber"
-                        required
-                        type="text"
-                        placeholder="House No."
-                        className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-sm shadow-sm"
-                        value={formData.houseNumber}
-                        onChange={handleChange}
-                      />
-                    </div>
-                    <div className="relative">
-                      <CreditCard className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
-                      <input
-                        name="icNumber"
-                        required
-                        type="text"
-                        placeholder="IC Number"
-                        className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-sm shadow-sm"
-                        value={formData.icNumber}
-                        onChange={handleChange}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-4">
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
-                  <input
-                    name="email"
-                    required
-                    type="email"
-                    placeholder="Email Address"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-sm shadow-sm"
-                    value={formData.email}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
-                  <input
-                    name="password"
-                    required
-                    type="password"
-                    placeholder="Password"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-sm shadow-sm"
-                    value={formData.password}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-
-              {!isRegister && (
-                 <div className="flex justify-end">
-                   <button type="button" className="text-xs font-medium text-emerald-600 hover:text-emerald-700">
-                     Forgot Password?
-                   </button>
-                 </div>
-              )}
-
-              <Button
-                type="submit"
-                className="w-full bg-slate-900 hover:bg-slate-800 text-white h-11 text-base font-medium shadow-lg shadow-slate-900/10"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    {isRegister ? 'Creating Account...' : 'Signing In...'}
-                  </>
-                ) : (
-                  <>
-                    {isRegister ? 'Create Account' : 'Sign In'}
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </>
-                )}
-              </Button>
-            </form>
-
+          {mode !== 'forgot' && (
             <div className="mt-8 text-center">
               <p className="text-sm text-slate-500">
-                {isRegister ? "Already have an account?" : "Don't have an account?"}
+                {mode === 'register' ? 'Already have an account?' : "Don't have an account?"}
                 <button
-                  onClick={() => {
-                    setIsRegister(!isRegister)
-                    setError(null)
-                  }}
+                  onClick={() => setMode(mode === 'register' ? 'login' : 'register')}
                   className="ml-1 font-semibold text-emerald-600 hover:text-emerald-700 transition-colors"
                   type="button"
                 >
-                  {isRegister ? 'Sign In' : 'Register Now'}
+                  {mode === 'register' ? 'Sign In' : 'Register Now'}
                 </button>
               </p>
             </div>
-
-            {!isRegister && (
-              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-xs font-semibold text-blue-900 mb-2">Demo Credentials:</p>
-                <div className="text-xs text-blue-700 space-y-1">
-                  <div><strong>Resident:</strong> resident@ilmiaone.com / resident123</div>
-                  <div><strong>Treasurer:</strong> treasurer@ilmiaone.com / treasurer123</div>
-                  <div><strong>Guard:</strong> guard@ilmiaone.com / guard123</div>
-                  <div><strong>Admin:</strong> admin@ilmiaone.com / admin123</div>
-                </div>
-              </div>
-            )}
-          </div>
+          )}
         </div>
       </div>
+    </div>
   )
 }

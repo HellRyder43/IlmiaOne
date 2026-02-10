@@ -9,9 +9,9 @@ import type { Invoice } from '@/lib/types';
 
 // Mock data for Dashboard view only
 const dashboardInvoices: Invoice[] = [
-  { id: 'INV-2023-12', month: 'December 2023', amount: 145.50, status: 'PENDING', dueDate: '2023-12-31' },
-  { id: 'INV-2023-11', month: 'November 2023', amount: 143.00, status: 'PAID', dueDate: '2023-11-30' },
-  { id: 'INV-2023-10', month: 'October 2023', amount: 143.00, status: 'PAID', dueDate: '2023-10-31' },
+  { id: 'INV-2023-12', houseId: '', month: 'December 2023', amount: 145.50, status: 'PENDING', dueDate: '2023-12-31', breakdown: { maintenance: 130.00, sinkingFund: 13.00, water: 2.50 } },
+  { id: 'INV-2023-11', houseId: '', month: 'November 2023', amount: 143.00, status: 'PAID', dueDate: '2023-11-30', breakdown: { maintenance: 130.00, sinkingFund: 13.00 } },
+  { id: 'INV-2023-10', houseId: '', month: 'October 2023', amount: 143.00, status: 'PAID', dueDate: '2023-10-31', breakdown: { maintenance: 130.00, sinkingFund: 13.00 } },
 ];
 
 export default function ResidentDashboard() {

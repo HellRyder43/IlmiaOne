@@ -20,11 +20,12 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { DetailedInvoice } from '@/lib/types';
+import type { Invoice } from '@/lib/types';
 
-const mockInvoices: DetailedInvoice[] = [
+const mockInvoices: Invoice[] = [
   {
     id: 'INV-2023-12',
+    houseId: '',
     month: 'December 2023',
     amount: 145.50,
     status: 'PENDING',
@@ -33,6 +34,7 @@ const mockInvoices: DetailedInvoice[] = [
   },
   {
     id: 'INV-2023-11',
+    houseId: '',
     month: 'November 2023',
     amount: 143.00,
     status: 'PAID',
@@ -41,6 +43,7 @@ const mockInvoices: DetailedInvoice[] = [
   },
   {
     id: 'INV-2023-10',
+    houseId: '',
     month: 'October 2023',
     amount: 143.00,
     status: 'PAID',
@@ -49,6 +52,7 @@ const mockInvoices: DetailedInvoice[] = [
   },
   {
     id: 'INV-2023-09',
+    houseId: '',
     month: 'September 2023',
     amount: 143.00,
     status: 'PAID',
@@ -58,7 +62,7 @@ const mockInvoices: DetailedInvoice[] = [
 ];
 
 export default function BillingPage() {
-  const [invoices, setInvoices] = useState<DetailedInvoice[]>(mockInvoices);
+  const [invoices, setInvoices] = useState<Invoice[]>(mockInvoices);
   const [activeTab, setActiveTab] = useState<'pending' | 'history'>('pending');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'FPX' | 'CARD' | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);

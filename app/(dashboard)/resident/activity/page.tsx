@@ -37,7 +37,7 @@ const getActivityIcon = (type: string) => {
 export default function ActivityLogPage() {
   // Group activities by date
   const groupedActivities = activities.reduce((groups, activity) => {
-    const date = activity.metadata?.date || 'Unknown';
+    const date = (activity.metadata?.['date'] as string | undefined) || 'Unknown';
     if (!groups[date]) {
       groups[date] = [];
     }

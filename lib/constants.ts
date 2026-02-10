@@ -162,26 +162,3 @@ export const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
 export const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 export const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
-// Mock user credentials for development (remove in production)
-export const MOCK_CREDENTIALS = {
-  resident: {
-    email: 'resident@ilmiaone.com',
-    password: 'resident123',
-    role: 'RESIDENT' as UserRole,
-  },
-  treasurer: {
-    email: 'treasurer@ilmiaone.com',
-    password: 'treasurer123',
-    role: 'TREASURER' as UserRole,
-  },
-  guard: {
-    email: 'guard@ilmiaone.com',
-    password: 'guard123',
-    role: 'GUARD' as UserRole,
-  },
-  admin: {
-    email: 'admin@ilmiaone.com',
-    password: 'admin123',
-    role: 'ADMIN' as UserRole,
-  },
-}

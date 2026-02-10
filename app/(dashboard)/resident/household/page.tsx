@@ -15,19 +15,17 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { FamilyMember } from '@/lib/types';
+import type { FamilyMember, Relationship } from '@/lib/types';
 
 export default function HouseholdPage() {
   const [residentType, setResidentType] = useState<'OWNER' | 'TENANT'>('OWNER');
-  const [members, setMembers] = useState<FamilyMember[]>([
-    { id: '1', name: 'John Doe', relationship: 'Self', icNumber: '' }
-  ]);
+  const [members, setMembers] = useState<FamilyMember[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
   // New Member Form State
   const [newMemberName, setNewMemberName] = useState('');
-  const [newMemberRel, setNewMemberRel] = useState('Spouse');
+  const [newMemberRel, setNewMemberRel] = useState<Relationship>('SPOUSE');
 
   const addMember = (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,13 +33,13 @@ export default function HouseholdPage() {
 
     const newMember: FamilyMember = {
         id: Math.random().toString(36).substr(2, 9),
+        houseId: '',
         name: newMemberName,
         relationship: newMemberRel,
-        icNumber: ''
     };
     setMembers([...members, newMember]);
     setNewMemberName('');
-    setNewMemberRel('Spouse');
+    setNewMemberRel('SPOUSE');
   };
 
   const removeMember = (id: string) => {
@@ -169,17 +167,17 @@ export default function HouseholdPage() {
                            <div className="flex items-center gap-4">
                               <div className={cn(
                                   "w-10 h-10 rounded-full flex items-center justify-center text-white font-bold",
-                                  member.relationship === 'Self' ? "bg-primary-500" : "bg-slate-400"
+                                  false ? "bg-primary-500" : "bg-slate-400"
                               )}>
                                   {member.name.charAt(0)}
                               </div>
                               <div>
-                                  <p className="font-bold text-slate-900">{member.name} {member.relationship === 'Self' && <span className="text-xs font-normal text-slate-400">(You)</span>}</p>
+                                  <p className="font-bold text-slate-900">{member.name} {false && <span className="text-xs font-normal text-slate-400">(You)</span>}</p>
                                   <p className="text-xs text-slate-500">{member.relationship}</p>
                               </div>
                            </div>
 
-                           {member.relationship !== 'Self' && (
+                           {true && (
                                <Button
                                 variant="ghost"
                                 size="icon"
@@ -211,13 +209,12 @@ export default function HouseholdPage() {
                             <select
                               className="w-full px-4 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-900 text-sm focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 appearance-none shadow-sm"
                               value={newMemberRel}
-                              onChange={(e) => setNewMemberRel(e.target.value)}
+                              onChange={(e) => setNewMemberRel(e.target.value as Relationship)}
                             >
-                                <option value="Spouse">Spouse</option>
-                                <option value="Child">Child</option>
-                                <option value="Parent">Parent</option>
-                                <option value="Sibling">Sibling</option>
-                                <option value="Other">Other</option>
+                                <option value="SPOUSE">Spouse</option>
+                                <option value="CHILD">Child</option>
+                                <option value="RELATIVE">Relative</option>
+                                <option value="TENANT">Tenant</option>
                             </select>
                             <div className="absolute right-3 top-3 pointer-events-none text-slate-400">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>

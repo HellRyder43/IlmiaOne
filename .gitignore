@@ -41,3 +41,6 @@ next-env.d.ts
 
 # docs
 *.pdf
+
+# claude local settings (may contain API tokens)
+.claude/settings.local.json

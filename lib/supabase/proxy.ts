@@ -51,11 +51,10 @@ export async function updateSession(request: NextRequest) {
   // Define public routes that don't require authentication
   const isPublicRoute =
     pathname === "/login" ||
-    pathname === "/" ||
     pathname.startsWith("/auth")
 
-  // If accessing login page while authenticated, redirect to role dashboard
-  if (isPublicRoute && user) {
+  // Redirect authenticated users away from root/login/auth pages to their dashboard
+  if ((isPublicRoute || pathname === "/") && user) {
     // Check root-level claim (set by JWT hook) then fall back to app_metadata
     const role = (user.user_role ?? user.app_metadata?.user_role) as string | undefined
     const dashboardMap: Record<string, string> = {
@@ -65,13 +64,9 @@ export async function updateSession(request: NextRequest) {
       ADMIN: "/admin",
     }
     const dashboard = (role && dashboardMap[role]) || "/resident"
-
-    // Only redirect if on login page, not on landing page
-    if (pathname === "/login") {
-      const url = request.nextUrl.clone()
-      url.pathname = dashboard
-      return NextResponse.redirect(url)
-    }
+    const url = request.nextUrl.clone()
+    url.pathname = dashboard
+    return NextResponse.redirect(url)
   }
 
   // If accessing protected route without authentication, redirect to login

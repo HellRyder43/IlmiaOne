@@ -264,7 +264,7 @@ visitor_logs
   - check_out_time (TIMESTAMPTZ, nullable)
   - status (TEXT: 'INSIDE' | 'EXITED')
   - guard_id (UUID, references profiles.id)
-  - entry_method (TEXT: 'QR_SCAN' | 'WALK_IN' | 'MANUAL')
+  - entry_method (TEXT: 'QR_SCAN' | 'WALK_IN' | 'MANUAL' | 'SELF_SERVICE')
 
 events
   - id (UUID)
@@ -378,7 +378,7 @@ export interface EntryLog {
   checkOutTime?: string;
   status: "INSIDE" | "EXITED";
   guardId: string; // was `guardName` — use ID, resolve name via join
-  entryMethod: "QR_SCAN" | "WALK_IN" | "MANUAL"; // NEW — required per PRD
+  entryMethod: "QR_SCAN" | "WALK_IN" | "MANUAL" | "SELF_SERVICE"; // SELF_SERVICE = static QR at guardhouse
 }
 ```
 
@@ -529,8 +529,10 @@ Both walk-in and pre-registered visitor flows are to be implemented simultaneous
 
 #### Guard Walk-In Visitor Logging
 
+When the guard is present at the guardhouse, they register visitors manually:
+
 1. Guard opens guard dashboard → clicks "Register Walk-In" action card
-2. Guard fills visitor form directly on the dashboard (no static QR at guardhouse — guard fills the form themselves):
+2. Guard fills visitor form directly on their device:
    - Visitor name (required)
    - IC number (optional, last 4 digits only)
    - Visitor type (required, dropdown: Visitor, Contractor, E-hailing, Courier, Others)
@@ -541,6 +543,32 @@ Both walk-in and pre-registered visitor flows are to be implemented simultaneous
 3. All mandatory fields validated with Zod before submission
 4. Entry saved to `visitor_logs` table with `entry_method: 'WALK_IN'`
 5. Guard dashboard shows live stats (visitors inside, total entries today, deliveries, overstayed)
+
+#### Static QR Self-Service Visitor Logging
+
+A printed static QR code is posted at the guardhouse entrance. This handles the case when **the guard is on patrol or temporarily away from the post**. The visitor scans the QR and self-registers without needing a guard present.
+
+**Flow:**
+1. Admin generates the static QR from the Admin panel (one-time setup). The QR encodes a fixed public URL: `/visitor/self-register`
+2. The QR is printed and displayed at the gate entrance
+3. Visitor scans the QR with their phone → lands on a **public, unauthenticated** self-registration page
+4. Visitor fills in their own details:
+   - Visitor name (required)
+   - Phone number (required — for accountability since no guard is present)
+   - Visitor type (required, dropdown)
+   - House number visiting (required, dropdown)
+   - Reason for visit (required)
+   - Vehicle number (optional)
+   - IC number (optional, last 4 digits only)
+5. On submit → entry saved to `visitor_logs` with `entry_method: 'SELF_SERVICE'`
+6. Guard reviews self-registered entries on their dashboard when they return
+
+**Design notes:**
+- The static QR itself never expires and never changes — only the URL it points to matters
+- The `/visitor/self-register` page is fully public (no login required)
+- Phone number is required (not optional) in this flow for accountability
+- Guard can flag or remove suspicious self-service entries
+- In-app notification sent to guard's device when a self-service entry is created (Supabase Realtime)
 
 #### Resident Visitor Pre-Registration
 
@@ -579,6 +607,7 @@ Both walk-in and pre-registered visitor flows are to be implemented simultaneous
 - Invalid IC: guard manually corrects or skips
 - Camera permission denied: fall back to manual code entry
 - Offline mode: not required for v1
+- Self-service abuse: guard can delete or flag suspicious `SELF_SERVICE` entries; all self-service entries are visually distinct in the logs (tagged "Self-Service") so the guard can review them on return
 
 #### Key Files to Modify
 
@@ -595,6 +624,7 @@ Both walk-in and pre-registered visitor flows are to be implemented simultaneous
 - ✅ `lib/supabase/server.ts` — server Supabase client (done)
 - `app/api/guard/scan/route.ts` — API route for QR verification
 - `app/api/visitors/pre-register/route.ts` — API route for pre-registration
+- `app/visitor/self-register/page.tsx` — **public** (unauthenticated) self-service form linked from the static guardhouse QR
 
 ---
 

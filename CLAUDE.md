@@ -523,7 +523,7 @@ The following infrastructure has been set up and is ready to use:
 
 ---
 
-### Phase 1: Guard & Visitor Module
+### Phase 1: Guard & Visitor Module (CURRENT PRIORITY)
 
 Both walk-in and pre-registered visitor flows are to be implemented simultaneously.
 
@@ -587,7 +587,7 @@ Both walk-in and pre-registered visitor flows are to be implemented simultaneous
 - `app/(dashboard)/guard/logs/page.tsx` — Supabase queries with filters
 - `app/(dashboard)/resident/visitors/page.tsx` — pre-registration with Supabase + real QR generation
 - `lib/types.ts` — update/align types with Supabase schema
-- `lib/auth.tsx` — replace mock auth with Supabase Auth
+- ✅ `lib/auth.tsx` — Supabase Auth (done)
 
 #### New Files to Create
 
@@ -598,7 +598,7 @@ Both walk-in and pre-registered visitor flows are to be implemented simultaneous
 
 ---
 
-### Phase 2: Authentication & User Registration (CURRENT PRIORITY)
+### Phase 2: Authentication & User Registration ✅ COMPLETED
 
 #### Requirements
 

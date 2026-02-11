@@ -43,6 +43,12 @@
 
 ---
 
+## Hosting Server
+
+- Vercel - after pushing changes to GitHub, vercel will take the latest commit and rebuild
+
+---
+
 ## Directory Structure
 
 ```

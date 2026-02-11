@@ -427,6 +427,18 @@ export default function LoginPage() {
               </p>
             </div>
           )}
+
+          {mode === 'login' && (
+            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-xs font-semibold text-blue-900 mb-2">Demo Credentials:</p>
+              <div className="text-xs text-blue-700 space-y-1">
+                <div><strong>Resident:</strong> resident@ilmiaone.com / resident123</div>
+                <div><strong>Treasurer:</strong> treasurer@ilmiaone.com / treasurer123</div>
+                <div><strong>Guard:</strong> guard@ilmiaone.com / guard123</div>
+                <div><strong>Admin:</strong> admin@ilmiaone.com / admin123</div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

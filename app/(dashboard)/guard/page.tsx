@@ -1,23 +1,103 @@
-'use client';
+'use client'
 
-import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { QrCode, FileText, Users, Clock, AlertTriangle, ShieldCheck, Truck, Car } from 'lucide-react';
-import Link from 'next/link';
+import { useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from '@/components/ui/dialog'
+import {
+  QrCode, FileText, Users, AlertTriangle, ShieldCheck,
+  Truck, Car, UserPlus, Loader2, Hammer, Bike, HelpCircle, User,
+} from 'lucide-react'
+import Link from 'next/link'
+import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
+import { useGuardStats } from '@/hooks/use-visitor-logs'
+import type { VisitorType } from '@/lib/types'
+
+const walkInSchema = z.object({
+  visitorName: z.string().min(1, 'Visitor name is required'),
+  icNumber: z.string().max(4, 'Last 4 digits only').optional(),
+  visitorType: z.enum(['VISITOR', 'CONTRACTOR', 'E_HAILING', 'COURIER', 'OTHERS']),
+  visitReason: z.string().min(1, 'Reason for visit is required'),
+  houseNumber: z.string().min(1, 'House number is required'),
+  vehicleNumber: z.string().optional(),
+  phoneNumber: z.string().optional(),
+})
+
+type WalkInFormData = z.infer<typeof walkInSchema>
+
+interface HouseOption {
+  id: string
+  house_number: string
+}
+
+const VISITOR_TYPES: { value: VisitorType; label: string; Icon: React.ElementType }[] = [
+  { value: 'VISITOR', label: 'Visitor', Icon: User },
+  { value: 'CONTRACTOR', label: 'Contractor', Icon: Hammer },
+  { value: 'E_HAILING', label: 'E-Hailing', Icon: Bike },
+  { value: 'COURIER', label: 'Courier', Icon: Truck },
+  { value: 'OTHERS', label: 'Others', Icon: HelpCircle },
+]
 
 export default function GuardDashboard() {
+  const { stats, isLoading: statsLoading, refresh } = useGuardStats()
+  const [isWalkInOpen, setIsWalkInOpen] = useState(false)
+  const [houses, setHouses] = useState<HouseOption[]>([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<WalkInFormData>({
+    resolver: zodResolver(walkInSchema),
+    defaultValues: { visitorType: 'VISITOR' },
+  })
+
+  const selectedType = watch('visitorType')
+
+  useEffect(() => {
+    fetch('/api/houses')
+      .then(r => r.json())
+      .then(setHouses)
+      .catch(() => {})
+  }, [])
+
+  const onSubmitWalkIn = async (data: WalkInFormData) => {
+    setIsSubmitting(true)
+    try {
+      const res = await fetch('/api/guard/walk-in', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+      if (!res.ok) {
+        const body = await res.json()
+        throw new Error(body.error ?? 'Failed to log entry')
+      }
+      toast.success(`Walk-in entry logged for ${data.visitorName}`)
+      reset()
+      setIsWalkInOpen(false)
+      refresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to log entry')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   return (
     <div className="space-y-8">
       {/* Dashboard Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold text-slate-900">Guard Station Dashboard</h2>
-          <p className="text-slate-500 mt-1">Shift A • Main Gate • {new Date().toLocaleDateString()}</p>
+          <p className="text-slate-500 mt-1">Main Gate · {new Date().toLocaleDateString('en-MY', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="px-4 py-2 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-100 flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span className="text-sm font-semibold">System Online</span>
           </div>
         </div>
@@ -31,7 +111,9 @@ export default function GuardDashboard() {
               <Users className="w-4 h-4" />
               <span className="text-xs font-bold uppercase tracking-wider">Visitors Inside</span>
             </div>
-            <p className="text-3xl font-bold text-slate-900">24</p>
+            <p className="text-3xl font-bold text-slate-900">
+              {statsLoading ? <span className="text-slate-300">—</span> : stats.visitorsInside}
+            </p>
           </CardContent>
         </Card>
         <Card className="border-slate-200 shadow-sm">
@@ -40,7 +122,9 @@ export default function GuardDashboard() {
               <Truck className="w-4 h-4" />
               <span className="text-xs font-bold uppercase tracking-wider">Deliveries</span>
             </div>
-            <p className="text-3xl font-bold text-slate-900">12</p>
+            <p className="text-3xl font-bold text-slate-900">
+              {statsLoading ? <span className="text-slate-300">—</span> : stats.deliveriesToday}
+            </p>
           </CardContent>
         </Card>
         <Card className="border-slate-200 shadow-sm">
@@ -49,25 +133,43 @@ export default function GuardDashboard() {
               <Car className="w-4 h-4" />
               <span className="text-xs font-bold uppercase tracking-wider">Total Entries</span>
             </div>
-            <p className="text-3xl font-bold text-slate-900">86</p>
+            <p className="text-3xl font-bold text-slate-900">
+              {statsLoading ? <span className="text-slate-300">—</span> : stats.totalEntriesToday}
+            </p>
           </CardContent>
         </Card>
-        <Card className="border-red-100 bg-red-50/50 shadow-sm">
+        <Card className={cn('shadow-sm', stats.overstayedVisitors > 0 ? 'border-red-100 bg-red-50/50' : 'border-slate-200')}>
           <CardContent className="p-6">
-            <div className="flex items-center gap-3 mb-2 text-red-600">
+            <div className={cn('flex items-center gap-3 mb-2', stats.overstayedVisitors > 0 ? 'text-red-600' : 'text-slate-500')}>
               <AlertTriangle className="w-4 h-4" />
               <span className="text-xs font-bold uppercase tracking-wider">Overstayed</span>
             </div>
-            <p className="text-3xl font-bold text-red-700">2</p>
+            <p className={cn('text-3xl font-bold', stats.overstayedVisitors > 0 ? 'text-red-700' : 'text-slate-900')}>
+              {statsLoading ? <span className="text-slate-300">—</span> : stats.overstayedVisitors}
+            </p>
           </CardContent>
         </Card>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
-        {/* Primary Actions */}
-        <div className="space-y-6">
+        {/* Quick Actions */}
+        <div className="space-y-4">
           <h3 className="text-lg font-bold text-slate-900">Quick Actions</h3>
-          <div className="grid grid-cols-1 gap-4">
+          <div className="space-y-3">
+            <button onClick={() => setIsWalkInOpen(true)} className="w-full text-left">
+              <Card className="hover:shadow-md transition-shadow hover:border-amber-200 group cursor-pointer border-slate-200">
+                <CardContent className="p-6 flex items-center gap-6">
+                  <div className="w-16 h-16 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-600 group-hover:scale-110 transition-transform">
+                    <UserPlus className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <h4 className="text-xl font-bold text-slate-900 group-hover:text-amber-700 transition-colors">Register Walk-In</h4>
+                    <p className="text-slate-500 mt-1">Log a visitor manually without a QR pass.</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </button>
+
             <Link href="/guard/scanner">
               <Card className="hover:shadow-md transition-shadow hover:border-emerald-200 group cursor-pointer border-slate-200">
                 <CardContent className="p-6 flex items-center gap-6">
@@ -75,8 +177,8 @@ export default function GuardDashboard() {
                     <QrCode className="w-8 h-8" />
                   </div>
                   <div>
-                    <h4 className="text-xl font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">Scan Entry</h4>
-                    <p className="text-slate-500 mt-1">Open camera scanner for Visitor & Delivery passes.</p>
+                    <h4 className="text-xl font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">Scan QR Pass</h4>
+                    <p className="text-slate-500 mt-1">Verify a pre-registered visitor&apos;s QR code.</p>
                   </div>
                 </CardContent>
               </Card>
@@ -90,7 +192,7 @@ export default function GuardDashboard() {
                   </div>
                   <div>
                     <h4 className="text-xl font-bold text-slate-900 group-hover:text-indigo-700 transition-colors">View Entry Logs</h4>
-                    <p className="text-slate-500 mt-1">Check history, check-out visitors manually.</p>
+                    <p className="text-slate-500 mt-1">Check history and check-out visitors.</p>
                   </div>
                 </CardContent>
               </Card>
@@ -98,30 +200,28 @@ export default function GuardDashboard() {
           </div>
         </div>
 
-        {/* Recent Alerts / Notices */}
-        <div className="space-y-6">
+        {/* Notices */}
+        <div className="space-y-4">
           <h3 className="text-lg font-bold text-slate-900">Important Notices</h3>
-          <Card className="border-slate-200 shadow-sm h-full">
+          <Card className="border-slate-200 shadow-sm">
             <CardContent className="p-0">
               <div className="divide-y divide-slate-100">
                 <div className="p-4 flex gap-4 hover:bg-slate-50">
-                  <div className="mt-1">
-                    <AlertTriangle className="w-5 h-5 text-amber-500" />
-                  </div>
+                  <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-bold text-slate-900 text-sm">Blacklisted Vehicle</p>
-                    <p className="text-slate-600 text-sm mt-1">Plate <span className="font-mono font-bold bg-slate-100 px-1 rounded">WAA 1234</span> attempting entry. Deny access.</p>
-                    <p className="text-xs text-slate-400 mt-2">Posted 2 hours ago</p>
+                    <p className="font-bold text-slate-900 text-sm">Self-Service Entries</p>
+                    <p className="text-slate-600 text-sm mt-1">
+                      Review unverified self-service entries in the Entry Logs when you return from patrol.
+                    </p>
                   </div>
                 </div>
                 <div className="p-4 flex gap-4 hover:bg-slate-50">
-                  <div className="mt-1">
-                    <ShieldCheck className="w-5 h-5 text-indigo-500" />
-                  </div>
+                  <ShieldCheck className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-bold text-slate-900 text-sm">Road Repair Works</p>
-                    <p className="text-slate-600 text-sm mt-1">Contractors paving the main road at Jalan Merbhau.</p>
-                    <p className="text-xs text-slate-400 mt-2">Posted 4 hours ago</p>
+                    <p className="font-bold text-slate-900 text-sm">Neighbourhood Security</p>
+                    <p className="text-slate-600 text-sm mt-1">
+                      Deny access to visitors without a valid QR pass or walk-in registration.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -129,6 +229,137 @@ export default function GuardDashboard() {
           </Card>
         </div>
       </div>
+
+      {/* Walk-In Dialog */}
+      <Dialog open={isWalkInOpen} onOpenChange={setIsWalkInOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Register Walk-In Visitor</DialogTitle>
+            <DialogDescription>
+              Fill in the visitor details to log their entry.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit(onSubmitWalkIn)} className="space-y-4 mt-2">
+            {/* Visitor Name */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700">
+                Visitor Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                {...register('visitorName')}
+                placeholder="e.g. Ahmad bin Razak"
+                className="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+              />
+              {errors.visitorName && <p className="text-xs text-red-500">{errors.visitorName.message}</p>}
+            </div>
+
+            {/* Visitor Type */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700">
+                Visitor Type <span className="text-red-500">*</span>
+              </label>
+              <div className="grid grid-cols-5 gap-2">
+                {VISITOR_TYPES.map(({ value, label, Icon }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setValue('visitorType', value)}
+                    className={cn(
+                      'flex flex-col items-center gap-1 py-2 rounded-lg border text-xs font-medium transition-all',
+                      selectedType === value
+                        ? 'bg-indigo-50 border-indigo-500 text-indigo-700'
+                        : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50',
+                    )}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span className="text-[10px] leading-tight text-center">{label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* House Number */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700">
+                House Number <span className="text-red-500">*</span>
+              </label>
+              {houses.length > 0 ? (
+                <select
+                  {...register('houseNumber')}
+                  className="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all appearance-none"
+                >
+                  <option value="">Select house number</option>
+                  {houses.map(h => (
+                    <option key={h.id} value={h.house_number}>No. {h.house_number}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  {...register('houseNumber')}
+                  placeholder="e.g. 12"
+                  className="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                />
+              )}
+              {errors.houseNumber && <p className="text-xs text-red-500">{errors.houseNumber.message}</p>}
+            </div>
+
+            {/* Reason for Visit */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700">
+                Reason for Visit <span className="text-red-500">*</span>
+              </label>
+              <input
+                {...register('visitReason')}
+                placeholder="e.g. Social visit, maintenance work"
+                className="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+              />
+              {errors.visitReason && <p className="text-xs text-red-500">{errors.visitReason.message}</p>}
+            </div>
+
+            {/* Optional Fields */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">IC No. (last 4)</label>
+                <input
+                  {...register('icNumber')}
+                  placeholder="1234"
+                  maxLength={4}
+                  className="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-mono"
+                />
+                {errors.icNumber && <p className="text-xs text-red-500">{errors.icNumber.message}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">Vehicle No.</label>
+                <input
+                  {...register('vehicleNumber')}
+                  placeholder="WXX 1234"
+                  className="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all uppercase"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700">Phone Number</label>
+              <input
+                {...register('phoneNumber')}
+                type="tel"
+                placeholder="e.g. 0123456789"
+                className="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+              />
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <Button type="button" variant="outline" className="flex-1" onClick={() => { reset(); setIsWalkInOpen(false) }}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting} className="flex-1 bg-slate-900 hover:bg-slate-800">
+                {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Logging...</> : 'Log Entry'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
-  );
+  )
 }

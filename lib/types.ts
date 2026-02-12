@@ -183,7 +183,7 @@ export interface EntryLog {
   checkOutTime?: string
   status: 'INSIDE' | 'EXITED'
   guardId: string
-  entryMethod: 'QR_SCAN' | 'WALK_IN' | 'MANUAL'
+  entryMethod: 'QR_SCAN' | 'WALK_IN' | 'MANUAL' | 'SELF_SERVICE'
 }
 
 export interface GuardStats {

@@ -1,128 +1,181 @@
-'use client';
+'use client'
 
-import React, { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { useState, useRef } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import {
-  Plus,
-  Share2,
-  Clock,
-  CalendarDays,
-  User,
-  Truck,
-  Hammer,
-  X,
-  Copy,
-  QrCode,
-  Check
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import type { VisitorPass, VisitorType } from '@/lib/types';
+  Plus, Share2, Clock, CalendarDays, User, Truck, Hammer, X, QrCode,
+  Check, Loader2, Download, Bike, HelpCircle, XCircle,
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
+import { format } from 'date-fns'
+import { useAuth } from '@/hooks/index'
+import { usePreRegistrations } from '@/hooks/use-pre-registrations'
+import type { VisitorType } from '@/lib/types'
+import QRCode from 'react-qr-code'
 
-const mockPasses: VisitorPass[] = [
-  { id: 'v1', residentId: '', houseId: '', visitorName: 'Alice Smith', visitorType: 'VISITOR', visitReason: 'Social visit', expectedDate: '2023-10-25', status: 'ACTIVE', qrCode: 'qr-v1', expiresAt: '2023-10-25T23:59:00Z', createdAt: '2023-10-24T10:00:00Z' },
-  { id: 'v2', residentId: '', houseId: '', visitorName: 'PosLaju Courier', visitorType: 'COURIER', visitReason: 'Package delivery', expectedDate: '2023-10-24', status: 'USED', qrCode: 'qr-v2', expiresAt: '2023-10-24T23:59:00Z', createdAt: '2023-10-23T09:00:00Z' },
-  { id: 'v3', residentId: '', houseId: '', visitorName: 'AirCond Service', visitorType: 'CONTRACTOR', visitReason: 'Air conditioning repair', expectedDate: '2023-10-20', status: 'EXPIRED', qrCode: 'qr-v3', expiresAt: '2023-10-20T23:59:00Z', createdAt: '2023-10-19T08:00:00Z' },
-];
+const preRegSchema = z.object({
+  visitorName: z.string().min(1, 'Visitor name is required'),
+  visitorType: z.enum(['VISITOR', 'CONTRACTOR', 'E_HAILING', 'COURIER', 'OTHERS']),
+  visitReason: z.string().min(1, 'Reason for visit is required'),
+  expectedDate: z.string().min(1, 'Expected date is required'),
+  phoneNumber: z.string().optional(),
+  vehicleNumber: z.string().optional(),
+})
+
+type PreRegFormData = z.infer<typeof preRegSchema>
+
+const TYPE_COLORS: Record<VisitorType, string> = {
+  VISITOR: 'bg-purple-100 text-purple-700 border-purple-200',
+  CONTRACTOR: 'bg-blue-100 text-blue-700 border-blue-200',
+  E_HAILING: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+  COURIER: 'bg-orange-100 text-orange-700 border-orange-200',
+  OTHERS: 'bg-slate-100 text-slate-600 border-slate-200',
+}
+
+const TYPE_ICONS: Record<VisitorType, React.ElementType> = {
+  VISITOR: User,
+  CONTRACTOR: Hammer,
+  E_HAILING: Bike,
+  COURIER: Truck,
+  OTHERS: HelpCircle,
+}
+
+const VISITOR_TYPE_OPTIONS: { value: VisitorType; label: string }[] = [
+  { value: 'VISITOR', label: 'Visitor' },
+  { value: 'CONTRACTOR', label: 'Contractor' },
+  { value: 'E_HAILING', label: 'E-Hailing' },
+  { value: 'COURIER', label: 'Courier' },
+  { value: 'OTHERS', label: 'Others' },
+]
+
+function QrDownloadButton({ qrCode, visitorName }: { qrCode: string; visitorName: string }) {
+  const svgRef = useRef<SVGSVGElement | null>(null)
+
+  const downloadQr = () => {
+    const svgEl = document.getElementById(`qr-${qrCode}`)
+    if (!svgEl) return
+
+    const svgData = new XMLSerializer().serializeToString(svgEl)
+    const canvas = document.createElement('canvas')
+    canvas.width = 256
+    canvas.height = 256
+    const ctx = canvas.getContext('2d')
+    const img = new Image()
+    img.onload = () => {
+      if (ctx) {
+        ctx.fillStyle = 'white'
+        ctx.fillRect(0, 0, 256, 256)
+        ctx.drawImage(img, 0, 0, 256, 256)
+      }
+      const link = document.createElement('a')
+      link.download = `visitor-pass-${visitorName.replace(/\s+/g, '-').toLowerCase()}.png`
+      link.href = canvas.toDataURL('image/png')
+      link.click()
+    }
+    img.src = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svgData)))}`
+  }
+
+  return (
+    <Button variant="outline" size="sm" className="gap-1.5 text-xs h-9" onClick={downloadQr}>
+      <Download className="w-3.5 h-3.5" />
+      Download QR
+    </Button>
+  )
+}
 
 export default function VisitorsPage() {
-  const [passes, setPasses] = useState<VisitorPass[]>(mockPasses);
-  const [isCreating, setIsCreating] = useState(false);
-  const [filter, setFilter] = useState<'ALL' | 'ACTIVE' | 'HISTORY'>('ACTIVE');
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const { user } = useAuth()
+  const { passes, isLoading, createPass, revokePass } = usePreRegistrations(user?.id ?? null)
 
-  // Form State
-  const [newPass, setNewPass] = useState<{
-    name: string;
-    visitorType: VisitorType;
-    expectedDate: string;
-    visitReason: string;
-  }>({
-    name: '',
-    visitorType: 'VISITOR',
-    expectedDate: new Date().toISOString().split('T')[0],
-    visitReason: ''
-  });
+  const [isCreating, setIsCreating] = useState(false)
+  const [filter, setFilter] = useState<'ACTIVE' | 'HISTORY'>('ACTIVE')
+  const [revoking, setRevoking] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleCreate = (e: React.FormEvent) => {
-    e.preventDefault();
-    const expectedDate = newPass.expectedDate;
-    const pass: VisitorPass = {
-      id: Math.random().toString(36).substr(2, 9),
-      residentId: '',
-      houseId: '',
-      visitorName: newPass.name,
-      visitorType: newPass.visitorType,
-      visitReason: newPass.visitReason,
-      expectedDate,
-      status: 'ACTIVE',
-      qrCode: Math.random().toString(36).substr(2, 9),
-      expiresAt: `${expectedDate}T23:59:00Z`,
-      createdAt: new Date().toISOString(),
-    };
-    setPasses([pass, ...passes]);
-    setIsCreating(false);
-    setNewPass({ name: '', visitorType: 'VISITOR', expectedDate: new Date().toISOString().split('T')[0], visitReason: '' });
-  };
+  const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<PreRegFormData>({
+    resolver: zodResolver(preRegSchema),
+    defaultValues: {
+      visitorType: 'VISITOR',
+      expectedDate: new Date().toISOString().split('T')[0],
+    },
+  })
 
-  const handleCopy = (id: string) => {
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
-  };
+  const selectedType = watch('visitorType')
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'COURIER': return <Truck className="w-4 h-4" />;
-      case 'CONTRACTOR': return <Hammer className="w-4 h-4" />;
-      default: return <User className="w-4 h-4" />;
+  const onSubmit = async (data: PreRegFormData) => {
+    if (!user?.houseId) {
+      toast.error('Your house profile is not set up. Contact the administrator.')
+      return
     }
-  };
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'COURIER': return 'bg-orange-100 text-orange-700 border-orange-200';
-      case 'E_HAILING': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-      case 'CONTRACTOR': return 'bg-blue-100 text-blue-700 border-blue-200';
-      default: return 'bg-purple-100 text-purple-700 border-purple-200';
+    setIsSubmitting(true)
+    try {
+      await createPass({ ...data, houseId: user.houseId })
+      toast.success(`Visitor pass created for ${data.visitorName}`)
+      reset({ visitorType: 'VISITOR', expectedDate: new Date().toISOString().split('T')[0] })
+      setIsCreating(false)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to create pass')
+    } finally {
+      setIsSubmitting(false)
     }
-  };
+  }
 
-  const filteredPasses = passes.filter(pass => {
-    if (filter === 'ACTIVE') return pass.status === 'ACTIVE';
-    if (filter === 'HISTORY') return pass.status !== 'ACTIVE';
-    return true;
-  });
+  const handleRevoke = async (id: string) => {
+    setRevoking(id)
+    try {
+      await revokePass(id)
+      toast.success('Visitor pass revoked')
+    } catch {
+      toast.error('Failed to revoke pass')
+    } finally {
+      setRevoking(null)
+    }
+  }
+
+  const filteredPasses = passes.filter(pass =>
+    filter === 'ACTIVE' ? pass.status === 'ACTIVE' : pass.status !== 'ACTIVE',
+  )
+
+  const getTypeIcon = (type: VisitorType) => {
+    const Icon = TYPE_ICONS[type] ?? User
+    return <Icon className="w-4 h-4" />
+  }
 
   return (
     <div className="space-y-8 pb-10">
-      {/* Header Section */}
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h2 className="text-3xl font-bold text-slate-900">Visitor Access</h2>
-          <p className="text-slate-500 mt-1">Generate QR codes for secure entry.</p>
+          <p className="text-slate-500 mt-1">Generate QR passes for your visitors.</p>
         </div>
 
         <div className="flex items-center gap-3">
           <div className="bg-slate-100 p-1 rounded-lg flex">
-             <button
-               onClick={() => setFilter('ACTIVE')}
-               className={cn(
-                 "px-4 py-2 rounded-md text-sm font-medium transition-all",
-                 filter === 'ACTIVE' ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
-               )}
-             >
-               Active
-             </button>
-             <button
-               onClick={() => setFilter('HISTORY')}
-               className={cn(
-                 "px-4 py-2 rounded-md text-sm font-medium transition-all",
-                 filter === 'HISTORY' ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
-               )}
-             >
-               History
-             </button>
+            <button
+              onClick={() => setFilter('ACTIVE')}
+              className={cn(
+                'px-4 py-2 rounded-md text-sm font-medium transition-all',
+                filter === 'ACTIVE' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700',
+              )}
+            >
+              Active
+            </button>
+            <button
+              onClick={() => setFilter('HISTORY')}
+              className={cn(
+                'px-4 py-2 rounded-md text-sm font-medium transition-all',
+                filter === 'HISTORY' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700',
+              )}
+            >
+              History
+            </button>
           </div>
           <Button onClick={() => setIsCreating(true)} className="gap-2 shadow-sm">
             <Plus className="w-4 h-4" /> New Pass
@@ -133,90 +186,125 @@ export default function VisitorsPage() {
       {/* Create Pass Form */}
       {isCreating && (
         <div className="animate-in fade-in slide-in-from-top-4 duration-300">
-          <Card className="border-primary-100 bg-gradient-to-br from-white to-primary-50/30 shadow-lg relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-1 h-full bg-primary-500"></div>
+          <Card className="border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30 shadow-lg relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500" />
             <CardContent className="pt-8 pb-8 px-8">
               <div className="flex justify-between items-start mb-6">
-                 <div>
-                   <h3 className="text-lg font-bold text-slate-900">New Visitor Registration</h3>
-                   <p className="text-slate-500 text-sm">Fill in the details to generate a single-use QR code.</p>
-                 </div>
-                 <Button variant="ghost" size="icon" onClick={() => setIsCreating(false)} className="text-slate-400 hover:text-red-500">
-                   <X className="w-5 h-5" />
-                 </Button>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">New Visitor Pass</h3>
+                  <p className="text-slate-500 text-sm">Fill in the details to generate a QR code.</p>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setIsCreating(false)} className="text-slate-400 hover:text-red-500">
+                  <X className="w-5 h-5" />
+                </Button>
               </div>
 
-              <form onSubmit={handleCreate} className="space-y-6">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-6">
+                  {/* Visitor Name */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700">Visitor Name</label>
+                    <label className="text-sm font-medium text-slate-700">
+                      Visitor Name <span className="text-red-500">*</span>
+                    </label>
                     <div className="relative">
                       <input
-                        required
-                        type="text"
-                        className="flex h-11 w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all shadow-sm"
-                        placeholder="e.g., John Doe"
-                        value={newPass.name}
-                        onChange={e => setNewPass({...newPass, name: e.target.value})}
+                        {...register('visitorName')}
+                        className="flex h-11 w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-sm"
+                        placeholder="e.g. John Doe"
                       />
                       <User className="absolute right-3 top-3.5 w-4 h-4 text-slate-400" />
                     </div>
+                    {errors.visitorName && <p className="text-xs text-red-500">{errors.visitorName.message}</p>}
                   </div>
 
+                  {/* Visitor Type */}
                   <div className="space-y-2">
-                     <label className="text-sm font-medium text-slate-700">Visitor Type</label>
-                     <div className="grid grid-cols-3 gap-3">
-                        {(['VISITOR', 'CONTRACTOR', 'E_HAILING', 'COURIER', 'OTHERS'] as const).map((type) => (
+                    <label className="text-sm font-medium text-slate-700">
+                      Visitor Type <span className="text-red-500">*</span>
+                    </label>
+                    <div className="grid grid-cols-5 gap-2">
+                      {VISITOR_TYPE_OPTIONS.map(({ value, label }) => {
+                        const Icon = TYPE_ICONS[value]
+                        return (
                           <button
-                            key={type}
+                            key={value}
                             type="button"
-                            onClick={() => setNewPass({...newPass, visitorType: type})}
+                            onClick={() => setValue('visitorType', value)}
                             className={cn(
-                              "flex flex-col items-center justify-center gap-1 py-2 rounded-lg border text-xs font-medium transition-all",
-                              newPass.visitorType === type
-                                ? "bg-primary-50 border-primary-500 text-primary-700"
-                                : "bg-white border-slate-300 text-slate-600 hover:bg-slate-50"
+                              'flex flex-col items-center justify-center gap-1 py-2 rounded-lg border text-xs font-medium transition-all',
+                              selectedType === value
+                                ? 'bg-indigo-50 border-indigo-500 text-indigo-700'
+                                : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50',
                             )}
                           >
-                            {getTypeIcon(type)}
-                            <span>{type.replace('_', ' ')}</span>
+                            <Icon className="w-3.5 h-3.5" />
+                            <span className="text-[10px] leading-tight text-center">{label}</span>
                           </button>
-                        ))}
-                     </div>
+                        )
+                      })}
+                    </div>
                   </div>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
+                  {/* Expected Date */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700">Expected Arrival Date</label>
-                    <div className="relative">
-                      <input
-                        required
-                        type="date"
-                        className="flex h-11 w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all shadow-sm"
-                        value={newPass.expectedDate}
-                        min={new Date().toISOString().split('T')[0]}
-                        onChange={e => setNewPass({...newPass, expectedDate: e.target.value})}
-                      />
-                    </div>
+                    <label className="text-sm font-medium text-slate-700">
+                      Expected Arrival Date <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      {...register('expectedDate')}
+                      type="date"
+                      min={new Date().toISOString().split('T')[0]}
+                      className="flex h-11 w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-sm"
+                    />
+                    {errors.expectedDate && <p className="text-xs text-red-500">{errors.expectedDate.message}</p>}
                   </div>
 
+                  {/* Visit Reason */}
                   <div className="space-y-2">
-                     <label className="text-sm font-medium text-slate-700">Reason for Visit</label>
-                     <input
-                        type="text"
-                        required
-                        className="flex h-11 w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all shadow-sm"
-                        placeholder="e.g., Family visit, delivery"
-                        value={newPass.visitReason}
-                        onChange={e => setNewPass({...newPass, visitReason: e.target.value})}
-                      />
+                    <label className="text-sm font-medium text-slate-700">
+                      Reason for Visit <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      {...register('visitReason')}
+                      className="flex h-11 w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-sm"
+                      placeholder="e.g. Family visit, delivery"
+                    />
+                    {errors.visitReason && <p className="text-xs text-red-500">{errors.visitReason.message}</p>}
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  {/* Phone */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">Phone Number <span className="text-slate-400 font-normal text-xs">(optional)</span></label>
+                    <input
+                      {...register('phoneNumber')}
+                      type="tel"
+                      placeholder="e.g. 0123456789"
+                      className="flex h-11 w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-sm"
+                    />
+                  </div>
+
+                  {/* Vehicle */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">Vehicle No. <span className="text-slate-400 font-normal text-xs">(optional)</span></label>
+                    <input
+                      {...register('vehicleNumber')}
+                      placeholder="e.g. WXX 1234"
+                      className="flex h-11 w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-sm uppercase"
+                    />
                   </div>
                 </div>
 
                 <div className="pt-2 flex justify-end gap-3">
-                   <Button type="button" variant="ghost" onClick={() => setIsCreating(false)}>Cancel</Button>
-                   <Button type="submit" className="px-8 bg-slate-900 hover:bg-slate-800">Generate Pass</Button>
+                  <Button type="button" variant="ghost" onClick={() => { reset(); setIsCreating(false) }}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={isSubmitting} className="px-8 bg-slate-900 hover:bg-slate-800">
+                    {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating…</> : 'Generate Pass'}
+                  </Button>
                 </div>
               </form>
             </CardContent>
@@ -224,94 +312,148 @@ export default function VisitorsPage() {
         </div>
       )}
 
-      {/* Empty State */}
-      {!isCreating && filteredPasses.length === 0 && (
-        <div className="text-center py-20 bg-white rounded-xl border border-dashed border-slate-300">
-           <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-             <QrCode className="w-8 h-8 text-slate-400" />
-           </div>
-           <h3 className="text-lg font-medium text-slate-900">No {filter.toLowerCase()} passes found</h3>
-           <p className="text-slate-500 mt-1 max-w-sm mx-auto">
-             {filter === 'ACTIVE'
-               ? "You don't have any active visitor passes. Create one to invite guests!"
-               : "No history available yet."}
-           </p>
-           {filter === 'ACTIVE' && (
-             <Button onClick={() => setIsCreating(true)} className="mt-6">
-               Create First Pass
-             </Button>
-           )}
+      {/* Loading state */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-16 text-slate-400">
+          <Loader2 className="w-6 h-6 animate-spin mr-2" />
+          <span>Loading passes…</span>
         </div>
       )}
 
-      {/* Cards Grid */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredPasses.map((pass) => (
-          <div key={pass.id} className="group relative flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow">
-            {/* Status Strip */}
-            <div className={cn(
-              "h-1.5 w-full",
-              pass.status === 'ACTIVE' ? "bg-green-500" : "bg-slate-300"
-            )} />
-
-            <div className="p-6 flex-1">
-              <div className="flex justify-between items-start mb-4">
-                 <div className={cn(
-                   "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider border",
-                   getTypeColor(pass.visitorType)
-                 )}>
-                    {getTypeIcon(pass.visitorType)}
-                    {pass.visitorType}
-                 </div>
-
-                 <Badge
-                   variant={pass.status === 'ACTIVE' ? 'default' : 'secondary'}
-                   className={cn(
-                     "text-[10px]",
-                     pass.status === 'ACTIVE' && "bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-transparent"
-                   )}
-                 >
-                   {pass.status}
-                 </Badge>
-              </div>
-
-              <h3 className="text-xl font-bold text-slate-900 mb-1">{pass.visitorName}</h3>
-              <div className="flex items-center text-slate-500 text-sm mb-6">
-                 <CalendarDays className="w-4 h-4 mr-2" />
-                 {new Date(pass.expectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-              </div>
-
-              {/* Action Row */}
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" className="flex-1 gap-2 text-xs h-9" onClick={() => handleCopy(pass.id)}>
-                   {copiedId === pass.id ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
-                   {copiedId === pass.id ? "Copied" : "Copy Link"}
-                </Button>
-                <Button variant="outline" size="sm" className="flex-1 gap-2 text-xs h-9">
-                   <Share2 className="w-3.5 h-3.5" /> Share
-                </Button>
-              </div>
-            </div>
-
-            {/* Ticket Perforation */}
-            <div className="relative h-px bg-slate-200 mx-4">
-               <div className="absolute -left-6 -top-2 w-4 h-4 rounded-full bg-slate-50 border-r border-slate-200"></div>
-               <div className="absolute -right-6 -top-2 w-4 h-4 rounded-full bg-slate-50 border-l border-slate-200"></div>
-            </div>
-
-            {/* QR Section */}
-            <div className="bg-slate-50 p-6 flex items-center justify-between">
-               <div className="text-xs text-slate-400">
-                  <p className="font-mono">ID: {pass.id.toUpperCase()}</p>
-                  <p className="mt-1">Valid for single entry</p>
-               </div>
-               <div className="w-12 h-12 bg-white rounded-lg border border-slate-200 p-1 flex items-center justify-center">
-                  <QrCode className="w-full h-full text-slate-900" />
-               </div>
-            </div>
+      {/* Empty state */}
+      {!isLoading && !isCreating && filteredPasses.length === 0 && (
+        <div className="text-center py-20 bg-white rounded-xl border border-dashed border-slate-300">
+          <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <QrCode className="w-8 h-8 text-slate-400" />
           </div>
-        ))}
-      </div>
+          <h3 className="text-lg font-medium text-slate-900">
+            No {filter === 'ACTIVE' ? 'active' : 'past'} passes
+          </h3>
+          <p className="text-slate-500 mt-1 max-w-sm mx-auto">
+            {filter === 'ACTIVE'
+              ? "You don't have any active visitor passes. Create one to invite guests!"
+              : 'No history available yet.'}
+          </p>
+          {filter === 'ACTIVE' && (
+            <Button onClick={() => setIsCreating(true)} className="mt-6">
+              Create First Pass
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Pass Cards Grid */}
+      {!isLoading && filteredPasses.length > 0 && (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredPasses.map(pass => (
+            <div
+              key={pass.id}
+              className="group relative flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow"
+            >
+              {/* Status strip */}
+              <div className={cn(
+                'h-1.5 w-full',
+                pass.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-slate-300',
+              )} />
+
+              <div className="p-6 flex-1 space-y-4">
+                <div className="flex justify-between items-start">
+                  <div className={cn(
+                    'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider border',
+                    TYPE_COLORS[pass.visitorType],
+                  )}>
+                    {getTypeIcon(pass.visitorType)}
+                    {VISITOR_TYPE_OPTIONS.find(t => t.value === pass.visitorType)?.label ?? pass.visitorType}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {pass.status === 'ACTIVE' && (
+                      <button
+                        onClick={() => handleRevoke(pass.id)}
+                        disabled={revoking === pass.id}
+                        className="text-slate-300 hover:text-red-500 transition-colors"
+                        title="Revoke pass"
+                      >
+                        {revoking === pass.id
+                          ? <Loader2 className="w-4 h-4 animate-spin" />
+                          : <XCircle className="w-4 h-4" />
+                        }
+                      </button>
+                    )}
+                    <Badge
+                      variant={pass.status === 'ACTIVE' ? 'default' : 'secondary'}
+                      className={cn(
+                        'text-[10px]',
+                        pass.status === 'ACTIVE' && 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-transparent',
+                      )}
+                    >
+                      {pass.status}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900">{pass.visitorName}</h3>
+                  {pass.visitReason && (
+                    <p className="text-sm text-slate-500 mt-0.5">{pass.visitReason}</p>
+                  )}
+                </div>
+
+                <div className="flex items-center text-slate-500 text-sm">
+                  <CalendarDays className="w-4 h-4 mr-2" />
+                  {format(new Date(pass.expectedDate), 'EEEE, d MMM yyyy')}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Clock className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="text-xs text-slate-400">
+                    Expires {format(new Date(pass.expiresAt), 'd MMM yyyy, h:mm a')}
+                  </span>
+                </div>
+              </div>
+
+              {/* Ticket perforation */}
+              <div className="relative h-px bg-slate-200 mx-4">
+                <div className="absolute -left-6 -top-2 w-4 h-4 rounded-full bg-slate-50 border-r border-slate-200" />
+                <div className="absolute -right-6 -top-2 w-4 h-4 rounded-full bg-slate-50 border-l border-slate-200" />
+              </div>
+
+              {/* QR Section */}
+              <div className="bg-slate-50 p-5 flex items-center justify-between gap-4">
+                <div className="space-y-2">
+                  <QrDownloadButton qrCode={pass.qrCode} visitorName={pass.visitorName} />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs h-9 w-full"
+                    onClick={async () => {
+                      if (navigator.share) {
+                        await navigator.share({
+                          title: `Visitor Pass — ${pass.visitorName}`,
+                          text: `Visitor pass for ${pass.visitorName} on ${format(new Date(pass.expectedDate), 'd MMM yyyy')}. Pass code: ${pass.qrCode}`,
+                        })
+                      } else {
+                        await navigator.clipboard.writeText(pass.qrCode)
+                        toast.success('Pass code copied!')
+                      }
+                    }}
+                  >
+                    <Share2 className="w-3.5 h-3.5" /> Share
+                  </Button>
+                </div>
+
+                <div className="bg-white p-2 rounded-lg border border-slate-200 shadow-sm">
+                  <QRCode
+                    id={`qr-${pass.qrCode}`}
+                    value={pass.qrCode}
+                    size={80}
+                    style={{ height: 'auto', maxWidth: '100%', width: '80px' }}
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
-  );
+  )
 }

@@ -523,7 +523,7 @@ The following infrastructure has been set up and is ready to use:
 
 ---
 
-### Phase 1: Guard & Visitor Module (CURRENT PRIORITY)
+### Phase 1: Guard & Visitor Module ✅ COMPLETED
 
 Both walk-in and pre-registered visitor flows are to be implemented simultaneously.
 
@@ -653,7 +653,7 @@ A printed static QR code is posted at the guardhouse entrance. This handles the 
 
 ---
 
-### Phase 3: Billing & Payment (Fee Collection)
+### Phase 3: Billing & Payment (Fee Collection) (CURRENT PRIORITY)
 
 #### Requirements
 

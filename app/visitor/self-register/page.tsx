@@ -269,7 +269,7 @@ export default function SelfRegisterPage() {
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full h-12 text-base font-semibold bg-indigo-600 hover:bg-indigo-700"
+                  className="w-full h-12 text-base font-semibold bg-indigo-600 hover:bg-indigo-700 text-white"
                 >
                   {isSubmitting
                     ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting...</>

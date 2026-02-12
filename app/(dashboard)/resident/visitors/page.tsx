@@ -302,7 +302,7 @@ export default function VisitorsPage() {
                   <Button type="button" variant="ghost" onClick={() => { reset(); setIsCreating(false) }}>
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={isSubmitting} className="px-8 bg-slate-900 hover:bg-slate-800">
+                  <Button type="submit" disabled={isSubmitting} className="px-8 bg-slate-900 hover:bg-slate-800 text-white">
                     {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating…</> : 'Generate Pass'}
                   </Button>
                 </div>

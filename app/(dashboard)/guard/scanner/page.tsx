@@ -326,7 +326,7 @@ export default function ScannerPage() {
               </div>
             </div>
             <div className="p-4 bg-white border-t border-emerald-100">
-              <Button onClick={resetScanner} className="w-full h-12 text-lg bg-slate-900 hover:bg-slate-800">
+              <Button onClick={resetScanner} className="w-full h-12 text-lg bg-slate-900 hover:bg-slate-800 text-white">
                 Scan Next Visitor
               </Button>
             </div>

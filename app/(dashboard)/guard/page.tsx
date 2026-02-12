@@ -353,7 +353,7 @@ export default function GuardDashboard() {
               <Button type="button" variant="outline" className="flex-1" onClick={() => { reset(); setIsWalkInOpen(false) }}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting} className="flex-1 bg-slate-900 hover:bg-slate-800">
+              <Button type="submit" disabled={isSubmitting} className="flex-1 bg-slate-900 hover:bg-slate-800 text-white">
                 {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Logging...</> : 'Log Entry'}
               </Button>
             </div>

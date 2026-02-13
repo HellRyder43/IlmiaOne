@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { EntryLog, GuardStats } from '@/lib/types'
 
@@ -9,7 +9,7 @@ export function useVisitorLogs() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const fetchLogs = useCallback(async (filter?: { status?: string; search?: string }) => {
     setIsLoading(true)
@@ -95,7 +95,7 @@ export function useGuardStats() {
   })
   const [isLoading, setIsLoading] = useState(false)
 
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const fetchStats = useCallback(async () => {
     setIsLoading(true)

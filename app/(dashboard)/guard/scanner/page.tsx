@@ -97,11 +97,12 @@ export default function ScannerPage() {
       return
     }
 
-    const { data: house } = await supabase
+    const { data: houseData } = await supabase
       .from('houses')
       .select('house_number')
       .eq('id', preReg.house_id)
-      .single<HouseData>()
+      .single()
+    const house = houseData as HouseData | null
 
     setVerifiedPass({ preReg, houseNumber: house?.house_number ?? '—' })
     setScanState('VERIFIED')

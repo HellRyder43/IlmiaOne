@@ -11,9 +11,9 @@ export async function GET() {
   const { data, error } = await supabase
     .from('houses')
     .select('id, house_number')
-    .order('house_number')
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  return NextResponse.json(data)
+  const sorted = (data ?? []).sort((a, b) => parseInt(a.house_number) - parseInt(b.house_number))
+  return NextResponse.json(sorted)
 }

@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth'
 import { NAVIGATION_CONFIG, ROLE_LABELS } from '@/lib/constants'
@@ -117,6 +118,17 @@ export function Sidebar({ isMobileMenuOpen, onClose }: SidebarProps) {
               </>
             )}
           </nav>
+        </div>
+
+        {/* Sign Out Footer */}
+        <div className="p-4 border-t border-slate-100 shrink-0">
+          <a
+            href="/signout"
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors w-full"
+          >
+            <LogOut className="w-4 h-4 text-slate-400" />
+            Sign out
+          </a>
         </div>
       </aside>
     </>

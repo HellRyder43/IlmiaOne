@@ -10,8 +10,22 @@ interface HeaderProps {
 }
 
 export function Header({ onMobileMenuToggle }: HeaderProps) {
-  const { user, logout } = useAuth()
+  const { user, isLoading, logout } = useAuth()
   const [isProfileOpen, setIsProfileOpen] = useState(false)
+
+  if (isLoading) {
+    return (
+      <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-30">
+        <div className="w-32 h-4 bg-slate-100 rounded animate-pulse" />
+        <a
+          href="/signout"
+          className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1.5 transition-colors"
+        >
+          <LogOut className="w-4 h-4" /> Sign out
+        </a>
+      </header>
+    )
+  }
 
   if (!user) return null
 

@@ -15,55 +15,57 @@ export function useVisitorLogs() {
     setIsLoading(true)
     setError(null)
 
-    const cutoff = new Date()
-    cutoff.setDate(cutoff.getDate() - 90)
+    try {
+      const cutoff = new Date()
+      cutoff.setDate(cutoff.getDate() - 90)
 
-    let query = supabase
-      .from('visitor_logs')
-      .select('*')
-      .gte('check_in_time', cutoff.toISOString())
-      .order('check_in_time', { ascending: false })
+      let query = supabase
+        .from('visitor_logs')
+        .select('*')
+        .gte('check_in_time', cutoff.toISOString())
+        .order('check_in_time', { ascending: false })
 
-    if (filter?.status && filter.status !== 'ALL') {
-      query = query.eq('status', filter.status)
-    }
+      if (filter?.status && filter.status !== 'ALL') {
+        query = query.eq('status', filter.status)
+      }
 
-    const { data, error: queryError } = await query
+      const { data, error: queryError } = await query
 
-    if (queryError) {
-      setError(queryError.message)
+      if (queryError) {
+        setError(queryError.message)
+        return
+      }
+
+      let mapped: EntryLog[] = (data ?? []).map(row => ({
+        id: row.id,
+        preRegistrationId: row.pre_registration_id ?? undefined,
+        visitorName: row.visitor_name,
+        visitorType: row.visitor_type,
+        visitReason: row.visit_reason,
+        houseNumber: row.house_number,
+        icNumber: row.ic_number ?? undefined,
+        vehicleNumber: row.vehicle_number ?? undefined,
+        phoneNumber: row.phone_number ?? undefined,
+        checkInTime: row.check_in_time,
+        checkOutTime: row.check_out_time ?? undefined,
+        status: row.status,
+        guardId: row.guard_id,
+        entryMethod: row.entry_method,
+      }))
+
+      if (filter?.search) {
+        const s = filter.search.toLowerCase()
+        mapped = mapped.filter(l =>
+          l.visitorName.toLowerCase().includes(s) ||
+          l.houseNumber.toLowerCase().includes(s) ||
+          (l.vehicleNumber?.toLowerCase().includes(s) ?? false),
+        )
+      }
+
+      setLogs(mapped)
+    } finally {
       setIsLoading(false)
-      return
     }
-
-    let mapped: EntryLog[] = (data ?? []).map(row => ({
-      id: row.id,
-      preRegistrationId: row.pre_registration_id ?? undefined,
-      visitorName: row.visitor_name,
-      visitorType: row.visitor_type,
-      visitReason: row.visit_reason,
-      houseNumber: row.house_number,
-      icNumber: row.ic_number ?? undefined,
-      vehicleNumber: row.vehicle_number ?? undefined,
-      phoneNumber: row.phone_number ?? undefined,
-      checkInTime: row.check_in_time,
-      checkOutTime: row.check_out_time ?? undefined,
-      status: row.status,
-      guardId: row.guard_id,
-      entryMethod: row.entry_method,
-    }))
-
-    if (filter?.search) {
-      const s = filter.search.toLowerCase()
-      mapped = mapped.filter(l =>
-        l.visitorName.toLowerCase().includes(s) ||
-        l.houseNumber.toLowerCase().includes(s) ||
-        (l.vehicleNumber?.toLowerCase().includes(s) ?? false),
-      )
-    }
-
-    setLogs(mapped)
-    setIsLoading(false)
   }, [supabase])
 
   useEffect(() => {
@@ -100,39 +102,42 @@ export function useGuardStats() {
   const fetchStats = useCallback(async () => {
     setIsLoading(true)
 
-    const todayStart = new Date()
-    todayStart.setHours(0, 0, 0, 0)
+    try {
+      const todayStart = new Date()
+      todayStart.setHours(0, 0, 0, 0)
 
-    const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000)
+      const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000)
 
-    const [inside, deliveries, total, overstayed] = await Promise.all([
-      supabase
-        .from('visitor_logs')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'INSIDE'),
-      supabase
-        .from('visitor_logs')
-        .select('id', { count: 'exact', head: true })
-        .in('visitor_type', ['E_HAILING', 'COURIER'])
-        .gte('check_in_time', todayStart.toISOString()),
-      supabase
-        .from('visitor_logs')
-        .select('id', { count: 'exact', head: true })
-        .gte('check_in_time', todayStart.toISOString()),
-      supabase
-        .from('visitor_logs')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'INSIDE')
-        .lt('check_in_time', fourHoursAgo.toISOString()),
-    ])
+      const [inside, deliveries, total, overstayed] = await Promise.all([
+        supabase
+          .from('visitor_logs')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'INSIDE'),
+        supabase
+          .from('visitor_logs')
+          .select('id', { count: 'exact', head: true })
+          .in('visitor_type', ['E_HAILING', 'COURIER'])
+          .gte('check_in_time', todayStart.toISOString()),
+        supabase
+          .from('visitor_logs')
+          .select('id', { count: 'exact', head: true })
+          .gte('check_in_time', todayStart.toISOString()),
+        supabase
+          .from('visitor_logs')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'INSIDE')
+          .lt('check_in_time', fourHoursAgo.toISOString()),
+      ])
 
-    setStats({
-      visitorsInside: inside.count ?? 0,
-      deliveriesToday: deliveries.count ?? 0,
-      totalEntriesToday: total.count ?? 0,
-      overstayedVisitors: overstayed.count ?? 0,
-    })
-    setIsLoading(false)
+      setStats({
+        visitorsInside: inside.count ?? 0,
+        deliveriesToday: deliveries.count ?? 0,
+        totalEntriesToday: total.count ?? 0,
+        overstayedVisitors: overstayed.count ?? 0,
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }, [supabase])
 
   useEffect(() => {

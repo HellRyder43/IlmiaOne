@@ -4,6 +4,23 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { EntryLog, GuardStats } from '@/lib/types'
 
+interface VisitorLogRow {
+  id: string
+  pre_registration_id: string | null
+  visitor_name: string
+  visitor_type: string
+  visit_reason: string
+  house_number: string
+  ic_number: string | null
+  vehicle_number: string | null
+  phone_number: string | null
+  check_in_time: string
+  check_out_time: string | null
+  status: string
+  guard_id: string
+  entry_method: string
+}
+
 export function useVisitorLogs() {
   const [logs, setLogs] = useState<EntryLog[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -36,7 +53,7 @@ export function useVisitorLogs() {
         return
       }
 
-      let mapped: EntryLog[] = (data ?? []).map(row => ({
+      let mapped: EntryLog[] = ((data ?? []) as VisitorLogRow[]).map(row => ({
         id: row.id,
         preRegistrationId: row.pre_registration_id ?? undefined,
         visitorName: row.visitor_name,

@@ -4,6 +4,22 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { VisitorPass } from '@/lib/types'
 
+interface PreRegistrationRow {
+  id: string
+  resident_id: string
+  house_id: string
+  visitor_name: string
+  visitor_type: string
+  visit_reason: string
+  expected_date: string
+  phone_number: string | null
+  vehicle_number: string | null
+  qr_code: string
+  status: string
+  expires_at: string
+  created_at: string
+}
+
 interface CreatePassData {
   visitorName: string
   visitorType: string
@@ -39,7 +55,7 @@ export function usePreRegistrations(residentId: string | null) {
     }
 
     setPasses(
-      (data ?? []).map(row => ({
+      ((data ?? []) as PreRegistrationRow[]).map(row => ({
         id: row.id,
         residentId: row.resident_id,
         houseId: row.house_id,

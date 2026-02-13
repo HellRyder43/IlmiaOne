@@ -170,7 +170,7 @@ export default function GuardDashboard() {
               </Card>
             </button>
 
-            <Link href="/guard/scanner">
+            <Link href="/guard/scanner" className="block">
               <Card className="hover:shadow-md transition-shadow hover:border-emerald-200 group cursor-pointer border-slate-200">
                 <CardContent className="p-6 flex items-center gap-6">
                   <div className="w-16 h-16 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
@@ -184,7 +184,7 @@ export default function GuardDashboard() {
               </Card>
             </Link>
 
-            <Link href="/guard/logs">
+            <Link href="/guard/logs" className="block">
               <Card className="hover:shadow-md transition-shadow hover:border-indigo-200 group cursor-pointer border-slate-200">
                 <CardContent className="p-6 flex items-center gap-6">
                   <div className="w-16 h-16 rounded-2xl bg-indigo-100 flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { VisitorPass } from '@/lib/types'
+import type { VisitorPass, VisitorType } from '@/lib/types'
 
 interface PreRegistrationRow {
   id: string
@@ -60,13 +60,13 @@ export function usePreRegistrations(residentId: string | null) {
         residentId: row.resident_id,
         houseId: row.house_id,
         visitorName: row.visitor_name,
-        visitorType: row.visitor_type,
+        visitorType: row.visitor_type as VisitorType,
         visitReason: row.visit_reason,
         expectedDate: row.expected_date,
         phoneNumber: row.phone_number ?? undefined,
         vehicleNumber: row.vehicle_number ?? undefined,
         qrCode: row.qr_code,
-        status: row.status,
+        status: row.status as 'ACTIVE' | 'USED' | 'EXPIRED',
         expiresAt: row.expires_at,
         createdAt: row.created_at,
       })),

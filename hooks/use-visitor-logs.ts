@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { EntryLog, GuardStats } from '@/lib/types'
+import type { EntryLog, GuardStats, VisitorType } from '@/lib/types'
 
 interface VisitorLogRow {
   id: string
@@ -57,7 +57,7 @@ export function useVisitorLogs() {
         id: row.id,
         preRegistrationId: row.pre_registration_id ?? undefined,
         visitorName: row.visitor_name,
-        visitorType: row.visitor_type,
+        visitorType: row.visitor_type as VisitorType,
         visitReason: row.visit_reason,
         houseNumber: row.house_number,
         icNumber: row.ic_number ?? undefined,
@@ -65,9 +65,9 @@ export function useVisitorLogs() {
         phoneNumber: row.phone_number ?? undefined,
         checkInTime: row.check_in_time,
         checkOutTime: row.check_out_time ?? undefined,
-        status: row.status,
+        status: row.status as 'INSIDE' | 'EXITED',
         guardId: row.guard_id,
-        entryMethod: row.entry_method,
+        entryMethod: row.entry_method as EntryLog['entryMethod'],
       }))
 
       if (filter?.search) {

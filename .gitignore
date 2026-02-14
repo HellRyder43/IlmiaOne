@@ -44,3 +44,6 @@ next-env.d.ts
 
 # claude local settings (may contain API tokens)
 .claude/settings.local.json
+
+# windows null device artifact
+nul

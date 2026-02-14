@@ -29,9 +29,9 @@ export function useVisitorLogs() {
   const supabase = useMemo(() => createClient(), [])
   const lastFilterRef = useRef<{ status?: string; search?: string }>({})
 
-  const fetchLogs = useCallback(async (filter?: { status?: string; search?: string }) => {
+  const fetchLogs = useCallback(async (filter?: { status?: string; search?: string }, silent = false) => {
     lastFilterRef.current = filter ?? {}
-    setIsLoading(true)
+    if (!silent) setIsLoading(true)
     setError(null)
 
     try {
@@ -83,7 +83,7 @@ export function useVisitorLogs() {
 
       setLogs(mapped)
     } finally {
-      setIsLoading(false)
+      if (!silent) setIsLoading(false)
     }
   }, [supabase])
 
@@ -103,6 +103,15 @@ export function useVisitorLogs() {
 
     return () => { supabase.removeChannel(channel) }
   }, [supabase, fetchLogs])
+
+  // Polling fallback — silently refresh every 30s in case Realtime events
+  // are filtered out by RLS (e.g. self-service entries with guard_id = null)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchLogs(lastFilterRef.current, true)
+    }, 30_000)
+    return () => clearInterval(interval)
+  }, [fetchLogs])
 
   const checkOut = async (id: string) => {
     const { error: updateError } = await supabase

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { EntryLog, GuardStats, VisitorType } from '@/lib/types'
 
@@ -27,8 +27,10 @@ export function useVisitorLogs() {
   const [error, setError] = useState<string | null>(null)
 
   const supabase = useMemo(() => createClient(), [])
+  const lastFilterRef = useRef<{ status?: string; search?: string }>({})
 
   const fetchLogs = useCallback(async (filter?: { status?: string; search?: string }) => {
+    lastFilterRef.current = filter ?? {}
     setIsLoading(true)
     setError(null)
 
@@ -88,6 +90,19 @@ export function useVisitorLogs() {
   useEffect(() => {
     fetchLogs()
   }, [fetchLogs])
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('visitor_logs_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'visitor_logs' },
+        () => { fetchLogs(lastFilterRef.current) },
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [supabase, fetchLogs])
 
   const checkOut = async (id: string) => {
     const { error: updateError } = await supabase

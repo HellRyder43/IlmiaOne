@@ -1,6 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from './supabase/client'
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
 import type { User, LoginCredentials, RegisterData, UserRole } from './types'
@@ -17,10 +18,39 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+// Extract a minimal User from a Supabase session without a DB query.
+// Role is read from JWT claims (set by custom_access_token_hook) with
+// fallback to app_metadata. Returns null if no role can be determined.
+function extractUserFromSession(session: Session): User | null {
+  let role: UserRole | undefined
+
+  try {
+    const payload = JSON.parse(atob(session.access_token.split('.')[1]))
+    if (payload.user_role) role = payload.user_role as UserRole
+  } catch {
+    // JWT decode failed — fall through to app_metadata
+  }
+
+  if (!role) {
+    role = session.user.app_metadata?.user_role as UserRole | undefined
+  }
+
+  if (!role) return null
+
+  return {
+    id: session.user.id,
+    name: session.user.user_metadata?.full_name ?? session.user.email ?? '',
+    email: session.user.email ?? '',
+    role,
+    status: 'APPROVED',
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
+  const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
 
   const loadUserProfile = useCallback(async (userId: string): Promise<User | null> => {
@@ -50,12 +80,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event: AuthChangeEvent, session: Session | null) => {
         if (session?.user) {
-          const profile = await loadUserProfile(session.user.id)
-          setUser(profile)
+          // Phase 1: Unblock the UI instantly using session data — no DB query
+          const sessionUser = extractUserFromSession(session)
+          if (sessionUser) {
+            setUser(prev => {
+              // Don't overwrite a full profile (with houseNumber) with partial session data
+              if (prev?.id === sessionUser.id && prev.houseNumber !== undefined) return prev
+              return sessionUser
+            })
+          }
+          setIsLoading(false)
+
+          // Phase 2: Enrich with full profile in the background
+          loadUserProfile(session.user.id).then(fullProfile => {
+            if (fullProfile) {
+              setUser(prev => prev?.id === fullProfile.id ? fullProfile : prev)
+            }
+          })
         } else {
           setUser(null)
+          setIsLoading(false)
         }
-        setIsLoading(false)
       }
     )
 
@@ -75,7 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const profile = await loadUserProfile(authUser.id)
       if (profile) {
         setUser(profile)
-        window.location.href = ROLE_DASHBOARD[profile.role]
+        router.replace(ROLE_DASHBOARD[profile.role])
       }
     }
   }

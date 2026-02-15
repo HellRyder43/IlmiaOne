@@ -899,6 +899,68 @@ There is no WhatsApp API in v1. Notifications use two channels:
 
 ---
 
+## Known Issues & Technical Debt
+
+> Last audited: 2026-02-15. Items are grouped by priority.
+
+### Critical — Must fix before Phase 3
+
+**1. Only house 12 is seeded**
+The `houses` table has 1 row (house 12). The guard walk-in dropdown and self-register form only show house 12. Pre-registrations are also limited to house 12 residents. pg_cron will only generate 1 invoice when Phase 3 billing runs. **All 92 houses must be inserted before Phase 3 goes live.**
+
+**2. pg_cron invoice generation not set up**
+Phase 3 requires invoices to auto-generate on the 1st of each month at 00:01 MYT. No Supabase Edge Function or pg_cron job exists yet. Must be created before the first billing cycle or invoices will not generate.
+
+**3. No DB indexes on high-query columns**
+As data grows, missing indexes will cause slow queries:
+- `visitor_logs(check_in_time)` — every page load filters by last 90 days
+- `visitor_logs(guard_id)` — used in RLS policies
+- `invoices(house_id, month)` — duplicate prevention on cron insert
+- `notifications(user_id, read)` — bell icon badge count
+
+### Security Gaps — Fix soon
+
+**4. INACTIVE profile status not enforced in middleware**
+`lib/supabase/proxy.ts` checks `role` for routing but never checks `profile.status`. A resident marked `INACTIVE` (e.g., moved out) can still log in and access their dashboard. The middleware must reject `INACTIVE` users and redirect to `/login`.
+
+**5. No rate limiting on the public self-register endpoint**
+`POST /api/visitor/self-register` is unauthenticated with no rate limiting, CAPTCHA, or IP throttling. It can be trivially spammed to flood `visitor_logs` with fake entries.
+
+### Missing Implementation (Phase 2 gap)
+
+**6. Notifications are unimplemented**
+The `notifications` table has 0 rows. No code inserts into it anywhere. Phase 2 requirement — "Treasurer receives in-app notification of new registration" — was not built. The header bell icon shows nothing. Must be implemented before user onboarding begins.
+
+### Data Integrity Risks
+
+**7. Duplicate walk-in check not implemented**
+CLAUDE.md specifies: *"warn guard if same visitor name + house checked in within last hour."* The `/api/guard/walk-in` route has no such check. Guards can accidentally double-log the same visitor with no warning.
+
+**8. Visitors stuck as INSIDE indefinitely**
+There is no auto-checkout mechanism (e.g., midnight job or configurable max visit duration). The overstayed count accumulates forever. After weeks of real use, the "Currently Inside" filter will be polluted with entries that were never checked out.
+
+**9. `houseId` null risk at pre-registration**
+`usePreRegistrations` reads `houseId` from the resident's profile. If a resident's `house_id` is null (profile setup gap), the POST to `/api/visitors/pre-register` will fail with a DB not-null violation, surfacing as a generic 500 to the user. The API should validate and return a clear error.
+
+**10. `visitor_logs` 90-day auto-purge not implemented**
+Data retention policy requires auto-purge of logs older than 90 days. No pg_cron or Edge Function exists for this. The table will grow without bound.
+
+### Minor / Technical Debt
+
+**11. Expiry time hardcodes UTC+8 offset**
+In `app/api/visitors/pre-register/route.ts`, expiry is calculated as `${expectedDate}T15:59:59Z` (23:59:59 MYT = UTC+8 hardcoded). Should use a timezone-aware calculation or DB-side `AT TIME ZONE 'Asia/Kuala_Lumpur'` to be explicit and safe.
+
+**12. Overstayed threshold is hardcoded at 4 hours**
+`useGuardStats` hardcodes 4 hours as the overstayed threshold. Should be a configurable value in `SystemConfig` rather than a magic number in client code.
+
+**13. `hooks/index.ts` only exports `useAuth`**
+`useVisitorLogs` and `usePreRegistrations` are imported by direct file path in components. All custom hooks should be re-exported from `hooks/index.ts` for consistency.
+
+**14. Redundant `qr_code` DB default**
+The `visitor_pre_registrations.qr_code` column has `DEFAULT gen_random_uuid()::text` but the API always passes an explicit UUID. The DB default is never used — remove it to avoid confusion, or rely on it and stop generating in the API.
+
+---
+
 ## Testing Strategy
 
 ### UAT Scenarios (from PRD)

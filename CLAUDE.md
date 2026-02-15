@@ -544,10 +544,22 @@ export interface House {
 
 The following infrastructure has been set up and is ready to use:
 
-- **Supabase project** provisioned (`qznhxahydseejcpgrxlb`)
-- **Database schema** — all 10 tables created with RLS enabled: `houses`, `profiles`, `house_members`, `invoices`, `payment_transactions`, `visitor_pre_registrations`, `visitor_logs`, `events`, `pets`, `audit_logs`, `notifications`
-- **RLS policies** applied on all tables — role-based access enforced at the DB level
-- **DB helper functions**: `auth_user_role()` (SECURITY DEFINER, fixed search_path), `update_updated_at_column()` trigger
+- **Supabase project** provisioned (`qznhxahydseejcpgrxlb`, region: `ap-southeast-1` Singapore)
+- **Database schema** — all 11 tables created via `apply_migration` with RLS enabled: `houses`, `profiles`, `house_members`, `invoices`, `payment_transactions`, `visitor_pre_registrations`, `visitor_logs`, `events`, `pets`, `audit_logs`, `notifications`
+- **Migrations applied** (in order, tracked in Supabase migration history):
+  1. `create_updated_at_trigger_function`
+  2. `create_core_tables`
+  3. `create_updated_at_triggers` — 9 tables (`audit_logs` and `notifications` excluded, no `updated_at`)
+  4. `create_db_functions`
+  5. `enable_rls_and_policies`
+- **RLS policies** applied on all 11 tables — 20 policies covering role-based access per table
+- **DB helper functions**:
+  - `public.auth_user_role()` — SECURITY DEFINER, fixed search_path; returns current user's role from `profiles`; used inside RLS policies
+  - `public.update_updated_at_column()` — trigger function, fires BEFORE UPDATE on 9 tables
+- **JWT hook** — `public.custom_access_token_hook` injects `user_role` into every JWT on issuance; granted to `supabase_auth_admin`
+  - **Must be enabled in Dashboard:** Authentication → Hooks → Custom Access Token → Postgres → `public.custom_access_token_hook`
+  - **Fallback** (if hook not enabled): `lib/supabase/proxy.ts` reads `user.app_metadata?.user_role` — only works if `raw_app_meta_data` is manually set per user in `auth.users`
+- **Seed data**: house 12 (OCCUPIED) + 4 test profiles with fixed UUIDs (see Seeded & Existing Data section)
 - **Supabase clients**: `lib/supabase/client.ts` (browser), `lib/supabase/server.ts` (server)
 - **Session proxy + RBAC middleware**: `lib/supabase/proxy.ts` — handles session refresh, auth redirect, and role-based route protection via `getClaims()`
 

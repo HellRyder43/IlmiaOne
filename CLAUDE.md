@@ -184,7 +184,7 @@ These are inferred from the existing codebase. Follow them strictly.
 
 ## Data Model (Supabase Tables)
 
-Based on PRD Section 7. All tables have `id UUID PRIMARY KEY DEFAULT gen_random_uuid()`, `created_at TIMESTAMPTZ DEFAULT now()`, `updated_at TIMESTAMPTZ DEFAULT now()`.
+Based on PRD Section 7. All tables have `id UUID PRIMARY KEY DEFAULT gen_random_uuid()` and `created_at TIMESTAMPTZ DEFAULT now()`. Most tables also have `updated_at TIMESTAMPTZ DEFAULT now()`, **except** `audit_logs` and `notifications` which are immutable (no `updated_at`).
 
 ### Core Tables
 
@@ -198,7 +198,7 @@ profiles
   - ic_number (TEXT, masked — store last 4 only in display contexts)
   - resident_type (TEXT: 'OWNER' | 'TENANT', nullable)
   - avatar_url (TEXT, nullable)
-  - status (TEXT: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED')
+  - status (TEXT: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'INACTIVE')
   - rejection_reason (TEXT, nullable)
 
 houses
@@ -246,8 +246,8 @@ visitor_pre_registrations
   - phone_number (TEXT, nullable)
   - vehicle_number (TEXT, nullable)
   - expected_date (DATE)
-  - qr_code (TEXT, UNIQUE) — generated UUID or short code
-  - status (TEXT: 'ACTIVE' | 'USED' | 'EXPIRED')
+  - qr_code (TEXT, UNIQUE, DEFAULT gen_random_uuid()::text) — auto-generated on insert
+  - status (TEXT: 'ACTIVE' | 'USED' | 'EXPIRED', DEFAULT 'ACTIVE')
   - expires_at (TIMESTAMPTZ)
 
 visitor_logs
@@ -255,15 +255,15 @@ visitor_logs
   - pre_registration_id (UUID, nullable, references visitor_pre_registrations.id)
   - visitor_name (TEXT, NOT NULL)
   - visitor_type (TEXT: 'VISITOR' | 'CONTRACTOR' | 'E_HAILING' | 'COURIER' | 'OTHERS')
-  - visit_reason (TEXT)
+  - visit_reason (TEXT, nullable) — nullable in DB; required in walk-in form validation only
   - house_number (TEXT)
   - ic_number (TEXT, nullable — last 4 digits only)
   - vehicle_number (TEXT, nullable)
   - phone_number (TEXT, nullable)
-  - check_in_time (TIMESTAMPTZ, NOT NULL)
+  - check_in_time (TIMESTAMPTZ, DEFAULT now())
   - check_out_time (TIMESTAMPTZ, nullable)
-  - status (TEXT: 'INSIDE' | 'EXITED')
-  - guard_id (UUID, references profiles.id)
+  - status (TEXT: 'INSIDE' | 'EXITED', DEFAULT 'INSIDE')
+  - guard_id (UUID, nullable, references profiles.id) — nullable for SELF_SERVICE entries
   - entry_method (TEXT: 'QR_SCAN' | 'WALK_IN' | 'MANUAL' | 'SELF_SERVICE')
 
 events
@@ -288,12 +288,13 @@ pets
 
 audit_logs
   - id (UUID)
-  - user_id (UUID, references profiles.id)
+  - user_id (UUID, nullable, references profiles.id)
   - action (TEXT, NOT NULL)
-  - entity_type (TEXT) — e.g., 'visitor_log', 'invoice', 'profile'
+  - entity_type (TEXT, nullable) — e.g., 'visitor_log', 'invoice', 'profile'
   - entity_id (UUID, nullable)
   - metadata (JSONB, nullable)
   - ip_address (TEXT, nullable)
+  - NOTE: no updated_at — audit logs are immutable once created
 
 notifications
   - id (UUID)
@@ -302,9 +303,44 @@ notifications
   - message (TEXT, NOT NULL)
   - type (TEXT: 'REGISTRATION_PENDING' | 'REGISTRATION_APPROVED' | 'REGISTRATION_REJECTED' |
            'VISITOR_ARRIVED' | 'PAYMENT_RECEIVED' | 'INVOICE_GENERATED' | 'OVERDUE_REMINDER')
-  - read (BOOLEAN, default false)
+  - read (BOOLEAN, DEFAULT false)
   - NOTE: no updated_at — notifications are immutable once created
 ```
+
+### Seeded & Existing Data
+
+> Last verified: 2026-02-15
+
+**houses** (1 row)
+| house_number | street | occupancy_status |
+|---|---|---|
+| 12 | null | OCCUPIED |
+
+> Only house 12 is seeded. Houses 1–92 still need to be populated before Phase 3 (billing) can generate invoices.
+
+**profiles** (4 rows — all `status: APPROVED`, emails pre-confirmed in auth.users)
+| full_name | email | role | resident_type | house |
+|---|---|---|---|---|
+| Ahmad bin Abdullah | resident@ilmiaone.com | RESIDENT | OWNER | 12 |
+| Sarah Lee | treasurer@ilmiaone.com | TREASURER | null | — |
+| Kumar Raj | guard@ilmiaone.com | GUARD | null | — |
+| System Administrator | admin@ilmiaone.com | ADMIN | null | — |
+
+Passwords: `resident123`, `treasurer123`, `guard123`, `admin123`
+
+**visitor_logs** (5 rows — all real test entries from 2026-02-13/14)
+
+All 5 entries are `entry_method: SELF_SERVICE`, `status: INSIDE`, visiting house 12. None have been checked out. These are live test entries, not synthetic seed data.
+
+| visitor_name | visitor_type | visit_reason | check_in_time (UTC) |
+|---|---|---|---|
+| Amir Hamzah | VISITOR | Family | 2026-02-13 05:35 |
+| Mahfuz | CONTRACTOR | Renovate | 2026-02-14 12:02 |
+| Auni Dalilah | VISITOR | Family | 2026-02-14 12:08 |
+| Ahmad | VISITOR | Family | 2026-02-14 12:09 |
+| Aulian | VISITOR | Family | 2026-02-14 12:24 |
+
+**All other tables** — 0 rows (house_members, invoices, payment_transactions, visitor_pre_registrations, events, pets, audit_logs, notifications)
 
 ### Data Retention
 

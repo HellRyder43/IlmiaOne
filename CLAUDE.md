@@ -309,7 +309,7 @@ notifications
 
 ### Seeded & Existing Data
 
-> Last verified: 2026-02-15
+> Last verified: 2026-02-15 (new project `qznhxahydseejcpgrxlb`, Singapore)
 
 **houses** (1 row)
 | house_number | street | occupancy_status |
@@ -328,19 +328,13 @@ notifications
 
 Passwords: `resident123`, `treasurer123`, `guard123`, `admin123`
 
-**visitor_logs** (5 rows — all real test entries from 2026-02-13/14)
+Seed user UUIDs (fixed, for reference):
+- resident: `aaaaaaaa-0001-0001-0001-000000000001`
+- treasurer: `aaaaaaaa-0002-0002-0002-000000000002`
+- guard: `aaaaaaaa-0003-0003-0003-000000000003`
+- admin: `aaaaaaaa-0004-0004-0004-000000000004`
 
-All 5 entries are `entry_method: SELF_SERVICE`, `status: INSIDE`, visiting house 12. None have been checked out. These are live test entries, not synthetic seed data.
-
-| visitor_name | visitor_type | visit_reason | check_in_time (UTC) |
-|---|---|---|---|
-| Amir Hamzah | VISITOR | Family | 2026-02-13 05:35 |
-| Mahfuz | CONTRACTOR | Renovate | 2026-02-14 12:02 |
-| Auni Dalilah | VISITOR | Family | 2026-02-14 12:08 |
-| Ahmad | VISITOR | Family | 2026-02-14 12:09 |
-| Aulian | VISITOR | Family | 2026-02-14 12:24 |
-
-**All other tables** — 0 rows (house_members, invoices, payment_transactions, visitor_pre_registrations, events, pets, audit_logs, notifications)
+**All other tables** — 0 rows (visitor_logs, visitor_pre_registrations, house_members, invoices, payment_transactions, events, pets, audit_logs, notifications)
 
 ### Data Retention
 
@@ -550,7 +544,7 @@ export interface House {
 
 The following infrastructure has been set up and is ready to use:
 
-- **Supabase project** provisioned (`pajhxtwckwtjoutgqkwc`)
+- **Supabase project** provisioned (`qznhxahydseejcpgrxlb`)
 - **Database schema** — all 10 tables created with RLS enabled: `houses`, `profiles`, `house_members`, `invoices`, `payment_transactions`, `visitor_pre_registrations`, `visitor_logs`, `events`, `pets`, `audit_logs`, `notifications`
 - **RLS policies** applied on all tables — role-based access enforced at the DB level
 - **DB helper functions**: `auth_user_role()` (SECURITY DEFINER, fixed search_path), `update_updated_at_column()` trigger

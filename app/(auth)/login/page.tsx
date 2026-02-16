@@ -20,7 +20,7 @@ const loginSchema = z.object({
 })
 
 const registerSchema = z.object({
-  fullName: z.string().min(2, 'Name must be at least 2 characters'),
+  fullName: z.string().min(2, 'Name must be at least 2 characters').regex(/^[a-zA-Z\s\-'@]+$/, 'Name must contain letters only'),
   houseNumber: z.string().regex(/^\d{1,3}$/, 'House number must be 1–3 digits'),
   icNumber: z.string().regex(/^\d{4}$/, 'Enter the last 4 digits of your IC number (numbers only)'),
   residentType: z.enum(['OWNER', 'TENANT'] as const, { message: 'Please select your resident type' }),
@@ -163,6 +163,10 @@ function RegisterForm() {
             type="text"
             placeholder="Full Name"
             autoComplete="name"
+            onInput={(e) => {
+              const el = e.currentTarget
+              el.value = el.value.replace(/[^a-zA-Z\s\-'@]/g, '')
+            }}
             className={cn(
               'w-full pl-10 pr-4 py-2.5 rounded-lg border bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-sm shadow-sm',
               errors.fullName ? 'border-red-400' : 'border-slate-300'

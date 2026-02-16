@@ -22,7 +22,7 @@ const loginSchema = z.object({
 const registerSchema = z.object({
   fullName: z.string().min(2, 'Name must be at least 2 characters'),
   houseNumber: z.string().min(1, 'House number is required'),
-  icNumber: z.string().min(4, 'IC number must be at least 4 characters'),
+  icNumber: z.string().regex(/^\d{4}$/, 'Enter the last 4 digits of your IC number (numbers only)'),
   residentType: z.enum(['OWNER', 'TENANT'] as const, { message: 'Please select your resident type' }),
   email: z.string().email('Invalid email address'),
   password: z.string()
@@ -195,7 +195,9 @@ function RegisterForm() {
             <CreditCard className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
             <input
               type="text"
-              placeholder="IC Number"
+              placeholder="Last 4 digits of IC"
+              inputMode="numeric"
+              maxLength={4}
               className={cn(
                 'w-full pl-10 pr-4 py-2.5 rounded-lg border bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-sm shadow-sm',
                 errors.icNumber ? 'border-red-400' : 'border-slate-300'

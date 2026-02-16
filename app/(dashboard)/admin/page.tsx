@@ -20,10 +20,6 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  Server,
-  Database,
-  Cpu,
-  HardDrive
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
@@ -37,65 +33,6 @@ export default function AdminDashboard() {
       <div>
         <h1 className="text-3xl font-bold text-slate-900">System Configuration</h1>
         <p className="text-slate-500 mt-2">Manage all aspects of the Ilmia One community system.</p>
-      </div>
-
-      {/* System Health Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="border-slate-200 shadow-sm">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2 mb-2 text-slate-500">
-                  <Server className="w-4 h-4" />
-                  <span className="text-xs font-semibold uppercase tracking-wider">System Status</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                  <span className="text-lg font-bold text-slate-900">Operational</span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-slate-200 shadow-sm">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-2 mb-2 text-slate-500">
-              <Database className="w-4 h-4" />
-              <span className="text-xs font-semibold uppercase tracking-wider">Database</span>
-            </div>
-            <p className="text-lg font-bold text-slate-900">78% Used</p>
-            <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2">
-              <div className="bg-indigo-500 h-1.5 rounded-full" style={{ width: '78%' }}></div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-slate-200 shadow-sm">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-2 mb-2 text-slate-500">
-              <Cpu className="w-4 h-4" />
-              <span className="text-xs font-semibold uppercase tracking-wider">CPU Usage</span>
-            </div>
-            <p className="text-lg font-bold text-slate-900">24%</p>
-            <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2">
-              <div className="bg-emerald-500 h-1.5 rounded-full" style={{ width: '24%' }}></div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-slate-200 shadow-sm">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-2 mb-2 text-slate-500">
-              <HardDrive className="w-4 h-4" />
-              <span className="text-xs font-semibold uppercase tracking-wider">Storage</span>
-            </div>
-            <p className="text-lg font-bold text-slate-900">45 GB / 100 GB</p>
-            <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2">
-              <div className="bg-amber-500 h-1.5 rounded-full" style={{ width: '45%' }}></div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Main Admin Tabs */}
@@ -648,62 +585,6 @@ export default function AdminDashboard() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Security Settings</CardTitle>
-                <CardDescription>Manage security and authentication</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Two-Factor Authentication</Label>
-                    <p className="text-sm text-slate-500">Require 2FA for admin accounts</p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Session Timeout</Label>
-                    <p className="text-sm text-slate-500">Auto logout after inactivity</p>
-                  </div>
-                  <Select defaultValue="30">
-                    <SelectTrigger className="w-[120px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="15">15 mins</SelectItem>
-                      <SelectItem value="30">30 mins</SelectItem>
-                      <SelectItem value="60">1 hour</SelectItem>
-                      <SelectItem value="120">2 hours</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Login Attempt Limit</Label>
-                    <p className="text-sm text-slate-500">Lock account after failed attempts</p>
-                  </div>
-                  <Select defaultValue="5">
-                    <SelectTrigger className="w-[120px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="3">3 attempts</SelectItem>
-                      <SelectItem value="5">5 attempts</SelectItem>
-                      <SelectItem value="10">10 attempts</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Audit Logging</Label>
-                    <p className="text-sm text-slate-500">Track all admin actions</p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
                 <CardTitle>Notification Settings</CardTitle>
                 <CardDescription>Configure system notifications</CardDescription>
               </CardHeader>
@@ -736,44 +617,6 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Backup & Maintenance</CardTitle>
-                <CardDescription>Data backup and system maintenance</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Automatic Backups</Label>
-                    <p className="text-sm text-slate-500">Schedule daily system backups</p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-                <div className="space-y-2">
-                  <Label>Backup Frequency</Label>
-                  <Select defaultValue="daily">
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="hourly">Hourly</SelectItem>
-                      <SelectItem value="daily">Daily</SelectItem>
-                      <SelectItem value="weekly">Weekly</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-4 pt-4 border-t border-slate-200">
-                  <Button className="w-full" variant="outline">
-                    <Database className="w-4 h-4 mr-2" />
-                    Create Manual Backup
-                  </Button>
-                  <Button className="w-full" variant="outline">
-                    <Activity className="w-4 h-4 mr-2" />
-                    View Backup History
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
           <Card>

@@ -45,9 +45,6 @@ export function Sidebar({ isMobileMenuOpen, onClose }: SidebarProps) {
   // Get navigation items for user's role
   const navItems = NAVIGATION_CONFIG[user.role] || []
 
-  // Admin sees additional navigation from all roles
-  const shouldShowAllRoles = user.role === 'ADMIN'
-
   return (
     <>
       {/* Mobile Sidebar Overlay */}
@@ -93,30 +90,6 @@ export function Sidebar({ isMobileMenuOpen, onClose }: SidebarProps) {
               ))}
             </div>
 
-            {/* Admin sees all roles (for demonstration/testing) */}
-            {shouldShowAllRoles && (
-              <>
-                {Object.entries(NAVIGATION_CONFIG)
-                  .filter(([role]) => role !== 'ADMIN')
-                  .map(([role, items]) => (
-                    <div key={role}>
-                      <div className="mb-2 px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                        {ROLE_LABELS[role as keyof typeof ROLE_LABELS]}
-                      </div>
-                      {items.map((item) => (
-                        <SidebarItem
-                          key={item.href}
-                          href={item.href}
-                          icon={item.icon}
-                          label={item.label}
-                          active={pathname === item.href}
-                          onClick={onClose}
-                        />
-                      ))}
-                    </div>
-                  ))}
-              </>
-            )}
           </nav>
         </div>
 

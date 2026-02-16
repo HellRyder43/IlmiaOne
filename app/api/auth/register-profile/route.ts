@@ -26,12 +26,6 @@ export async function POST(request: Request) {
 
   const service = createServiceClient()
 
-  // Verify the user actually exists in auth.users (prevents fake inserts)
-  const { data: authUser, error: authError } = await service.auth.admin.getUserById(userId)
-  if (authError || !authUser.user) {
-    return NextResponse.json({ error: 'User not found' }, { status: 404 })
-  }
-
   // Prevent duplicate profile creation
   const { data: existing } = await service
     .from('profiles')

@@ -55,7 +55,8 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/auth") ||
     pathname.startsWith("/visitor") ||
     pathname.startsWith("/api/visitor") ||
-    pathname === "/api/houses"
+    pathname === "/api/houses" ||
+    pathname === "/api/auth/register-profile"
 
   // Redirect authenticated users away from root/login/auth pages to their dashboard
   if ((isPublicRoute || pathname === "/") && user) {

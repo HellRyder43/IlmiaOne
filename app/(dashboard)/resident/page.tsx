@@ -1,25 +1,221 @@
-'use client';
+'use client'
 
-import React from 'react';
-import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ArrowRight, Wallet, QrCode, Calendar, CheckCircle2, Scan, Download } from 'lucide-react';
-import type { Invoice } from '@/lib/types';
+import React, { useState } from 'react'
+import Link from 'next/link'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  ArrowRight,
+  Wallet,
+  QrCode,
+  Calendar,
+  CheckCircle2,
+  Scan,
+  Download,
+  AlertTriangle,
+  Info,
+} from 'lucide-react'
+import { toast } from 'sonner'
+import { useAuth } from '@/lib/auth'
+import type { Invoice } from '@/lib/types'
 
 // Mock data for Dashboard view only
 const dashboardInvoices: Invoice[] = [
   { id: 'INV-2023-12', houseId: '', month: 'December 2023', amount: 145.50, status: 'PENDING', dueDate: '2023-12-31', breakdown: { maintenance: 130.00, sinkingFund: 13.00, water: 2.50 } },
   { id: 'INV-2023-11', houseId: '', month: 'November 2023', amount: 143.00, status: 'PAID', dueDate: '2023-11-30', breakdown: { maintenance: 130.00, sinkingFund: 13.00 } },
   { id: 'INV-2023-10', houseId: '', month: 'October 2023', amount: 143.00, status: 'PAID', dueDate: '2023-10-31', breakdown: { maintenance: 130.00, sinkingFund: 13.00 } },
-];
+]
+
+const resubmitSchema = z.object({
+  fullName: z.string().min(2, 'Full name is required'),
+  houseNumber: z.string().min(1, 'House number is required'),
+  icNumber: z.string().min(4, 'IC number is required'),
+  residentType: z.enum(['OWNER', 'TENANT']),
+})
+
+type ResubmitFormData = z.infer<typeof resubmitSchema>
+
+function ResubmitDialog({
+  open,
+  onOpenChange,
+  user,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  user: { name: string; houseNumber?: string; icNumber?: string; residentType?: string }
+}) {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const form = useForm<ResubmitFormData>({
+    resolver: zodResolver(resubmitSchema),
+    defaultValues: {
+      fullName: user.name ?? '',
+      houseNumber: user.houseNumber ?? '',
+      icNumber: user.icNumber ?? '',
+      residentType: (user.residentType as 'OWNER' | 'TENANT') ?? 'OWNER',
+    },
+  })
+
+  const onSubmit = async (_data: ResubmitFormData) => {
+    setIsSubmitting(true)
+    try {
+      const res = await fetch('/api/auth/resubmit', { method: 'POST' })
+      if (!res.ok) {
+        const body = await res.json()
+        throw new Error(body.error ?? 'Resubmission failed')
+      }
+      toast.success('Resubmission sent! The committee will review your application.')
+      onOpenChange(false)
+      // Reload to reflect new status
+      window.location.reload()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Edit & Resubmit Registration</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-slate-500 -mt-2">Review your details and resubmit for approval.</p>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="fullName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Full Name</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="houseNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>House Number</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="icNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>IC Number (last 4 digits)</FormLabel>
+                  <FormControl>
+                    <Input {...field} maxLength={4} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="residentType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Resident Type</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="OWNER">Owner</SelectItem>
+                      <SelectItem value="TENANT">Tenant</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Submitting…' : 'Resubmit'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  )
+}
 
 export default function ResidentDashboard() {
+  const { user } = useAuth()
+  const [resubmitOpen, setResubmitOpen] = useState(false)
+
   return (
     <div className="space-y-8">
+      {/* Status Banners */}
+      {user?.status === 'REJECTED' && (
+        <Alert className="border-red-200 bg-red-50">
+          <AlertTriangle className="h-4 w-4 text-red-600" />
+          <AlertTitle className="text-red-800 font-semibold">Registration Not Approved</AlertTitle>
+          <AlertDescription className="mt-1">
+            <p className="text-red-700 text-sm mb-3">
+              {user.rejectionReason
+                ? `Reason: ${user.rejectionReason}`
+                : 'Your registration was not approved by the committee.'}
+            </p>
+            <Button
+              size="sm"
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={() => setResubmitOpen(true)}
+            >
+              Edit &amp; Resubmit
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {user?.status === 'PENDING_APPROVAL' && (
+        <Alert className="border-amber-200 bg-amber-50">
+          <Info className="h-4 w-4 text-amber-600" />
+          <AlertTitle className="text-amber-800 font-semibold">Registration Pending</AlertTitle>
+          <AlertDescription className="text-amber-700 text-sm">
+            Your registration is pending approval by the committee. You will be notified once it is reviewed.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div>
-        <h1 className="text-3xl font-bold text-slate-900">Welcome back, John 👋</h1>
-        <p className="text-slate-500 mt-2">Here's what's happening in your neighbourhood today.</p>
+        <h1 className="text-3xl font-bold text-slate-900">
+          Welcome back, {user?.name?.split(' ')[0] ?? 'Resident'} 👋
+        </h1>
+        <p className="text-slate-500 mt-2">Here&apos;s what&apos;s happening in your neighbourhood today.</p>
       </div>
 
       {/* Quick Actions Grid */}
@@ -60,7 +256,7 @@ export default function ResidentDashboard() {
                <Calendar className="w-6 h-6" />
              </div>
              <h3 className="font-semibold text-slate-900">Community Event</h3>
-             <p className="text-sm text-slate-500 mt-1 mb-4">"Gotong Royong" cleanup this Saturday!</p>
+             <p className="text-sm text-slate-500 mt-1 mb-4">&quot;Gotong Royong&quot; cleanup this Saturday!</p>
              <div className="text-xs text-slate-400">Oct 28, 2023 • 9:00 AM</div>
            </CardContent>
         </Card>
@@ -169,6 +365,15 @@ export default function ResidentDashboard() {
            </div>
         </CardContent>
       </Card>
+
+      {/* Resubmit Dialog */}
+      {user && (
+        <ResubmitDialog
+          open={resubmitOpen}
+          onOpenChange={setResubmitOpen}
+          user={user}
+        />
+      )}
     </div>
-  );
+  )
 }

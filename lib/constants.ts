@@ -10,9 +10,9 @@ import {
   Activity,
   FileText,
   Users,
-  Edit,
   ShieldCheck,
   Settings,
+  UserCheck,
   type LucideIcon,
 } from 'lucide-react'
 import { UserRole } from './types'
@@ -39,7 +39,6 @@ export const NAVIGATION_CONFIG: Record<UserRole, NavItem[]> = {
     { href: '/treasurer', label: 'Overview', icon: LayoutDashboard },
     { href: '/treasurer/reports', label: 'Financial Reports', icon: Wallet },
     { href: '/treasurer/defaulters', label: 'Defaulter List', icon: Users },
-    { href: '/treasurer/calendar', label: 'Calendar Management', icon: Edit },
   ],
   GUARD: [
     { href: '/guard', label: 'Guard Dashboard', icon: ShieldCheck },
@@ -48,6 +47,7 @@ export const NAVIGATION_CONFIG: Record<UserRole, NavItem[]> = {
   ],
   ADMIN: [
     { href: '/admin', label: 'System Config', icon: Settings },
+    { href: '/admin/registrations', label: 'Registrations', icon: UserCheck },
   ],
 }
 

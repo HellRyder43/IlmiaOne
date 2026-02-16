@@ -17,6 +17,7 @@ export interface User {
   icNumber?: string
   residentType?: ResidencyType
   status: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'INACTIVE'
+  rejectionReason?: string
 }
 
 // Authentication types

@@ -73,6 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       residentType: profile.resident_type,
       status: profile.status,
       avatarUrl: profile.avatar_url,
+      rejectionReason: profile.rejection_reason ?? undefined,
     }
   }, [supabase])
 
@@ -137,43 +138,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (authError) throw new Error(authError.message)
     if (!authData.user) throw new Error('Registration failed — please try again.')
 
-    const { data: house } = await supabase
-      .from('houses')
-      .select('id')
-      .eq('house_number', data.houseNumber)
-      .single()
-
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .insert({
-        id: authData.user.id,
-        full_name: data.fullName,
+    // Profile creation + in-app notifications done server-side via service role
+    // (bypasses RLS — necessary because email confirmation means no session yet)
+    const profileRes = await fetch('/api/auth/register-profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: authData.user.id,
+        fullName: data.fullName,
         email: data.email,
-        role: 'RESIDENT',
-        house_id: house?.id ?? null,
-        ic_number: data.icNumber.slice(-4),
-        resident_type: data.residentType,
-        status: 'PENDING_APPROVAL',
-      })
+        houseNumber: data.houseNumber,
+        icNumber: data.icNumber,
+        residentType: data.residentType,
+      }),
+    })
 
-    if (profileError) throw new Error('Failed to create profile — please contact support.')
-
-    const { data: treasurers } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('role', 'TREASURER')
-      .eq('status', 'APPROVED')
-
-    if (treasurers?.length) {
-      await supabase.from('notifications').insert(
-        treasurers.map((t: { id: string }) => ({
-          user_id: t.id,
-          title: 'New Registration Pending',
-          message: `${data.fullName} from house ${data.houseNumber} has registered and is awaiting approval.`,
-          type: 'REGISTRATION_PENDING',
-        }))
-      )
+    if (!profileRes.ok) {
+      const body = await profileRes.json()
+      throw new Error(body.error ?? 'Failed to create profile — please contact support.')
     }
+
+    // Fire-and-forget: send email notification to admins (non-blocking)
+    fetch('/api/auth/notify-registration', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        residentName: data.fullName,
+        houseNumber: data.houseNumber,
+        residentEmail: data.email,
+      }),
+    }).catch(() => {})
   }
 
   const logout = async (): Promise<void> => {

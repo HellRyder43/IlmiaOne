@@ -157,7 +157,7 @@ function RegisterForm() {
         </div>
         <h3 className="text-lg font-semibold text-slate-900">Registration Submitted</h3>
         <p className="text-sm text-slate-500 leading-relaxed">
-          Your account is pending approval from the Treasurer. You will be notified once approved.
+          Your account is pending approval from the Admin. You will be notified once approved.
           Please verify your email address in the meantime.
         </p>
       </div>

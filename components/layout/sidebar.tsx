@@ -45,8 +45,9 @@ export function Sidebar({ isMobileMenuOpen, onClose }: SidebarProps) {
   // Get navigation items for user's role
   const navItems = NAVIGATION_CONFIG[user.role] || []
 
-  // Admin is also a resident — show resident nav as a second section
+  // Admin is also a resident and can access guard views
   const residentNavItems = user.role === 'ADMIN' ? NAVIGATION_CONFIG['RESIDENT'] : []
+  const guardNavItems = user.role === 'ADMIN' ? NAVIGATION_CONFIG['GUARD'] : []
 
   return (
     <>
@@ -93,13 +94,32 @@ export function Sidebar({ isMobileMenuOpen, onClose }: SidebarProps) {
               ))}
             </div>
 
-            {/* Admin is also a resident — show resident section */}
+            {/* Admin is also a resident */}
             {residentNavItems.length > 0 && (
               <div>
                 <div className="mb-2 px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">
                   Resident
                 </div>
                 {residentNavItems.map((item) => (
+                  <SidebarItem
+                    key={item.href}
+                    href={item.href}
+                    icon={item.icon}
+                    label={item.label}
+                    active={pathname === item.href}
+                    onClick={onClose}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Admin can access guard views */}
+            {guardNavItems.length > 0 && (
+              <div>
+                <div className="mb-2 px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  Guard
+                </div>
+                {guardNavItems.map((item) => (
                   <SidebarItem
                     key={item.href}
                     href={item.href}

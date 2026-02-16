@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createServerClient } from '@supabase/ssr'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { sendAdminRegistrationNotification } from '@/lib/email'
 
 // Service-role client for reading admin emails across RLS boundaries
 function createServiceClient() {
-  return createServerClient(
+  return createAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { cookies: { getAll: () => [], setAll: () => {} } }
+    { auth: { autoRefreshToken: false, persistSession: false } }
   )
 }
 

@@ -7,7 +7,7 @@ import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import {
   Building2, Mail, Lock, User, Home, CreditCard,
-  ArrowRight, Loader2, CheckCircle2, ChevronDown,
+  ArrowRight, Loader2, CheckCircle2, ChevronDown, Eye, EyeOff,
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/client'
@@ -37,6 +37,7 @@ type RegisterFormData = z.infer<typeof registerSchema>
 function LoginForm({ onForgotPassword }: { onForgotPassword: () => void }) {
   const { login } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const {
     register,
@@ -77,15 +78,23 @@ function LoginForm({ onForgotPassword }: { onForgotPassword: () => void }) {
         <div className="relative">
           <Lock className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
           <input
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             placeholder="Password"
             autoComplete="current-password"
             className={cn(
-              'w-full pl-10 pr-4 py-2.5 rounded-lg border bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-sm shadow-sm',
+              'w-full pl-10 pr-10 py-2.5 rounded-lg border bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-sm shadow-sm',
               errors.password ? 'border-red-400' : 'border-slate-300'
             )}
             {...register('password')}
           />
+          <button
+            type="button"
+            onClick={() => setShowPassword(p => !p)}
+            className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 transition-colors"
+            tabIndex={-1}
+          >
+            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+          </button>
         </div>
         {errors.password && <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>}
       </div>
@@ -119,6 +128,7 @@ function RegisterForm() {
   const { register: registerUser } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const {
     register,
@@ -258,15 +268,23 @@ function RegisterForm() {
         <div className="relative">
           <Lock className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
           <input
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             placeholder="Password (min 8 characters)"
             autoComplete="new-password"
             className={cn(
-              'w-full pl-10 pr-4 py-2.5 rounded-lg border bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-sm shadow-sm',
+              'w-full pl-10 pr-10 py-2.5 rounded-lg border bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-sm shadow-sm',
               errors.password ? 'border-red-400' : 'border-slate-300'
             )}
             {...register('password')}
           />
+          <button
+            type="button"
+            onClick={() => setShowPassword(p => !p)}
+            className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 transition-colors"
+            tabIndex={-1}
+          >
+            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+          </button>
         </div>
         {errors.password && <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>}
       </div>

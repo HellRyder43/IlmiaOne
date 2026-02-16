@@ -21,7 +21,7 @@ const loginSchema = z.object({
 
 const registerSchema = z.object({
   fullName: z.string().min(2, 'Name must be at least 2 characters'),
-  houseNumber: z.string().min(1, 'House number is required').max(3, 'House number must be 3 digits or less'),
+  houseNumber: z.string().regex(/^\d{1,3}$/, 'House number must be 1–3 digits'),
   icNumber: z.string().regex(/^\d{4}$/, 'Enter the last 4 digits of your IC number (numbers only)'),
   residentType: z.enum(['OWNER', 'TENANT'] as const, { message: 'Please select your resident type' }),
   email: z.string().email('Invalid email address'),
@@ -180,7 +180,12 @@ function RegisterForm() {
             <input
               type="text"
               placeholder="House No."
+              inputMode="numeric"
               maxLength={3}
+              onInput={(e) => {
+                const el = e.currentTarget
+                el.value = el.value.replace(/\D/g, '')
+              }}
               className={cn(
                 'w-full pl-10 pr-4 py-2.5 rounded-lg border bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-sm shadow-sm',
                 errors.houseNumber ? 'border-red-400' : 'border-slate-300'

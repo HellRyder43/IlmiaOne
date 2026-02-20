@@ -1,22 +1,59 @@
 // Type definitions for Ilmia One application
 
-export type UserRole = 'RESIDENT' | 'TREASURER' | 'GUARD' | 'ADMIN'
+// UserRole is a plain string to support custom roles created at runtime.
+// Use SYSTEM_ROLES for compile-time known values.
+export type UserRole = string
+export const SYSTEM_ROLES = ['RESIDENT', 'GUARD', 'AJK_COMMITTEE', 'AJK_LEADER'] as const
+export type SystemRole = typeof SYSTEM_ROLES[number]
+
+// Permission action keys — all possible action permissions in the system
+export type AppPermission =
+  | 'approve_registrations'
+  | 'scan_qr'
+  | 'log_walk_in'
+  | 'manage_calendar'
+  | 'manage_houses'
+  | 'manage_users'
+  | 'manage_roles'
+  | 'assign_user_role'
+  | 'view_all_invoices'
+  | 'view_all_payments'
+  | 'export_reports'
+
+export interface RolePermissions {
+  routes:  string[]
+  actions: AppPermission[]
+}
+
+// Role interface matching the `roles` DB table
+export interface Role {
+  id:           string
+  value:        string
+  displayName:  string
+  description?: string
+  isSystem:     boolean
+  color:        string
+  permissions:  RolePermissions
+  createdAt:    string
+  updatedAt:    string
+}
 
 export type ResidencyType = 'OWNER' | 'TENANT'
 
 export type Relationship = 'SPOUSE' | 'CHILD' | 'RELATIVE' | 'TENANT'
 
 export interface User {
-  id: string
-  name: string
-  email: string
-  role: UserRole
-  avatarUrl?: string
-  houseNumber?: string
-  houseId?: string
-  icNumber?: string
-  residentType?: ResidencyType
-  status: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'INACTIVE'
+  id:              string
+  name:            string
+  email:           string
+  role:            UserRole
+  permissions:     RolePermissions
+  avatarUrl?:      string
+  houseNumber?:    string
+  houseId?:        string
+  icNumber?:       string
+  residentType?:   ResidencyType
+  status:          'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'INACTIVE'
   rejectionReason?: string
 }
 

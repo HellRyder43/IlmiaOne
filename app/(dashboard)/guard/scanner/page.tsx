@@ -6,15 +6,13 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from '@/components/ui/popover'
-
 import {
   QrCode, Camera, CheckCircle2, XCircle, AlertTriangle,
   Loader2, ShieldOff, ClipboardList, Search, ChevronDown,
@@ -29,7 +27,7 @@ import type { IDetectedBarcode } from '@yudiel/react-qr-scanner'
 const Scanner = dynamic(() => import('@yudiel/react-qr-scanner').then(m => m.Scanner), {
   ssr: false,
   loading: () => (
-    <div className="flex items-center justify-center h-64 bg-slate-900 rounded-lg">
+    <div className="flex items-center justify-center h-full bg-black">
       <Loader2 className="w-8 h-8 text-slate-400 animate-spin" />
     </div>
   ),
@@ -60,10 +58,6 @@ interface PreRegData {
   expires_at: string
 }
 
-interface HouseData {
-  house_number: string
-}
-
 interface HouseOption {
   id: string
   house_number: string
@@ -83,6 +77,255 @@ const VISITOR_TYPES = [
   { value: 'OTHERS', label: 'Others' },
 ] as const
 
+const TYPE_BADGE: Record<string, { bg: string; text: string; dot: string }> = {
+  VISITOR:    { bg: 'bg-blue-500/20',   text: 'text-blue-300',   dot: 'bg-blue-400' },
+  CONTRACTOR: { bg: 'bg-orange-500/20', text: 'text-orange-300', dot: 'bg-orange-400' },
+  E_HAILING:  { bg: 'bg-purple-500/20', text: 'text-purple-300', dot: 'bg-purple-400' },
+  COURIER:    { bg: 'bg-amber-500/20',  text: 'text-amber-300',  dot: 'bg-amber-400' },
+  OTHERS:     { bg: 'bg-slate-700/60',  text: 'text-slate-300',  dot: 'bg-slate-400' },
+}
+
+const TYPE_LABEL: Record<string, string> = {
+  VISITOR: 'Visitor', CONTRACTOR: 'Contractor',
+  E_HAILING: 'E-Hailing', COURIER: 'Courier', OTHERS: 'Others',
+}
+
+const STATUS_PILL: Record<ScanState, { label: string; cls: string }> = {
+  IDLE:       { label: 'Ready',          cls: 'bg-emerald-100 text-emerald-700' },
+  SCANNING:   { label: 'Scanning…',      cls: 'bg-blue-100 text-blue-700' },
+  VERIFYING:  { label: 'Verifying…',     cls: 'bg-amber-100 text-amber-700' },
+  CONFIRMING: { label: 'Logging…',       cls: 'bg-amber-100 text-amber-700' },
+  VERIFIED:   { label: 'Pass Found',     cls: 'bg-amber-100 text-amber-700' },
+  SUCCESS:    { label: 'Access Granted', cls: 'bg-emerald-100 text-emerald-700' },
+  ERROR:      { label: 'Access Denied',  cls: 'bg-red-100 text-red-700' },
+}
+
+/* ─── Walk-In Form (extracted to avoid double-registering hooks) ────────── */
+interface WalkInFormProps {
+  form: ReturnType<typeof useForm<WalkInFormData>>
+  houses: HouseOption[]
+  houseOpen: boolean
+  setHouseOpen: (v: boolean) => void
+  houseSearch: string
+  setHouseSearch: (v: string) => void
+  isSubmitting: boolean
+  onSubmit: (data: WalkInFormData) => Promise<void>
+  onCancel?: () => void
+  showCancel?: boolean
+  successVisible?: boolean
+}
+
+function WalkInForm({
+  form, houses, houseOpen, setHouseOpen, houseSearch, setHouseSearch,
+  isSubmitting, onSubmit, onCancel, showCancel, successVisible,
+}: WalkInFormProps) {
+  const filteredHouses = houses.filter(h => {
+    const q = houseSearch.toLowerCase()
+    return h.house_number.toLowerCase().includes(q) || (h.street ?? '').toLowerCase().includes(q)
+  })
+
+  return (
+    <div className="relative">
+      {/* Inline success flash (desktop only) */}
+      {successVisible && (
+        <div className="absolute inset-0 bg-white/96 flex flex-col items-center justify-center gap-3 z-10 rounded-b-xl" style={{ animation: 'fadeSlideUp 0.2s ease-out' }}>
+          <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
+            <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+          </div>
+          <div className="text-center">
+            <p className="font-semibold text-slate-900 text-sm">Entry Logged</p>
+            <p className="text-xs text-slate-500 mt-0.5">Walk-in recorded successfully</p>
+          </div>
+        </div>
+      )}
+
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        {/* Visitor Name */}
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+            Visitor Name <span className="text-red-500">*</span>
+          </Label>
+          <input
+            {...form.register('visitorName')}
+            placeholder="Full name"
+            className="w-full h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all"
+          />
+          {form.formState.errors.visitorName && (
+            <p className="text-xs text-red-500">{form.formState.errors.visitorName.message}</p>
+          )}
+        </div>
+
+        {/* Visitor Type */}
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+            Visitor Type <span className="text-red-500">*</span>
+          </Label>
+          <div className="grid grid-cols-3 gap-1.5">
+            {VISITOR_TYPES.map(({ value, label }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => form.setValue('visitorType', value, { shouldValidate: true })}
+                className={cn(
+                  'h-9 rounded-lg border text-xs font-medium transition-all',
+                  form.watch('visitorType') === value
+                    ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-300 hover:bg-indigo-50',
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* House Number */}
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+            House Number <span className="text-red-500">*</span>
+          </Label>
+          <Controller
+            name="houseNumber"
+            control={form.control}
+            render={({ field }) => {
+              const selected = houses.find(h => h.house_number === field.value)
+              return (
+                <Popover open={houseOpen} onOpenChange={setHouseOpen} modal={false}>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className={cn(
+                        'w-full flex items-center gap-2 px-3 h-10 rounded-lg border bg-slate-50 text-left text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all',
+                        form.formState.errors.houseNumber ? 'border-red-400' : 'border-slate-200',
+                      )}
+                    >
+                      {selected ? (
+                        <span className="text-slate-900 flex-1">
+                          No. {selected.house_number}
+                          {selected.street && <span className="text-slate-400"> · {selected.street}</span>}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 flex-1">Select house</span>
+                      )}
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                    <div className="flex items-center border-b border-slate-200 px-3">
+                      <Search className="w-4 h-4 text-slate-400 shrink-0" />
+                      <input
+                        className="flex-1 py-2 pl-2 text-sm bg-transparent outline-none placeholder:text-slate-400"
+                        placeholder="Search house number..."
+                        value={houseSearch}
+                        onChange={e => setHouseSearch(e.target.value)}
+                        autoFocus
+                      />
+                    </div>
+                    <div className="max-h-48 overflow-y-auto py-1">
+                      {filteredHouses.length === 0 ? (
+                        <p className="px-3 py-4 text-xs text-slate-400 text-center">No houses found</p>
+                      ) : (
+                        filteredHouses.map(h => (
+                          <button
+                            key={h.id}
+                            type="button"
+                            onClick={() => {
+                              field.onChange(h.house_number)
+                              setHouseOpen(false)
+                              setHouseSearch('')
+                            }}
+                            className={cn(
+                              'w-full flex flex-col items-start px-3 py-2 text-sm hover:bg-slate-50 transition-colors',
+                              field.value === h.house_number && 'bg-indigo-50 text-indigo-700',
+                            )}
+                          >
+                            <span className="font-medium">No. {h.house_number}</span>
+                            {h.street && <span className="text-xs text-slate-400">{h.street}</span>}
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )
+            }}
+          />
+          {form.formState.errors.houseNumber && (
+            <p className="text-xs text-red-500">{form.formState.errors.houseNumber.message}</p>
+          )}
+        </div>
+
+        {/* Visit Reason */}
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+            Reason for Visit <span className="text-red-500">*</span>
+          </Label>
+          <input
+            {...form.register('visitReason')}
+            placeholder="e.g. Family visit, delivery pickup"
+            className="w-full h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all"
+          />
+          {form.formState.errors.visitReason && (
+            <p className="text-xs text-red-500">{form.formState.errors.visitReason.message}</p>
+          )}
+        </div>
+
+        {/* Optional: IC + Vehicle in row */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">IC (last 4)</Label>
+            <input
+              {...form.register('icNumber')}
+              placeholder="1234"
+              maxLength={4}
+              className="w-full h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all font-mono"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Vehicle No.</Label>
+            <input
+              {...form.register('vehicleNumber')}
+              placeholder="WXY 1234"
+              className="w-full h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all font-mono uppercase"
+            />
+          </div>
+        </div>
+
+        {/* Phone */}
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Phone Number</Label>
+          <input
+            {...form.register('phoneNumber')}
+            placeholder="012-3456789"
+            className="w-full h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all"
+          />
+        </div>
+
+        {/* Actions */}
+        <div className={cn('flex gap-2 pt-1', showCancel ? 'flex-row' : 'flex-col')}>
+          {showCancel && onCancel && (
+            <Button type="button" variant="outline" className="flex-1 h-11" onClick={onCancel} disabled={isSubmitting}>
+              Cancel
+            </Button>
+          )}
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className={cn(
+              'h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold',
+              showCancel ? 'flex-1' : 'w-full',
+            )}
+          >
+            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+            Log Entry
+          </Button>
+        </div>
+      </form>
+    </div>
+  )
+}
+
+/* ─── Main Page ─────────────────────────────────────────────────────────── */
 export default function ScannerPage() {
   const { hasPermission } = useAuth()
   const canScan = hasPermission('scan_qr')
@@ -96,6 +339,7 @@ export default function ScannerPage() {
   const [houseOpen, setHouseOpen] = useState(false)
   const [houseSearch, setHouseSearch] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [walkInSuccess, setWalkInSuccess] = useState(false)
 
   const supabase = createClient()
 
@@ -111,15 +355,9 @@ export default function ScannerPage() {
       .catch(() => {})
   }, [])
 
-  const filteredHouses = houses.filter(h => {
-    const q = houseSearch.toLowerCase()
-    return h.house_number.toLowerCase().includes(q) || (h.street ?? '').toLowerCase().includes(q)
-  })
-
   const verifyQrCode = async (qrCode: string) => {
     setScanState('VERIFYING')
     setErrorMessage('')
-
     const trimmed = qrCode.trim()
 
     const { data: preReg, error } = await supabase
@@ -133,13 +371,11 @@ export default function ScannerPage() {
       setScanState('ERROR')
       return
     }
-
     if (preReg.status === 'USED') {
       setErrorMessage('This pass has already been used.')
       setScanState('ERROR')
       return
     }
-
     if (preReg.status === 'EXPIRED' || new Date(preReg.expires_at) < new Date()) {
       setErrorMessage(`Pass expired on ${new Date(preReg.expires_at).toLocaleDateString('en-MY')}.`)
       setScanState('ERROR')
@@ -151,16 +387,17 @@ export default function ScannerPage() {
       .select('house_number')
       .eq('id', preReg.house_id)
       .single()
-    const house = houseData as HouseData | null
 
-    setVerifiedPass({ preReg, houseNumber: house?.house_number ?? '—' })
+    setVerifiedPass({
+      preReg,
+      houseNumber: (houseData as { house_number: string } | null)?.house_number ?? '—',
+    })
     setScanState('VERIFIED')
   }
 
   const confirmEntry = async () => {
     if (!verifiedPass) return
     setScanState('CONFIRMING')
-
     try {
       const res = await fetch('/api/guard/scan', {
         method: 'POST',
@@ -194,6 +431,8 @@ export default function ScannerPage() {
       toast.success(`Walk-in entry logged for ${data.visitorName}`)
       walkInForm.reset({ visitorType: 'VISITOR' })
       setIsManualOpen(false)
+      setWalkInSuccess(true)
+      setTimeout(() => setWalkInSuccess(false), 2000)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to log entry')
     } finally {
@@ -208,25 +447,19 @@ export default function ScannerPage() {
     setCameraError(false)
   }
 
-  const typeLabel: Record<string, string> = {
-    VISITOR: 'Visitor',
-    CONTRACTOR: 'Contractor',
-    E_HAILING: 'E-Hailing',
-    COURIER: 'Courier',
-    OTHERS: 'Others',
-  }
+  const status = STATUS_PILL[scanState]
 
   if (!canScan) {
     return (
       <div className="max-w-2xl mx-auto space-y-6 pb-20">
-        <div className="text-center space-y-2">
-          <h2 className="text-2xl font-bold text-slate-900">Access Control Scanner</h2>
-          <p className="text-slate-500">Scan a visitor QR pass or log an entry manually.</p>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Access Control Scanner</h1>
+          <p className="text-slate-500 text-sm mt-1">Scan QR passes or log walk-in visitors.</p>
         </div>
         <Card className="border-slate-200 shadow-sm">
-          <div className="flex flex-col items-center justify-center p-12 text-center gap-4">
-            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center text-amber-500">
-              <ShieldOff className="w-8 h-8" />
+          <div className="flex flex-col items-center justify-center p-16 text-center gap-4">
+            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center">
+              <ShieldOff className="w-8 h-8 text-amber-500" />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-slate-900">Permission Required</h3>
@@ -242,394 +475,402 @@ export default function ScannerPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 pb-20">
-      <div className="text-center space-y-2">
-        <h2 className="text-2xl font-bold text-slate-900">Access Control Scanner</h2>
-        <p className="text-slate-500">Scan a visitor QR pass or log an entry manually.</p>
-      </div>
+    <>
+      <style>{`
+        @keyframes scanLine {
+          0%, 100% { top: 6%; }
+          50% { top: 88%; }
+        }
+        @keyframes cornerPulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.3; }
+        }
+        @keyframes fadeSlideUp {
+          from { opacity: 0; transform: translateY(10px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes scaleIn {
+          from { opacity: 0; transform: scale(0.96); }
+          to   { opacity: 1; transform: scale(1); }
+        }
+        .anim-scan-line  { animation: scanLine 2.4s cubic-bezier(0.4,0,0.6,1) infinite; }
+        .anim-corner     { animation: cornerPulse 1.4s ease-in-out infinite; }
+        .anim-fade-up    { animation: fadeSlideUp 0.25s ease-out both; }
+        .anim-scale-in   { animation: scaleIn 0.2s ease-out both; }
+      `}</style>
 
-      <Card className="overflow-hidden border-slate-200 shadow-lg relative min-h-[480px] flex flex-col">
+      <div className="pb-20">
 
-        {/* IDLE STATE */}
-        {scanState === 'IDLE' && (
-          <div className="flex-1 bg-slate-900 relative flex flex-col items-center justify-center p-6 gap-6">
-            <div className="text-center space-y-4">
-              <div className="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mx-auto text-slate-400">
-                <Camera className="w-10 h-10" />
-              </div>
-              <Button
-                size="lg"
-                disabled={cameraError}
-                className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-lg h-14"
-                onClick={() => { setCameraError(false); setScanState('SCANNING') }}
-              >
-                <QrCode className="w-6 h-6 mr-2" />
-                {cameraError ? 'Camera Unavailable' : 'Start Camera'}
-              </Button>
-              <p className="text-slate-400 text-sm">Ensure adequate lighting for best results.</p>
+        {/* ── Page header ─────────────────────────────────────────────────── */}
+        <div className="flex items-start justify-between mb-6 gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Access Control Scanner</h1>
+            <p className="text-slate-500 text-sm mt-0.5">Scan QR passes or log walk-in visitors.</p>
+          </div>
+          <span className={cn(
+            'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold shrink-0 mt-1',
+            status.cls,
+          )}>
+            <span className="w-1.5 h-1.5 rounded-full bg-current" />
+            {status.label}
+          </span>
+        </div>
+
+        {/* ── Two-column layout ───────────────────────────────────────────── */}
+        <div className="flex flex-col lg:flex-row gap-6 items-start">
+
+          {/* ══ SCANNER PANEL ══════════════════════════════════════════════ */}
+          <div className="w-full lg:flex-1 min-w-0">
+            <div
+              className="bg-slate-950 rounded-2xl overflow-hidden shadow-2xl relative w-full"
+              style={{ minHeight: 480 }}
+            >
+
+              {/* IDLE ─────────────────────────────────────────────────────── */}
+              {scanState === 'IDLE' && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-7 p-8 anim-fade-up">
+                  {/* Glow + camera icon */}
+                  <div className="relative flex items-center justify-center">
+                    <div className="absolute w-40 h-40 rounded-full bg-emerald-500/10 blur-2xl" />
+                    <div className="absolute w-28 h-28 rounded-full border border-emerald-500/15 bg-emerald-500/5" />
+                    <div className="w-20 h-20 bg-slate-800/80 border border-slate-700 rounded-full flex items-center justify-center z-10 shadow-lg">
+                      <Camera className="w-9 h-9 text-slate-400" />
+                    </div>
+                  </div>
+
+                  <div className="text-center space-y-1.5">
+                    <p className="text-slate-200 font-semibold text-lg">Ready to scan</p>
+                    <p className="text-slate-500 text-sm">Ensure adequate lighting for best results</p>
+                  </div>
+
+                  <Button
+                    size="lg"
+                    disabled={cameraError}
+                    onClick={() => { setCameraError(false); setScanState('SCANNING') }}
+                    className="bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-white font-semibold px-10 h-12 rounded-xl shadow-lg shadow-emerald-500/25 transition-all"
+                  >
+                    <QrCode className="w-5 h-5 mr-2" />
+                    {cameraError ? 'Camera Unavailable' : 'Activate Scanner'}
+                  </Button>
+
+                  <button
+                    onClick={() => setIsManualOpen(true)}
+                    className="lg:hidden flex items-center gap-1.5 text-slate-500 hover:text-slate-300 text-sm transition-colors"
+                  >
+                    <ClipboardList className="w-4 h-4" />
+                    Log walk-in manually instead
+                  </button>
+                </div>
+              )}
+
+              {/* SCANNING ────────────────────────────────────────────────── */}
+              {scanState === 'SCANNING' && (
+                <div className="absolute inset-0 flex flex-col">
+                  <div className="flex-1 relative overflow-hidden">
+                    <Scanner
+                      onScan={(detectedCodes: IDetectedBarcode[]) => {
+                        if (detectedCodes.length > 0 && scanState === 'SCANNING') {
+                          verifyQrCode(detectedCodes[0].rawValue)
+                        }
+                      }}
+                      onError={() => {
+                        setCameraError(true)
+                        setScanState('IDLE')
+                        toast.error('Camera access denied. Use manual entry instead.')
+                      }}
+                      styles={{ container: { width: '100%', height: '100%', minHeight: 400 } }}
+                    />
+
+                    {/* Overlay */}
+                    <div className="absolute inset-0 pointer-events-none">
+                      {/* Dark vignette */}
+                      <div className="absolute inset-0 bg-black/50" />
+
+                      {/* Scan frame */}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="relative w-60 h-60">
+                          {/* Corner brackets */}
+                          {(['tl','tr','bl','br'] as const).map(corner => (
+                            <div
+                              key={corner}
+                              className={cn(
+                                'anim-corner absolute w-10 h-10',
+                                corner === 'tl' && 'top-0 left-0 border-l-2 border-t-2 rounded-tl-xl border-emerald-400',
+                                corner === 'tr' && 'top-0 right-0 border-r-2 border-t-2 rounded-tr-xl border-emerald-400',
+                                corner === 'bl' && 'bottom-0 left-0 border-l-2 border-b-2 rounded-bl-xl border-emerald-400',
+                                corner === 'br' && 'bottom-0 right-0 border-r-2 border-b-2 rounded-br-xl border-emerald-400',
+                              )}
+                            />
+                          ))}
+
+                          {/* Scan line */}
+                          <div
+                            className="anim-scan-line absolute left-1 right-1 h-px"
+                            style={{ background: 'linear-gradient(to right, transparent, #34d399 40%, #34d399 60%, transparent)' }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bottom bar */}
+                  <div className="px-5 py-4 bg-slate-900/95 backdrop-blur-sm flex items-center justify-between gap-4 border-t border-slate-800">
+                    <p className="text-slate-400 text-sm">Align QR code within the frame</p>
+                    <Button
+                      onClick={resetScanner}
+                      variant="ghost"
+                      size="sm"
+                      className="text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-700 h-9 px-4"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* VERIFYING / CONFIRMING ──────────────────────────────────── */}
+              {(scanState === 'VERIFYING' || scanState === 'CONFIRMING') && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 p-8 text-center anim-fade-up">
+                  <div className="relative flex items-center justify-center">
+                    <div className="absolute w-20 h-20 rounded-full bg-indigo-500/15 blur-xl" />
+                    <Loader2 className="w-12 h-12 text-indigo-400 animate-spin relative z-10" />
+                  </div>
+                  <div>
+                    <p className="text-slate-100 font-semibold text-xl">
+                      {scanState === 'VERIFYING' ? 'Verifying Pass…' : 'Logging Entry…'}
+                    </p>
+                    <p className="text-slate-500 text-sm mt-1">
+                      {scanState === 'VERIFYING'
+                        ? 'Checking validity and permissions'
+                        : 'Creating visitor log record'}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* VERIFIED ────────────────────────────────────────────────── */}
+              {scanState === 'VERIFIED' && verifiedPass && (
+                <div className="absolute inset-0 flex flex-col anim-scale-in">
+                  <div className="flex-1 flex flex-col items-center justify-center gap-5 p-6 overflow-y-auto">
+                    {/* Header */}
+                    <div className="flex flex-col items-center gap-2 text-center">
+                      <div className="w-14 h-14 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center">
+                        <QrCode className="w-7 h-7 text-amber-400" />
+                      </div>
+                      <div>
+                        <p className="text-amber-400 text-xs font-semibold uppercase tracking-widest">Valid Pass</p>
+                        <p className="text-slate-400 text-sm mt-0.5">Review and confirm entry</p>
+                      </div>
+                    </div>
+
+                    {/* Visitor card */}
+                    <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                      {/* Name row */}
+                      <div className="px-5 py-4 border-b border-slate-800">
+                        <p className="text-slate-500 text-xs uppercase tracking-wide mb-1">Visitor</p>
+                        <p className="text-white text-xl font-bold leading-tight">
+                          {verifiedPass.preReg.visitor_name}
+                        </p>
+                      </div>
+
+                      {/* Type + House */}
+                      <div className="grid grid-cols-2 divide-x divide-slate-800 border-b border-slate-800">
+                        <div className="px-4 py-3">
+                          <p className="text-slate-500 text-xs uppercase tracking-wide mb-1.5">Type</p>
+                          {(() => {
+                            const badge = TYPE_BADGE[verifiedPass.preReg.visitor_type] ?? TYPE_BADGE['OTHERS']
+                            return (
+                              <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold', badge.bg, badge.text)}>
+                                <span className={cn('w-1.5 h-1.5 rounded-full', badge.dot)} />
+                                {TYPE_LABEL[verifiedPass.preReg.visitor_type] ?? verifiedPass.preReg.visitor_type}
+                              </span>
+                            )
+                          })()}
+                        </div>
+                        <div className="px-4 py-3">
+                          <p className="text-slate-500 text-xs uppercase tracking-wide mb-1">Destination</p>
+                          <p className="text-white font-bold text-xl">No. {verifiedPass.houseNumber}</p>
+                        </div>
+                      </div>
+
+                      {/* Purpose */}
+                      <div className="px-5 py-3 border-b border-slate-800">
+                        <p className="text-slate-500 text-xs uppercase tracking-wide mb-1">Purpose</p>
+                        <p className="text-slate-300 text-sm">{verifiedPass.preReg.visit_reason}</p>
+                      </div>
+
+                      {/* Vehicle (optional) */}
+                      {verifiedPass.preReg.vehicle_number && (
+                        <div className="px-5 py-3 flex items-center justify-between">
+                          <p className="text-slate-500 text-xs uppercase tracking-wide">Vehicle</p>
+                          <p className="font-mono font-bold text-white text-sm tracking-wider">
+                            {verifiedPass.preReg.vehicle_number}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="px-5 py-4 bg-slate-900/80 border-t border-slate-800 grid grid-cols-2 gap-3">
+                    <Button
+                      onClick={resetScanner}
+                      className="h-12 bg-transparent border border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white transition-all"
+                    >
+                      <XCircle className="w-4 h-4 mr-1.5" />
+                      Deny Entry
+                    </Button>
+                    <Button
+                      onClick={confirmEntry}
+                      className="h-12 bg-emerald-500 hover:bg-emerald-400 text-white font-semibold shadow-md shadow-emerald-500/20"
+                    >
+                      <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                      Confirm Entry
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* SUCCESS ─────────────────────────────────────────────────── */}
+              {scanState === 'SUCCESS' && verifiedPass && (
+                <div className="absolute inset-0 flex flex-col anim-scale-in">
+                  <div className="flex-1 flex flex-col items-center justify-center gap-6 p-8 text-center">
+                    <div className="relative flex items-center justify-center">
+                      <div className="absolute w-32 h-32 rounded-full bg-emerald-500/15 blur-2xl" />
+                      <div className="w-24 h-24 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center z-10">
+                        <CheckCircle2 className="w-12 h-12 text-emerald-400" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-emerald-400 text-xs font-semibold uppercase tracking-widest">Entry Logged</p>
+                      <h2 className="text-white text-3xl font-bold mt-1">Access Granted</h2>
+                    </div>
+
+                    <div className="bg-slate-900/80 border border-emerald-500/25 rounded-xl px-8 py-5 space-y-1 w-full max-w-xs">
+                      <p className="text-slate-400 text-xs uppercase tracking-wide">Visitor</p>
+                      <p className="text-white font-bold text-lg">{verifiedPass.preReg.visitor_name}</p>
+                      <p className="text-slate-500 text-sm">→ House No. {verifiedPass.houseNumber}</p>
+                    </div>
+                  </div>
+
+                  <div className="px-5 py-4 bg-slate-900/80 border-t border-emerald-500/20">
+                    <Button
+                      onClick={resetScanner}
+                      className="w-full h-12 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-semibold"
+                    >
+                      <QrCode className="w-4 h-4 mr-2" />
+                      Scan Next Visitor
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* ERROR ───────────────────────────────────────────────────── */}
+              {scanState === 'ERROR' && (
+                <div className="absolute inset-0 flex flex-col anim-scale-in">
+                  <div className="flex-1 flex flex-col items-center justify-center gap-6 p-8 text-center">
+                    <div className="relative flex items-center justify-center">
+                      <div className="absolute w-32 h-32 rounded-full bg-red-500/15 blur-2xl" />
+                      <div className="w-24 h-24 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center z-10">
+                        <XCircle className="w-12 h-12 text-red-400" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-red-400 text-xs font-semibold uppercase tracking-widest">Entry Blocked</p>
+                      <h2 className="text-white text-3xl font-bold mt-1">Access Denied</h2>
+                    </div>
+
+                    <div className="bg-slate-900/80 border border-red-500/25 rounded-xl p-4 w-full max-w-xs flex items-start gap-3 text-left">
+                      <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                      <p className="text-slate-300 text-sm">
+                        {errorMessage || 'This pass is invalid. Do not allow entry. Contact the resident for verification.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="px-5 py-4 bg-slate-900/80 border-t border-red-500/20">
+                    <Button
+                      onClick={resetScanner}
+                      className="w-full h-12 bg-transparent border border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white transition-all"
+                    >
+                      Try Again
+                    </Button>
+                  </div>
+                </div>
+              )}
+
             </div>
 
-            <div className="absolute bottom-0 left-0 right-0 bg-white p-4 rounded-t-2xl border-t border-slate-200">
+            {/* Mobile walk-in entry button */}
+            <div className="lg:hidden mt-4">
               <Button
                 variant="outline"
-                className="w-full h-11"
+                className="w-full h-12 border-slate-200 text-slate-700"
                 onClick={() => setIsManualOpen(true)}
               >
                 <ClipboardList className="w-4 h-4 mr-2" />
-                Manual Entry
+                Log Walk-In Entry
               </Button>
             </div>
           </div>
-        )}
 
-        {/* SCANNING STATE */}
-        {scanState === 'SCANNING' && (
-          <div className="flex-1 bg-slate-900 flex flex-col">
-            <div className="flex-1 relative">
-              <Scanner
-                onScan={(detectedCodes: IDetectedBarcode[]) => {
-                  if (detectedCodes.length > 0 && scanState === 'SCANNING') {
-                    verifyQrCode(detectedCodes[0].rawValue)
-                  }
-                }}
-                onError={() => {
-                  setCameraError(true)
-                  setScanState('IDLE')
-                  toast.error('Camera access denied. Use manual entry instead.')
-                }}
-                styles={{ container: { width: '100%', minHeight: '360px' } }}
-              />
-              <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                <div className="w-56 h-56 border-2 border-emerald-400 rounded-2xl">
-                  <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-emerald-400 rounded-tl-2xl" />
-                  <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-emerald-400 rounded-tr-2xl" />
-                  <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-emerald-400 rounded-bl-2xl" />
-                  <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-emerald-400 rounded-br-2xl" />
-                </div>
-              </div>
-            </div>
-            <div className="p-4 bg-white">
-              <Button onClick={resetScanner} variant="outline" className="w-full h-11">
-                Cancel
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* VERIFYING / CONFIRMING STATE */}
-        {(scanState === 'VERIFYING' || scanState === 'CONFIRMING') && (
-          <div className="flex-1 flex flex-col items-center justify-center bg-white p-8 text-center animate-in fade-in duration-300">
-            <Loader2 className="w-12 h-12 text-indigo-500 animate-spin mb-4" />
-            <h3 className="text-lg font-semibold text-slate-900">
-              {scanState === 'VERIFYING' ? 'Verifying Pass…' : 'Logging Entry…'}
-            </h3>
-            <p className="text-slate-500 text-sm mt-1">
-              {scanState === 'VERIFYING' ? 'Checking validity and permissions' : 'Creating visitor log'}
-            </p>
-          </div>
-        )}
-
-        {/* VERIFIED STATE — show details, await guard confirmation */}
-        {scanState === 'VERIFIED' && verifiedPass && (
-          <div className="flex-1 flex flex-col bg-amber-50 animate-in zoom-in-95 duration-300">
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-              <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-4 text-amber-600">
-                <QrCode className="w-8 h-8" />
-              </div>
-              <h2 className="text-2xl font-bold text-amber-800 mb-1">Valid Pass</h2>
-              <p className="text-amber-600 text-sm font-medium">Confirm to log entry</p>
-
-              <div className="mt-6 bg-white p-6 rounded-xl shadow-sm w-full max-w-sm text-left border border-amber-100 space-y-4">
-                <div>
-                  <p className="text-xs text-slate-400 uppercase tracking-wide">Visitor Name</p>
-                  <p className="text-lg font-bold text-slate-900">{verifiedPass.preReg.visitor_name}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs text-slate-400 uppercase tracking-wide">Type</p>
-                    <Badge variant="secondary" className="mt-1 text-xs">
-                      {typeLabel[verifiedPass.preReg.visitor_type] ?? verifiedPass.preReg.visitor_type}
-                    </Badge>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-400 uppercase tracking-wide">House No.</p>
-                    <p className="text-lg font-bold text-slate-900">No. {verifiedPass.houseNumber}</p>
-                  </div>
+          {/* ══ WALK-IN FORM PANEL (desktop only) ══════════════════════════ */}
+          <div className="hidden lg:block w-[380px] shrink-0">
+            <Card className="border-slate-200 shadow-sm overflow-hidden">
+              {/* Header */}
+              <div className="px-5 py-4 bg-white border-b border-slate-100 flex items-center gap-3">
+                <div className="w-9 h-9 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center justify-center">
+                  <ClipboardList className="w-4 h-4 text-indigo-600" />
                 </div>
                 <div>
-                  <p className="text-xs text-slate-400 uppercase tracking-wide">Reason</p>
-                  <p className="text-sm text-slate-700">{verifiedPass.preReg.visit_reason}</p>
-                </div>
-                {verifiedPass.preReg.vehicle_number && (
-                  <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 flex justify-between items-center">
-                    <span className="text-xs text-slate-500 uppercase">Vehicle No.</span>
-                    <span className="font-mono font-bold text-slate-900">{verifiedPass.preReg.vehicle_number}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="p-4 bg-white border-t border-amber-100 flex gap-3">
-              <Button onClick={resetScanner} variant="outline" className="flex-1 h-12 border-slate-300">
-                Deny / Cancel
-              </Button>
-              <Button onClick={confirmEntry} className="flex-1 h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">
-                Confirm Entry
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* SUCCESS STATE */}
-        {scanState === 'SUCCESS' && verifiedPass && (
-          <div className="flex-1 flex flex-col bg-emerald-50 animate-in zoom-in-95 duration-300">
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-              <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mb-4 text-emerald-600 shadow-sm">
-                <CheckCircle2 className="w-10 h-10" />
-              </div>
-              <h2 className="text-3xl font-bold text-emerald-800 mb-1">Access Granted</h2>
-              <p className="text-emerald-600 font-medium">Entry logged successfully</p>
-
-              <div className="mt-8 bg-white p-6 rounded-xl shadow-sm w-full max-w-sm text-left border border-emerald-100 space-y-3">
-                <div>
-                  <p className="text-xs text-slate-400 uppercase tracking-wide">Visitor</p>
-                  <p className="text-lg font-bold text-slate-900">{verifiedPass.preReg.visitor_name}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-xs text-slate-400 uppercase tracking-wide">Type</p>
-                    <Badge variant="secondary" className="mt-1 text-xs">
-                      {typeLabel[verifiedPass.preReg.visitor_type]}
-                    </Badge>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-400 uppercase tracking-wide">House No.</p>
-                    <p className="text-lg font-bold text-slate-900">No. {verifiedPass.houseNumber}</p>
-                  </div>
+                  <h2 className="font-semibold text-slate-900 text-sm leading-snug">Log Walk-In Entry</h2>
+                  <p className="text-slate-400 text-xs">For visitors without a QR pass</p>
                 </div>
               </div>
-            </div>
-            <div className="p-4 bg-white border-t border-emerald-100">
-              <Button onClick={resetScanner} className="w-full h-12 text-lg bg-slate-900 hover:bg-slate-800 text-white">
-                Scan Next Visitor
-              </Button>
-            </div>
-          </div>
-        )}
 
-        {/* ERROR STATE */}
-        {scanState === 'ERROR' && (
-          <div className="flex-1 flex flex-col bg-red-50 animate-in zoom-in-95 duration-300">
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-              <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-4 text-red-600 shadow-sm">
-                <XCircle className="w-10 h-10" />
+              <div className="p-5">
+                <WalkInForm
+                  form={walkInForm}
+                  houses={houses}
+                  houseOpen={houseOpen}
+                  setHouseOpen={setHouseOpen}
+                  houseSearch={houseSearch}
+                  setHouseSearch={setHouseSearch}
+                  isSubmitting={isSubmitting}
+                  onSubmit={onSubmitWalkIn}
+                  successVisible={walkInSuccess}
+                />
               </div>
-              <h2 className="text-3xl font-bold text-red-800 mb-1">Access Denied</h2>
-              <p className="text-red-600 font-medium">Pass invalid or expired</p>
-
-              <div className={cn(
-                'mt-8 bg-white p-4 rounded-xl shadow-sm w-full max-w-sm border border-red-100 flex items-start gap-3',
-              )}>
-                <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                <p className="text-sm text-slate-600 text-left">{errorMessage || 'This pass is invalid. Do not allow entry. Contact the resident for verification.'}</p>
-              </div>
-            </div>
-            <div className="p-4 bg-white border-t border-red-100">
-              <Button onClick={resetScanner} variant="outline" className="w-full h-12 text-lg border-slate-300 text-slate-700 hover:bg-slate-50">
-                Try Again
-              </Button>
-            </div>
+            </Card>
           </div>
-        )}
-      </Card>
 
-      {/* Walk-In Manual Entry Dialog */}
+        </div>
+      </div>
+
+      {/* Mobile walk-in dialog */}
       <Dialog open={isManualOpen} onOpenChange={setIsManualOpen}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Log Walk-In Visitor</DialogTitle>
           </DialogHeader>
-          <form onSubmit={walkInForm.handleSubmit(onSubmitWalkIn)} className="space-y-4">
-            {/* Visitor Name */}
-            <div className="space-y-1.5">
-              <Label htmlFor="visitorName">Visitor Name <span className="text-red-500">*</span></Label>
-              <input
-                id="visitorName"
-                {...walkInForm.register('visitorName')}
-                placeholder="Full name"
-                className="w-full h-11 rounded-lg border border-slate-300 bg-white px-3 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
-              />
-              {walkInForm.formState.errors.visitorName && (
-                <p className="text-xs text-red-500">{walkInForm.formState.errors.visitorName.message}</p>
-              )}
-            </div>
-
-            {/* Visitor Type */}
-            <div className="space-y-1.5">
-              <Label>Visitor Type <span className="text-red-500">*</span></Label>
-              <div className="grid grid-cols-3 gap-2">
-                {VISITOR_TYPES.map(({ value, label }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => walkInForm.setValue('visitorType', value, { shouldValidate: true })}
-                    className={cn(
-                      'h-10 rounded-lg border text-sm font-medium transition-all',
-                      walkInForm.watch('visitorType') === value
-                        ? 'bg-indigo-600 border-indigo-600 text-white'
-                        : 'border-slate-300 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50',
-                    )}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              {walkInForm.formState.errors.visitorType && (
-                <p className="text-xs text-red-500">{walkInForm.formState.errors.visitorType.message}</p>
-              )}
-            </div>
-
-            {/* House Number */}
-            <div className="space-y-1.5">
-              <Label>House Number <span className="text-red-500">*</span></Label>
-              <Controller
-                name="houseNumber"
-                control={walkInForm.control}
-                render={({ field }) => {
-                  const selected = houses.find(h => h.house_number === field.value)
-                  return (
-                    <Popover open={houseOpen} onOpenChange={setHouseOpen} modal={false}>
-                      <PopoverTrigger asChild>
-                        <button
-                          type="button"
-                          className={cn(
-                            'w-full flex items-center gap-2 px-3 h-11 rounded-lg border bg-white text-left text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all',
-                            walkInForm.formState.errors.houseNumber ? 'border-red-400' : 'border-slate-300',
-                          )}
-                        >
-                          {selected ? (
-                            <span className="text-slate-900 flex-1">
-                              No. {selected.house_number}
-                              {selected.street && <span className="text-slate-400"> · {selected.street}</span>}
-                            </span>
-                          ) : (
-                            <span className="text-slate-400 flex-1">Select house</span>
-                          )}
-                          <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-                        <div className="flex items-center border-b border-slate-200 px-3">
-                          <Search className="w-4 h-4 text-slate-400 shrink-0" />
-                          <input
-                            className="flex-1 py-2 pl-2 text-sm bg-transparent outline-none placeholder:text-slate-400"
-                            placeholder="Search house number..."
-                            value={houseSearch}
-                            onChange={e => setHouseSearch(e.target.value)}
-                            autoFocus
-                          />
-                        </div>
-                        <div className="max-h-52 overflow-y-auto py-1">
-                          {filteredHouses.length === 0 ? (
-                            <p className="px-3 py-4 text-xs text-slate-400 text-center">No houses found</p>
-                          ) : (
-                            filteredHouses.map(h => (
-                              <button
-                                key={h.id}
-                                type="button"
-                                onClick={() => {
-                                  field.onChange(h.house_number)
-                                  setHouseOpen(false)
-                                  setHouseSearch('')
-                                }}
-                                className={cn(
-                                  'w-full flex flex-col items-start px-3 py-2 text-sm hover:bg-slate-50 transition-colors',
-                                  field.value === h.house_number && 'bg-indigo-50 text-indigo-700',
-                                )}
-                              >
-                                <span className="font-medium">No. {h.house_number}</span>
-                                {h.street && <span className="text-xs text-slate-400">{h.street}</span>}
-                              </button>
-                            ))
-                          )}
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  )
-                }}
-              />
-              {walkInForm.formState.errors.houseNumber && (
-                <p className="text-xs text-red-500">{walkInForm.formState.errors.houseNumber.message}</p>
-              )}
-            </div>
-
-            {/* Visit Reason */}
-            <div className="space-y-1.5">
-              <Label htmlFor="visitReason">Reason for Visit <span className="text-red-500">*</span></Label>
-              <input
-                id="visitReason"
-                {...walkInForm.register('visitReason')}
-                placeholder="e.g. Family visit, delivery pickup"
-                className="w-full h-11 rounded-lg border border-slate-300 bg-white px-3 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
-              />
-              {walkInForm.formState.errors.visitReason && (
-                <p className="text-xs text-red-500">{walkInForm.formState.errors.visitReason.message}</p>
-              )}
-            </div>
-
-            {/* IC Number */}
-            <div className="space-y-1.5">
-              <Label htmlFor="icNumber">IC No. (last 4 digits)</Label>
-              <input
-                id="icNumber"
-                {...walkInForm.register('icNumber')}
-                placeholder="e.g. 1234"
-                maxLength={4}
-                className="w-full h-11 rounded-lg border border-slate-300 bg-white px-3 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-mono"
-              />
-              {walkInForm.formState.errors.icNumber && (
-                <p className="text-xs text-red-500">{walkInForm.formState.errors.icNumber.message}</p>
-              )}
-            </div>
-
-            {/* Vehicle Number */}
-            <div className="space-y-1.5">
-              <Label htmlFor="vehicleNumber">Vehicle No.</Label>
-              <input
-                id="vehicleNumber"
-                {...walkInForm.register('vehicleNumber')}
-                placeholder="e.g. WXY 1234"
-                className="w-full h-11 rounded-lg border border-slate-300 bg-white px-3 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-mono uppercase"
-              />
-            </div>
-
-            {/* Phone Number */}
-            <div className="space-y-1.5">
-              <Label htmlFor="phoneNumber">Phone Number</Label>
-              <input
-                id="phoneNumber"
-                {...walkInForm.register('phoneNumber')}
-                placeholder="e.g. 012-3456789"
-                className="w-full h-11 rounded-lg border border-slate-300 bg-white px-3 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
-              />
-            </div>
-
-            <DialogFooter className="pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsManualOpen(false)}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting} className="bg-indigo-600 hover:bg-indigo-700">
-                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Log Entry
-              </Button>
-            </DialogFooter>
-          </form>
+          <div className="pt-1">
+            <WalkInForm
+              form={walkInForm}
+              houses={houses}
+              houseOpen={houseOpen}
+              setHouseOpen={setHouseOpen}
+              houseSearch={houseSearch}
+              setHouseSearch={setHouseSearch}
+              isSubmitting={isSubmitting}
+              onSubmit={onSubmitWalkIn}
+              onCancel={() => setIsManualOpen(false)}
+              showCancel
+            />
+          </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   )
 }

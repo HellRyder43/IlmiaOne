@@ -6,9 +6,9 @@
 
 **Monthly maintenance fee:** RM70/month (no late fees).
 **Language:** English-only UI.
-**Users:** Residents, Treasurer (AJK), Guards, Super Admin.
+**Users:** Residents, AJK Committee, Guards, AJK Leader (Super Admin).
 
-> **Role clarification:** Treasurer and AJK (Committee) are the **same role**. In the codebase, use `TREASURER` as the role value. The Treasurer/AJK has financial oversight (invoices, payments, defaulters), event management (calendar CRUD), and resident approval authority. Do not create a separate AJK role.
+> **Role values in DB:** `RESIDENT`, `GUARD`, `AJK_COMMITTEE`, `AJK_LEADER`. Custom roles can also be created by the AJK Leader and are stored in the `roles` table. `AJK_COMMITTEE` handles financial oversight (invoices, payments, defaulters), calendar management, and resident registration approvals. `AJK_LEADER` has full system access. Do **not** use `TREASURER` or `ADMIN` — those values no longer exist in the DB.
 
 ---
 
@@ -193,7 +193,7 @@ profiles
   - id (UUID, references auth.users.id)
   - full_name (TEXT, NOT NULL)
   - email (TEXT, NOT NULL)
-  - role (TEXT: 'RESIDENT' | 'TREASURER' | 'GUARD' | 'ADMIN')
+  - role (TEXT) — FK → roles.value; system values: 'RESIDENT' | 'GUARD' | 'AJK_COMMITTEE' | 'AJK_LEADER'
   - house_id (UUID, references houses.id, nullable for guards/admin)
   - ic_number (TEXT, masked — store last 4 only in display contexts)
   - resident_type (TEXT: 'OWNER' | 'TENANT', nullable)
@@ -322,9 +322,9 @@ notifications
 | full_name | email | role | resident_type | house |
 |---|---|---|---|---|
 | Ahmad bin Abdullah | resident@ilmiaone.com | RESIDENT | OWNER | 12 |
-| Sarah Lee | treasurer@ilmiaone.com | TREASURER | null | — |
+| Sarah Lee | treasurer@ilmiaone.com | AJK_COMMITTEE | null | — |
 | Kumar Raj | guard@ilmiaone.com | GUARD | null | — |
-| System Administrator | admin@ilmiaone.com | ADMIN | null | — |
+| System Administrator | admin@ilmiaone.com | AJK_LEADER | null | — |
 
 Passwords: `resident123`, `treasurer123`, `guard123`, `admin123`
 
@@ -527,12 +527,12 @@ export interface House {
 
 ## RBAC (Role-Based Access Control)
 
-| Role                | Route Access   | Data Access                               | Can Approve       |
-| ------------------- | -------------- | ----------------------------------------- | ----------------- |
-| ADMIN (Super Admin) | All routes     | All data                                  | Yes — full system |
-| TREASURER (AJK)     | `/treasurer/*` | All houses, invoices, payments            | Approve residents |
-| RESIDENT            | `/resident/*`  | Own invoices, household, pets, events     | No                |
-| GUARD               | `/guard/*`     | Visitor logs (90 days), scan verification | Verify visitors   |
+| Role          | Route Access                      | Data Access                               | Can Approve       |
+| ------------- | --------------------------------- | ----------------------------------------- | ----------------- |
+| AJK_LEADER    | All routes                        | All data                                  | Yes — full system |
+| AJK_COMMITTEE | `/treasurer/*` + `/guard/*`       | All houses, invoices, payments            | Approve residents |
+| RESIDENT      | `/resident/*`                     | Own invoices, household, pets, events     | No                |
+| GUARD         | `/guard/*`                        | Visitor logs (90 days), scan verification | Verify visitors   |
 
 **Middleware:** `middleware.ts` enforces route-level RBAC. Supabase RLS enforces data-level RBAC.
 
@@ -926,8 +926,8 @@ As data grows, missing indexes will cause slow queries:
 
 ### Security Gaps — Fix soon
 
-**4. INACTIVE profile status not enforced in middleware**
-`lib/supabase/proxy.ts` checks `role` for routing but never checks `profile.status`. A resident marked `INACTIVE` (e.g., moved out) can still log in and access their dashboard. The middleware must reject `INACTIVE` users and redirect to `/login`.
+**4. INACTIVE profile status — ✅ RESOLVED**
+`lib/supabase/proxy.ts` now checks `user_status` from JWT and redirects INACTIVE users to `/login?reason=inactive`.
 
 **5. No rate limiting on the public self-register endpoint**
 `POST /api/visitor/self-register` is unauthenticated with no rate limiting, CAPTCHA, or IP throttling. It can be trivially spammed to flood `visitor_logs` with fake entries.

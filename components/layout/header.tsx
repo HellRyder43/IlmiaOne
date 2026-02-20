@@ -1,14 +1,145 @@
 'use client'
 
 import { useState } from 'react'
-import { Bell, ChevronDown, LogOut, Menu, UserCheck, UserX, Clock } from 'lucide-react'
+import { Bell, ChevronDown, KeyRound, LogOut, Menu, UserCheck, UserX, Clock } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
 import { useNotifications } from '@/hooks/use-notifications'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { formatDistanceToNow } from 'date-fns'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { toast } from 'sonner'
+import { createClient } from '@/lib/supabase/client'
+
+const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Current password is required'),
+    newPassword: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .regex(/[A-Z]/, 'Must contain at least 1 uppercase letter')
+      .regex(/[0-9]/, 'Must contain at least 1 number'),
+    confirmPassword: z.string(),
+  })
+  .refine((d) => d.newPassword === d.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  })
+
+type ChangePasswordData = z.infer<typeof changePasswordSchema>
+
+function ChangePasswordDialog({
+  open,
+  onOpenChange,
+  userEmail,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  userEmail: string
+}) {
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<ChangePasswordData>({ resolver: zodResolver(changePasswordSchema) })
+
+  const onSubmit = async (data: ChangePasswordData) => {
+    const supabase = createClient()
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: userEmail,
+      password: data.currentPassword,
+    })
+
+    if (signInError) {
+      setError('currentPassword', { message: 'Incorrect password' })
+      return
+    }
+
+    const { error: updateError } = await supabase.auth.updateUser({ password: data.newPassword })
+
+    if (updateError) {
+      toast.error('Failed to update password')
+      return
+    }
+
+    toast.success('Password updated successfully')
+    onOpenChange(false)
+    reset()
+  }
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) reset()
+    onOpenChange(nextOpen)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Change Password</DialogTitle>
+          <DialogDescription>
+            Enter your current password and choose a new one.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-slate-700">Current Password</label>
+            <input
+              {...register('currentPassword')}
+              type="password"
+              placeholder="Enter current password"
+              className="w-full h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500"
+            />
+            {errors.currentPassword && (
+              <p className="text-xs text-red-600">{errors.currentPassword.message}</p>
+            )}
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-slate-700">New Password</label>
+            <input
+              {...register('newPassword')}
+              type="password"
+              placeholder="Min. 8 chars, 1 uppercase, 1 number"
+              className="w-full h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500"
+            />
+            {errors.newPassword && (
+              <p className="text-xs text-red-600">{errors.newPassword.message}</p>
+            )}
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-slate-700">Confirm New Password</label>
+            <input
+              {...register('confirmPassword')}
+              type="password"
+              placeholder="Re-enter new password"
+              className="w-full h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500"
+            />
+            {errors.confirmPassword && (
+              <p className="text-xs text-red-600">{errors.confirmPassword.message}</p>
+            )}
+          </div>
+          <DialogFooter className="pt-2">
+            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Saving…' : 'Save Password'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
 
 interface HeaderProps {
   onMobileMenuToggle: () => void
@@ -29,6 +160,7 @@ function NotificationIconBg({ type }: { type: string }) {
 export function Header({ onMobileMenuToggle }: HeaderProps) {
   const { user, isLoading, logout } = useAuth()
   const [isProfileOpen, setIsProfileOpen] = useState(false)
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false)
   const { notifications, unreadCount, markAsRead, markAllRead } = useNotifications()
 
   if (isLoading) {
@@ -185,6 +317,16 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
                 <button
                   onClick={() => {
                     setIsProfileOpen(false)
+                    setIsChangePasswordOpen(true)
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
+                >
+                  <KeyRound className="w-4 h-4" /> Change Password
+                </button>
+                <div className="border-t border-slate-100 my-1" />
+                <button
+                  onClick={() => {
+                    setIsProfileOpen(false)
                     logout()
                   }}
                   className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
@@ -196,6 +338,12 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
           )}
         </div>
       </div>
+
+      <ChangePasswordDialog
+        open={isChangePasswordOpen}
+        onOpenChange={setIsChangePasswordOpen}
+        userEmail={user.email ?? ''}
+      />
     </header>
   )
 }

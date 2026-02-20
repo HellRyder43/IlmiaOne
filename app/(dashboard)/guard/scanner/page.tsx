@@ -1,15 +1,22 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Label } from '@/components/ui/label'
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '@/components/ui/dialog'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
 import {
   QrCode, Camera, CheckCircle2, XCircle, AlertTriangle,
-  ArrowRight, Keyboard, Loader2, ShieldOff,
+  Loader2, ShieldOff, ClipboardList,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -27,11 +34,16 @@ const Scanner = dynamic(() => import('@yudiel/react-qr-scanner').then(m => m.Sca
   ),
 })
 
-const manualSchema = z.object({
-  passCode: z.string().min(1, 'Enter a pass code'),
+const walkInSchema = z.object({
+  visitorName: z.string().min(1, 'Visitor name is required'),
+  icNumber: z.string().max(4, 'Last 4 digits only').optional(),
+  visitorType: z.enum(['VISITOR', 'CONTRACTOR', 'E_HAILING', 'COURIER', 'OTHERS']),
+  visitReason: z.string().min(1, 'Reason for visit is required'),
+  houseNumber: z.string().min(1, 'House number is required'),
+  vehicleNumber: z.string().optional(),
+  phoneNumber: z.string().optional(),
 })
-
-type ManualFormData = z.infer<typeof manualSchema>
+type WalkInFormData = z.infer<typeof walkInSchema>
 
 type ScanState = 'IDLE' | 'SCANNING' | 'VERIFYING' | 'VERIFIED' | 'CONFIRMING' | 'SUCCESS' | 'ERROR'
 
@@ -56,6 +68,14 @@ interface VerifiedPass {
   houseNumber: string
 }
 
+const VISITOR_TYPES = [
+  { value: 'VISITOR', label: 'Visitor' },
+  { value: 'CONTRACTOR', label: 'Contractor' },
+  { value: 'E_HAILING', label: 'E-Hailing' },
+  { value: 'COURIER', label: 'Courier' },
+  { value: 'OTHERS', label: 'Others' },
+] as const
+
 export default function ScannerPage() {
   const { hasPermission } = useAuth()
   const canScan = hasPermission('scan_qr')
@@ -64,12 +84,23 @@ export default function ScannerPage() {
   const [verifiedPass, setVerifiedPass] = useState<VerifiedPass | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
   const [cameraError, setCameraError] = useState(false)
-
-  const { register, handleSubmit, reset: resetForm, formState: { errors } } = useForm<ManualFormData>({
-    resolver: zodResolver(manualSchema),
-  })
+  const [isManualOpen, setIsManualOpen] = useState(false)
+  const [houses, setHouses] = useState<string[]>([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const supabase = createClient()
+
+  const walkInForm = useForm<WalkInFormData>({
+    resolver: zodResolver(walkInSchema),
+    defaultValues: { visitorType: 'VISITOR' },
+  })
+
+  useEffect(() => {
+    fetch('/api/houses')
+      .then(r => r.json())
+      .then((data: { house_number: string }[]) => setHouses(data.map(h => h.house_number)))
+      .catch(() => {})
+  }, [])
 
   const verifyQrCode = async (qrCode: string) => {
     setScanState('VERIFYING')
@@ -134,9 +165,26 @@ export default function ScannerPage() {
     }
   }
 
-  const handleManualSubmit = async (data: ManualFormData) => {
-    await verifyQrCode(data.passCode)
-    resetForm()
+  const onSubmitWalkIn = async (data: WalkInFormData) => {
+    setIsSubmitting(true)
+    try {
+      const res = await fetch('/api/guard/walk-in', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+      if (!res.ok) {
+        const body = await res.json()
+        throw new Error(body.error ?? 'Failed to log entry')
+      }
+      toast.success(`Walk-in entry logged for ${data.visitorName}`)
+      walkInForm.reset({ visitorType: 'VISITOR' })
+      setIsManualOpen(false)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to log entry')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const resetScanner = () => {
@@ -159,7 +207,7 @@ export default function ScannerPage() {
       <div className="max-w-2xl mx-auto space-y-6 pb-20">
         <div className="text-center space-y-2">
           <h2 className="text-2xl font-bold text-slate-900">Access Control Scanner</h2>
-          <p className="text-slate-500">Scan a visitor QR pass or enter the code manually.</p>
+          <p className="text-slate-500">Scan a visitor QR pass or log an entry manually.</p>
         </div>
         <Card className="border-slate-200 shadow-sm">
           <div className="flex flex-col items-center justify-center p-12 text-center gap-4">
@@ -183,7 +231,7 @@ export default function ScannerPage() {
     <div className="max-w-2xl mx-auto space-y-6 pb-20">
       <div className="text-center space-y-2">
         <h2 className="text-2xl font-bold text-slate-900">Access Control Scanner</h2>
-        <p className="text-slate-500">Scan a visitor QR pass or enter the code manually.</p>
+        <p className="text-slate-500">Scan a visitor QR pass or log an entry manually.</p>
       </div>
 
       <Card className="overflow-hidden border-slate-200 shadow-lg relative min-h-[480px] flex flex-col">
@@ -207,24 +255,15 @@ export default function ScannerPage() {
               <p className="text-slate-400 text-sm">Ensure adequate lighting for best results.</p>
             </div>
 
-            <div className="absolute bottom-0 left-0 right-0 bg-white p-6 rounded-t-2xl border-t border-slate-200">
-              <form onSubmit={handleSubmit(handleManualSubmit)} className="space-y-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <Keyboard className="w-4 h-4 text-slate-400" />
-                  <span className="text-sm font-semibold text-slate-700">Manual Code Entry</span>
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    {...register('passCode')}
-                    placeholder="Paste or type the pass UUID"
-                    className="flex-1 h-12 rounded-lg border border-slate-300 bg-white px-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-mono text-sm"
-                  />
-                  <Button type="submit" size="lg" className="h-12 w-12 p-0">
-                    <ArrowRight className="w-5 h-5" />
-                  </Button>
-                </div>
-                {errors.passCode && <p className="text-xs text-red-500">{errors.passCode.message}</p>}
-              </form>
+            <div className="absolute bottom-0 left-0 right-0 bg-white p-4 rounded-t-2xl border-t border-slate-200">
+              <Button
+                variant="outline"
+                className="w-full h-11"
+                onClick={() => setIsManualOpen(true)}
+              >
+                <ClipboardList className="w-4 h-4 mr-2" />
+                Manual Entry
+              </Button>
             </div>
           </div>
         )}
@@ -388,6 +427,142 @@ export default function ScannerPage() {
           </div>
         )}
       </Card>
+
+      {/* Walk-In Manual Entry Dialog */}
+      <Dialog open={isManualOpen} onOpenChange={setIsManualOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Log Walk-In Visitor</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={walkInForm.handleSubmit(onSubmitWalkIn)} className="space-y-4">
+            {/* Visitor Name */}
+            <div className="space-y-1.5">
+              <Label htmlFor="visitorName">Visitor Name <span className="text-red-500">*</span></Label>
+              <input
+                id="visitorName"
+                {...walkInForm.register('visitorName')}
+                placeholder="Full name"
+                className="w-full h-11 rounded-lg border border-slate-300 bg-white px-3 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+              />
+              {walkInForm.formState.errors.visitorName && (
+                <p className="text-xs text-red-500">{walkInForm.formState.errors.visitorName.message}</p>
+              )}
+            </div>
+
+            {/* Visitor Type */}
+            <div className="space-y-1.5">
+              <Label>Visitor Type <span className="text-red-500">*</span></Label>
+              <div className="grid grid-cols-3 gap-2">
+                {VISITOR_TYPES.map(({ value, label }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => walkInForm.setValue('visitorType', value, { shouldValidate: true })}
+                    className={cn(
+                      'h-10 rounded-lg border text-sm font-medium transition-all',
+                      walkInForm.watch('visitorType') === value
+                        ? 'bg-indigo-600 border-indigo-600 text-white'
+                        : 'border-slate-300 text-slate-700 hover:border-indigo-300 hover:bg-indigo-50',
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {walkInForm.formState.errors.visitorType && (
+                <p className="text-xs text-red-500">{walkInForm.formState.errors.visitorType.message}</p>
+              )}
+            </div>
+
+            {/* House Number */}
+            <div className="space-y-1.5">
+              <Label htmlFor="houseNumber">House Number <span className="text-red-500">*</span></Label>
+              <Select
+                onValueChange={val => walkInForm.setValue('houseNumber', val, { shouldValidate: true })}
+                value={walkInForm.watch('houseNumber') ?? ''}
+              >
+                <SelectTrigger id="houseNumber" className="h-11 border-slate-300">
+                  <SelectValue placeholder="Select house" />
+                </SelectTrigger>
+                <SelectContent>
+                  {houses.map(h => (
+                    <SelectItem key={h} value={h}>No. {h}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {walkInForm.formState.errors.houseNumber && (
+                <p className="text-xs text-red-500">{walkInForm.formState.errors.houseNumber.message}</p>
+              )}
+            </div>
+
+            {/* Visit Reason */}
+            <div className="space-y-1.5">
+              <Label htmlFor="visitReason">Reason for Visit <span className="text-red-500">*</span></Label>
+              <input
+                id="visitReason"
+                {...walkInForm.register('visitReason')}
+                placeholder="e.g. Family visit, delivery pickup"
+                className="w-full h-11 rounded-lg border border-slate-300 bg-white px-3 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+              />
+              {walkInForm.formState.errors.visitReason && (
+                <p className="text-xs text-red-500">{walkInForm.formState.errors.visitReason.message}</p>
+              )}
+            </div>
+
+            {/* IC Number */}
+            <div className="space-y-1.5">
+              <Label htmlFor="icNumber">IC No. (last 4 digits)</Label>
+              <input
+                id="icNumber"
+                {...walkInForm.register('icNumber')}
+                placeholder="e.g. 1234"
+                maxLength={4}
+                className="w-full h-11 rounded-lg border border-slate-300 bg-white px-3 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-mono"
+              />
+              {walkInForm.formState.errors.icNumber && (
+                <p className="text-xs text-red-500">{walkInForm.formState.errors.icNumber.message}</p>
+              )}
+            </div>
+
+            {/* Vehicle Number */}
+            <div className="space-y-1.5">
+              <Label htmlFor="vehicleNumber">Vehicle No.</Label>
+              <input
+                id="vehicleNumber"
+                {...walkInForm.register('vehicleNumber')}
+                placeholder="e.g. WXY 1234"
+                className="w-full h-11 rounded-lg border border-slate-300 bg-white px-3 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-mono uppercase"
+              />
+            </div>
+
+            {/* Phone Number */}
+            <div className="space-y-1.5">
+              <Label htmlFor="phoneNumber">Phone Number</Label>
+              <input
+                id="phoneNumber"
+                {...walkInForm.register('phoneNumber')}
+                placeholder="e.g. 012-3456789"
+                className="w-full h-11 rounded-lg border border-slate-300 bg-white px-3 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+              />
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsManualOpen(false)}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting} className="bg-indigo-600 hover:bg-indigo-700">
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Log Entry
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

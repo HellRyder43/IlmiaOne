@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Card } from '@/components/ui/card'
@@ -11,10 +11,13 @@ import { Label } from '@/components/ui/label'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from '@/components/ui/popover'
 
 import {
   QrCode, Camera, CheckCircle2, XCircle, AlertTriangle,
-  Loader2, ShieldOff, ClipboardList,
+  Loader2, ShieldOff, ClipboardList, Search, ChevronDown,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -61,6 +64,12 @@ interface HouseData {
   house_number: string
 }
 
+interface HouseOption {
+  id: string
+  house_number: string
+  street: string | null
+}
+
 interface VerifiedPass {
   preReg: PreRegData
   houseNumber: string
@@ -83,7 +92,9 @@ export default function ScannerPage() {
   const [errorMessage, setErrorMessage] = useState('')
   const [cameraError, setCameraError] = useState(false)
   const [isManualOpen, setIsManualOpen] = useState(false)
-  const [houses, setHouses] = useState<string[]>([])
+  const [houses, setHouses] = useState<HouseOption[]>([])
+  const [houseOpen, setHouseOpen] = useState(false)
+  const [houseSearch, setHouseSearch] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const supabase = createClient()
@@ -96,9 +107,14 @@ export default function ScannerPage() {
   useEffect(() => {
     fetch('/api/houses')
       .then(r => r.json())
-      .then((data: { house_number: string }[]) => setHouses(data.map(h => h.house_number)))
+      .then((data: HouseOption[]) => setHouses(data))
       .catch(() => {})
   }, [])
+
+  const filteredHouses = houses.filter(h => {
+    const q = houseSearch.toLowerCase()
+    return h.house_number.toLowerCase().includes(q) || (h.street ?? '').toLowerCase().includes(q)
+  })
 
   const verifyQrCode = async (qrCode: string) => {
     setScanState('VERIFYING')
@@ -474,17 +490,73 @@ export default function ScannerPage() {
 
             {/* House Number */}
             <div className="space-y-1.5">
-              <Label htmlFor="houseNumber">House Number <span className="text-red-500">*</span></Label>
-              <select
-                id="houseNumber"
-                {...walkInForm.register('houseNumber')}
-                className="w-full h-11 rounded-lg border border-slate-300 bg-white px-3 text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
-              >
-                <option value="">Select house</option>
-                {houses.map(h => (
-                  <option key={h} value={h}>No. {h}</option>
-                ))}
-              </select>
+              <Label>House Number <span className="text-red-500">*</span></Label>
+              <Controller
+                name="houseNumber"
+                control={walkInForm.control}
+                render={({ field }) => {
+                  const selected = houses.find(h => h.house_number === field.value)
+                  return (
+                    <Popover open={houseOpen} onOpenChange={setHouseOpen} modal={false}>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className={cn(
+                            'w-full flex items-center gap-2 px-3 h-11 rounded-lg border bg-white text-left text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all',
+                            walkInForm.formState.errors.houseNumber ? 'border-red-400' : 'border-slate-300',
+                          )}
+                        >
+                          {selected ? (
+                            <span className="text-slate-900 flex-1">
+                              No. {selected.house_number}
+                              {selected.street && <span className="text-slate-400"> · {selected.street}</span>}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 flex-1">Select house</span>
+                          )}
+                          <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                        <div className="flex items-center border-b border-slate-200 px-3">
+                          <Search className="w-4 h-4 text-slate-400 shrink-0" />
+                          <input
+                            className="flex-1 py-2 pl-2 text-sm bg-transparent outline-none placeholder:text-slate-400"
+                            placeholder="Search house number..."
+                            value={houseSearch}
+                            onChange={e => setHouseSearch(e.target.value)}
+                            autoFocus
+                          />
+                        </div>
+                        <div className="max-h-52 overflow-y-auto py-1">
+                          {filteredHouses.length === 0 ? (
+                            <p className="px-3 py-4 text-xs text-slate-400 text-center">No houses found</p>
+                          ) : (
+                            filteredHouses.map(h => (
+                              <button
+                                key={h.id}
+                                type="button"
+                                onClick={() => {
+                                  field.onChange(h.house_number)
+                                  setHouseOpen(false)
+                                  setHouseSearch('')
+                                }}
+                                className={cn(
+                                  'w-full flex flex-col items-start px-3 py-2 text-sm hover:bg-slate-50 transition-colors',
+                                  field.value === h.house_number && 'bg-indigo-50 text-indigo-700',
+                                )}
+                              >
+                                <span className="font-medium">No. {h.house_number}</span>
+                                {h.street && <span className="text-xs text-slate-400">{h.street}</span>}
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  )
+                }}
+              />
               {walkInForm.formState.errors.houseNumber && (
                 <p className="text-xs text-red-500">{walkInForm.formState.errors.houseNumber.message}</p>
               )}

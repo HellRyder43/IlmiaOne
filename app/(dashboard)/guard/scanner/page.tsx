@@ -6,9 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog'
 import {
   Popover, PopoverContent, PopoverTrigger,
@@ -16,6 +15,7 @@ import {
 import {
   QrCode, Camera, CheckCircle2, XCircle, AlertTriangle,
   Loader2, ShieldOff, ClipboardList, Search, ChevronDown,
+  User, Hammer, Bike, Truck, HelpCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -70,11 +70,11 @@ interface VerifiedPass {
 }
 
 const VISITOR_TYPES = [
-  { value: 'VISITOR', label: 'Visitor' },
-  { value: 'CONTRACTOR', label: 'Contractor' },
-  { value: 'E_HAILING', label: 'E-Hailing' },
-  { value: 'COURIER', label: 'Courier' },
-  { value: 'OTHERS', label: 'Others' },
+  { value: 'VISITOR',    label: 'Visitor',    Icon: User },
+  { value: 'CONTRACTOR', label: 'Contractor', Icon: Hammer },
+  { value: 'E_HAILING',  label: 'E-Hailing',  Icon: Bike },
+  { value: 'COURIER',    label: 'Courier',     Icon: Truck },
+  { value: 'OTHERS',     label: 'Others',      Icon: HelpCircle },
 ] as const
 
 const TYPE_BADGE: Record<string, { bg: string; text: string; dot: string }> = {
@@ -124,11 +124,13 @@ function WalkInForm({
     return h.house_number.toLowerCase().includes(q) || (h.street ?? '').toLowerCase().includes(q)
   })
 
+  const selectedType = form.watch('visitorType')
+
   return (
     <div className="relative">
-      {/* Inline success flash (desktop only) */}
+      {/* Inline success flash (desktop panel only) */}
       {successVisible && (
-        <div className="absolute inset-0 bg-white/96 flex flex-col items-center justify-center gap-3 z-10 rounded-b-xl" style={{ animation: 'fadeSlideUp 0.2s ease-out' }}>
+        <div className="absolute inset-0 bg-white/96 flex flex-col items-center justify-center gap-3 z-10 rounded-b-xl anim-fade-up">
           <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
             <CheckCircle2 className="w-6 h-6 text-emerald-600" />
           </div>
@@ -142,13 +144,13 @@ function WalkInForm({
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         {/* Visitor Name */}
         <div className="space-y-1.5">
-          <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+          <label className="text-sm font-medium text-slate-700">
             Visitor Name <span className="text-red-500">*</span>
-          </Label>
+          </label>
           <input
             {...form.register('visitorName')}
-            placeholder="Full name"
-            className="w-full h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all"
+            placeholder="e.g. Ahmad bin Razak"
+            className="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
           />
           {form.formState.errors.visitorName && (
             <p className="text-xs text-red-500">{form.formState.errors.visitorName.message}</p>
@@ -157,23 +159,24 @@ function WalkInForm({
 
         {/* Visitor Type */}
         <div className="space-y-1.5">
-          <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+          <label className="text-sm font-medium text-slate-700">
             Visitor Type <span className="text-red-500">*</span>
-          </Label>
-          <div className="grid grid-cols-3 gap-1.5">
-            {VISITOR_TYPES.map(({ value, label }) => (
+          </label>
+          <div className="grid grid-cols-5 gap-2">
+            {VISITOR_TYPES.map(({ value, label, Icon }) => (
               <button
                 key={value}
                 type="button"
                 onClick={() => form.setValue('visitorType', value, { shouldValidate: true })}
                 className={cn(
-                  'h-9 rounded-lg border text-xs font-medium transition-all',
-                  form.watch('visitorType') === value
-                    ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-300 hover:bg-indigo-50',
+                  'flex flex-col items-center gap-1 py-2 rounded-lg border text-xs font-medium transition-all',
+                  selectedType === value
+                    ? 'bg-indigo-50 border-indigo-500 text-indigo-700'
+                    : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50',
                 )}
               >
-                {label}
+                <Icon className="w-4 h-4" />
+                <span className="text-[10px] leading-tight text-center">{label}</span>
               </button>
             ))}
           </div>
@@ -181,9 +184,9 @@ function WalkInForm({
 
         {/* House Number */}
         <div className="space-y-1.5">
-          <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+          <label className="text-sm font-medium text-slate-700">
             House Number <span className="text-red-500">*</span>
-          </Label>
+          </label>
           <Controller
             name="houseNumber"
             control={form.control}
@@ -195,8 +198,8 @@ function WalkInForm({
                     <button
                       type="button"
                       className={cn(
-                        'w-full flex items-center gap-2 px-3 h-10 rounded-lg border bg-slate-50 text-left text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all',
-                        form.formState.errors.houseNumber ? 'border-red-400' : 'border-slate-200',
+                        'w-full flex items-center gap-2 px-3 h-11 rounded-lg border bg-white text-left text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all',
+                        form.formState.errors.houseNumber ? 'border-red-400' : 'border-slate-300',
                       )}
                     >
                       {selected ? (
@@ -207,7 +210,7 @@ function WalkInForm({
                       ) : (
                         <span className="text-slate-400 flex-1">Select house</span>
                       )}
-                      <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
                     </button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
@@ -221,7 +224,7 @@ function WalkInForm({
                         autoFocus
                       />
                     </div>
-                    <div className="max-h-48 overflow-y-auto py-1">
+                    <div className="max-h-52 overflow-y-auto py-1">
                       {filteredHouses.length === 0 ? (
                         <p className="px-3 py-4 text-xs text-slate-400 text-center">No houses found</p>
                       ) : (
@@ -257,54 +260,64 @@ function WalkInForm({
 
         {/* Visit Reason */}
         <div className="space-y-1.5">
-          <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+          <label className="text-sm font-medium text-slate-700">
             Reason for Visit <span className="text-red-500">*</span>
-          </Label>
+          </label>
           <input
             {...form.register('visitReason')}
-            placeholder="e.g. Family visit, delivery pickup"
-            className="w-full h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all"
+            placeholder="e.g. Social visit, maintenance work"
+            className="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
           />
           {form.formState.errors.visitReason && (
             <p className="text-xs text-red-500">{form.formState.errors.visitReason.message}</p>
           )}
         </div>
 
-        {/* Optional: IC + Vehicle in row */}
+        {/* Optional: IC + Vehicle */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">IC (last 4)</Label>
+            <label className="text-sm font-medium text-slate-700">IC No. (last 4)</label>
             <input
               {...form.register('icNumber')}
               placeholder="1234"
               maxLength={4}
-              className="w-full h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all font-mono"
+              className="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-mono"
             />
+            {form.formState.errors.icNumber && (
+              <p className="text-xs text-red-500">{form.formState.errors.icNumber.message}</p>
+            )}
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Vehicle No.</Label>
+            <label className="text-sm font-medium text-slate-700">Vehicle No.</label>
             <input
               {...form.register('vehicleNumber')}
-              placeholder="WXY 1234"
-              className="w-full h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all font-mono uppercase"
+              placeholder="WXX 1234"
+              className="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all uppercase"
             />
           </div>
         </div>
 
         {/* Phone */}
         <div className="space-y-1.5">
-          <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Phone Number</Label>
+          <label className="text-sm font-medium text-slate-700">Phone Number</label>
           <input
             {...form.register('phoneNumber')}
-            placeholder="012-3456789"
-            className="w-full h-10 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all"
+            type="tel"
+            placeholder="e.g. 0123456789"
+            className="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
           />
         </div>
 
         {/* Actions */}
-        <div className={cn('flex gap-2 pt-1', showCancel ? 'flex-row' : 'flex-col')}>
+        <div className="flex gap-3 pt-2">
           {showCancel && onCancel && (
-            <Button type="button" variant="outline" className="flex-1 h-11" onClick={onCancel} disabled={isSubmitting}>
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={onCancel}
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
           )}
@@ -312,12 +325,11 @@ function WalkInForm({
             type="submit"
             disabled={isSubmitting}
             className={cn(
-              'h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold',
+              'bg-slate-900 hover:bg-slate-800 text-white',
               showCancel ? 'flex-1' : 'w-full',
             )}
           >
-            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-            Log Entry
+            {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Logging…</> : 'Log Entry'}
           </Button>
         </div>
       </form>
@@ -851,9 +863,10 @@ export default function ScannerPage() {
 
       {/* Mobile walk-in dialog */}
       <Dialog open={isManualOpen} onOpenChange={setIsManualOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Log Walk-In Visitor</DialogTitle>
+            <DialogTitle>Register Walk-In Visitor</DialogTitle>
+            <DialogDescription>Fill in the visitor details to log their entry.</DialogDescription>
           </DialogHeader>
           <div className="pt-1">
             <WalkInForm

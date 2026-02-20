@@ -15,7 +15,7 @@ import {
   UserCheck,
   type LucideIcon,
 } from 'lucide-react'
-import { UserRole } from './types'
+import type { AppPermission } from './types'
 
 // Navigation menu item interface
 export interface NavItem {
@@ -24,59 +24,87 @@ export interface NavItem {
   icon: LucideIcon
 }
 
-// Role-based navigation configuration
-export const NAVIGATION_CONFIG: Record<UserRole, NavItem[]> = {
-  RESIDENT: [
-    { href: '/resident', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/resident/billing', label: 'Maintenance Fees', icon: Wallet },
-    { href: '/resident/visitors', label: 'Visitor Pass', icon: QrCode },
-    { href: '/resident/household', label: 'My Household', icon: Home },
-    { href: '/resident/pets', label: 'Pet Registry', icon: Dog },
-    { href: '/resident/calendar', label: 'Community Calendar', icon: Calendar },
-    { href: '/resident/activity', label: 'Activity Log', icon: Activity },
+// Navigation items grouped by route prefix (used by sidebar with dynamic roles)
+export const NAVIGATION_BY_ROUTE: Record<string, NavItem[]> = {
+  resident: [
+    { href: '/resident',           label: 'Dashboard',          icon: LayoutDashboard },
+    { href: '/resident/billing',   label: 'Maintenance Fees',   icon: Wallet },
+    { href: '/resident/visitors',  label: 'Visitor Pass',       icon: QrCode },
+    { href: '/resident/household', label: 'My Household',       icon: Home },
+    { href: '/resident/pets',      label: 'Pet Registry',       icon: Dog },
+    { href: '/resident/calendar',  label: 'Community Calendar', icon: Calendar },
+    { href: '/resident/activity',  label: 'Activity Log',       icon: Activity },
   ],
-  TREASURER: [
-    { href: '/treasurer', label: 'Overview', icon: LayoutDashboard },
-    { href: '/treasurer/reports', label: 'Financial Reports', icon: Wallet },
-    { href: '/treasurer/defaulters', label: 'Defaulter List', icon: Users },
+  treasurer: [
+    { href: '/treasurer',             label: 'Overview',          icon: LayoutDashboard },
+    { href: '/treasurer/reports',     label: 'Financial Reports', icon: Wallet },
+    { href: '/treasurer/defaulters',  label: 'Defaulter List',    icon: Users },
   ],
-  GUARD: [
-    { href: '/guard', label: 'Guard Dashboard', icon: ShieldCheck },
-    { href: '/guard/scanner', label: 'Scan Entry', icon: QrCode },
-    { href: '/guard/logs', label: 'Entry Logs', icon: FileText },
+  guard: [
+    { href: '/guard',         label: 'Guard Dashboard', icon: ShieldCheck },
+    { href: '/guard/scanner', label: 'Scan Entry',      icon: QrCode },
+    { href: '/guard/logs',    label: 'Entry Logs',      icon: FileText },
   ],
-  ADMIN: [
-    { href: '/admin', label: 'System Config', icon: Settings },
+  admin: [
+    { href: '/admin',               label: 'System Config', icon: Settings },
     { href: '/admin/registrations', label: 'Registrations', icon: UserCheck },
   ],
 }
 
-// Role display names
-export const ROLE_LABELS: Record<UserRole, string> = {
-  RESIDENT: 'Resident',
-  TREASURER: 'Treasurer',
-  GUARD: 'Security Guard',
-  ADMIN: 'Administrator',
+// Section label shown in the sidebar for each route prefix
+export const ROUTE_SECTION_LABELS: Record<string, string> = {
+  resident:  'Resident',
+  treasurer: 'Financials',
+  guard:     'Security',
+  admin:     'Administration',
 }
 
-// Role-based dashboard routes
-export const ROLE_DASHBOARD: Record<UserRole, string> = {
-  RESIDENT: '/resident',
-  TREASURER: '/treasurer',
-  GUARD: '/guard',
-  ADMIN: '/admin',
+// Route sections available for role permission assignment
+export const ROUTE_SECTIONS: Array<{ key: string; label: string; description: string }> = [
+  { key: 'resident',  label: 'Resident Portal',  description: 'Billing, visitors, household, pets, calendar' },
+  { key: 'treasurer', label: 'Treasurer Portal', description: 'Financial overview, reports, defaulter list' },
+  { key: 'guard',     label: 'Guard Portal',     description: 'Guard dashboard, QR scanner, entry logs' },
+  { key: 'admin',     label: 'Admin Panel',      description: 'System configuration, user management, roles' },
+]
+
+// All action permissions with metadata for the role editor UI
+export const APP_PERMISSIONS: Array<{
+  key: AppPermission
+  label: string
+  description: string
+  category: 'residents' | 'visitors' | 'financials' | 'system'
+}> = [
+  { key: 'approve_registrations', label: 'Approve Registrations',  description: 'Review and approve or reject pending resident applications', category: 'residents' },
+  { key: 'manage_calendar',       label: 'Manage Calendar',        description: 'Create, edit and delete community events',                    category: 'residents' },
+  { key: 'scan_qr',               label: 'Scan QR Pass',           description: 'Use the QR scanner to verify and admit pre-registered visitors', category: 'visitors' },
+  { key: 'log_walk_in',           label: 'Log Walk-In Visitors',   description: 'Manually register walk-in visitors at the guardhouse',          category: 'visitors' },
+  { key: 'view_all_invoices',     label: 'View All Invoices',      description: 'Access billing records for all houses',                          category: 'financials' },
+  { key: 'view_all_payments',     label: 'View All Payments',      description: 'Access payment transaction history for all houses',              category: 'financials' },
+  { key: 'export_reports',        label: 'Export Reports',         description: 'Download financial reports as CSV or PDF',                       category: 'financials' },
+  { key: 'manage_houses',         label: 'Manage Houses',          description: 'Add, edit and update house records and occupancy status',         category: 'system' },
+  { key: 'manage_users',          label: 'Manage Users',           description: 'View, activate and deactivate user accounts',                    category: 'system' },
+  { key: 'manage_roles',          label: 'Manage Roles',           description: 'Create, edit and delete custom roles',                           category: 'system' },
+  { key: 'assign_user_role',      label: 'Assign User Roles',      description: 'Change the role assigned to any user account',                   category: 'system' },
+]
+
+// Role display names (fallback for roles not yet fetched from DB)
+export const ROLE_LABELS: Record<string, string> = {
+  RESIDENT:      'Resident',
+  GUARD:         'Security Guard',
+  AJK_COMMITTEE: 'AJK Committee',
+  AJK_LEADER:    'AJK Leader',
+}
+
+// Default dashboard per role (used for login redirect)
+export const ROLE_DASHBOARD: Record<string, string> = {
+  RESIDENT:      '/resident',
+  GUARD:         '/guard',
+  AJK_COMMITTEE: '/treasurer',
+  AJK_LEADER:    '/admin',
 }
 
 // Public routes (no authentication required)
 export const PUBLIC_ROUTES = ['/login']
-
-// Route patterns by role (for middleware protection)
-export const ROLE_ROUTE_PATTERNS: Record<UserRole, RegExp[]> = {
-  RESIDENT: [/^\/resident/],
-  TREASURER: [/^\/treasurer/],
-  GUARD: [/^\/guard/],
-  ADMIN: [/^\/admin/],
-}
 
 // Event category colors for calendar
 export const EVENT_CATEGORY_COLORS = {

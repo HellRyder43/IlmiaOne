@@ -57,32 +57,34 @@ export default function AdminDashboard() {
 
       {/* Main Admin Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6 h-auto gap-2">
-          <TabsTrigger value="overview" className="gap-2">
-            <Settings className="w-4 h-4" />
-            <span className="hidden sm:inline">Overview</span>
-          </TabsTrigger>
-          <TabsTrigger value="houses" className="gap-2">
-            <Home className="w-4 h-4" />
-            <span className="hidden sm:inline">Houses</span>
-          </TabsTrigger>
-          <TabsTrigger value="guards" className="gap-2">
-            <ShieldCheck className="w-4 h-4" />
-            <span className="hidden sm:inline">Guards</span>
-          </TabsTrigger>
-          <TabsTrigger value="users" className="gap-2">
-            <Users className="w-4 h-4" />
-            <span className="hidden sm:inline">Users</span>
-          </TabsTrigger>
-          <TabsTrigger value="audit" className="gap-2">
-            <FileText className="w-4 h-4" />
-            <span className="hidden sm:inline">Audit Logs</span>
-          </TabsTrigger>
-          <TabsTrigger value="settings" className="gap-2">
-            <Activity className="w-4 h-4" />
-            <span className="hidden sm:inline">Settings</span>
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-1 px-1">
+          <TabsList className="flex w-max min-w-full h-auto gap-1 lg:grid lg:grid-cols-6 lg:w-full">
+            <TabsTrigger value="overview" className="flex-none gap-2 whitespace-nowrap">
+              <Settings className="w-4 h-4 shrink-0" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="houses" className="flex-none gap-2 whitespace-nowrap">
+              <Home className="w-4 h-4 shrink-0" />
+              Houses
+            </TabsTrigger>
+            <TabsTrigger value="guards" className="flex-none gap-2 whitespace-nowrap">
+              <ShieldCheck className="w-4 h-4 shrink-0" />
+              Guards
+            </TabsTrigger>
+            <TabsTrigger value="users" className="flex-none gap-2 whitespace-nowrap">
+              <Users className="w-4 h-4 shrink-0" />
+              Users
+            </TabsTrigger>
+            <TabsTrigger value="audit" className="flex-none gap-2 whitespace-nowrap">
+              <FileText className="w-4 h-4 shrink-0" />
+              Audit Logs
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex-none gap-2 whitespace-nowrap">
+              <Activity className="w-4 h-4 shrink-0" />
+              Settings
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
@@ -170,12 +172,12 @@ export default function AdminDashboard() {
         {/* Houses Tab */}
         <TabsContent value="houses" className="space-y-6">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <CardTitle>House Registry</CardTitle>
                 <CardDescription>Manage all houses in the community</CardDescription>
               </div>
-              <Button className="gap-2">
+              <Button className="gap-2 self-start sm:self-auto">
                 <Plus className="w-4 h-4" />
                 Add House
               </Button>
@@ -183,7 +185,7 @@ export default function AdminDashboard() {
             <CardContent>
               <div className="space-y-4">
                 {/* Search and Filter */}
-                <div className="flex gap-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
                   <Input
                     placeholder="Search by house number or owner..."
                     className="flex-1"
@@ -191,7 +193,7 @@ export default function AdminDashboard() {
                     onChange={e => setSearch(e.target.value)}
                   />
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-[200px]">
+                    <SelectTrigger className="w-full sm:w-[200px]">
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -204,7 +206,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* House List */}
-                <div className="border border-slate-200 rounded-lg overflow-hidden">
+                <div className="border border-slate-200 rounded-lg overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-slate-50 border-b border-slate-200">
                       <tr>
@@ -298,12 +300,12 @@ export default function AdminDashboard() {
         {/* Guards Tab */}
         <TabsContent value="guards" className="space-y-6">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <CardTitle>Guard Management</CardTitle>
                 <CardDescription>Manage security guard accounts and shifts</CardDescription>
               </div>
-              <Button className="gap-2">
+              <Button className="gap-2 self-start sm:self-auto">
                 <Plus className="w-4 h-4" />
                 Add Guard
               </Button>
@@ -311,7 +313,7 @@ export default function AdminDashboard() {
             <CardContent>
               <div className="space-y-4">
                 {/* Guard List */}
-                <div className="border border-slate-200 rounded-lg overflow-hidden">
+                <div className="border border-slate-200 rounded-lg overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-slate-50 border-b border-slate-200">
                       <tr>
@@ -380,12 +382,12 @@ export default function AdminDashboard() {
         {/* Users Tab */}
         <TabsContent value="users" className="space-y-6">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <CardTitle>User Management</CardTitle>
                 <CardDescription>Manage all user accounts across the system</CardDescription>
               </div>
-              <Button className="gap-2">
+              <Button className="gap-2 self-start sm:self-auto">
                 <Plus className="w-4 h-4" />
                 Add User
               </Button>
@@ -393,10 +395,10 @@ export default function AdminDashboard() {
             <CardContent>
               <div className="space-y-4">
                 {/* Search and Filter */}
-                <div className="flex gap-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
                   <Input placeholder="Search by name or email..." className="flex-1" />
                   <Select defaultValue="all">
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-full sm:w-[180px]">
                       <SelectValue placeholder="Role" />
                     </SelectTrigger>
                     <SelectContent>
@@ -476,9 +478,9 @@ export default function AdminDashboard() {
             <CardContent>
               <div className="space-y-4">
                 {/* Filter */}
-                <div className="flex gap-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
                   <Select defaultValue="all">
-                    <SelectTrigger className="w-[200px]">
+                    <SelectTrigger className="w-full sm:w-[200px]">
                       <SelectValue placeholder="Action Type" />
                     </SelectTrigger>
                     <SelectContent>
@@ -490,7 +492,7 @@ export default function AdminDashboard() {
                     </SelectContent>
                   </Select>
                   <Select defaultValue="today">
-                    <SelectTrigger className="w-[200px]">
+                    <SelectTrigger className="w-full sm:w-[200px]">
                       <SelectValue placeholder="Time Range" />
                     </SelectTrigger>
                     <SelectContent>
@@ -669,12 +671,12 @@ export default function AdminDashboard() {
 
           <Card>
             <CardContent className="p-6">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h3 className="font-semibold text-slate-900 mb-1">Save Configuration</h3>
                   <p className="text-sm text-slate-500">Apply all changes to system settings</p>
                 </div>
-                <Button size="lg" className="gap-2">
+                <Button size="lg" className="gap-2 self-start sm:self-auto">
                   <CheckCircle2 className="w-5 h-5" />
                   Save All Changes
                 </Button>

@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth'
-import { NAVIGATION_CONFIG, ROLE_LABELS } from '@/lib/constants'
+import { NAVIGATION_BY_ROUTE, ROUTE_SECTION_LABELS, ROLE_LABELS } from '@/lib/constants'
 
 interface SidebarProps {
   isMobileMenuOpen: boolean
@@ -14,6 +14,7 @@ interface SidebarProps {
 
 interface SidebarItemProps {
   href: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   icon: any
   label: string
   active: boolean
@@ -42,12 +43,16 @@ export function Sidebar({ isMobileMenuOpen, onClose }: SidebarProps) {
 
   if (!user) return null
 
-  // Get navigation items for user's role
-  const navItems = NAVIGATION_CONFIG[user.role] || []
+  // Build nav sections from the user's allowed route prefixes (injected via JWT)
+  const navSections = (user.permissions.routes ?? [])
+    .filter(route => NAVIGATION_BY_ROUTE[route])
+    .map(route => ({
+      key:   route,
+      label: ROUTE_SECTION_LABELS[route] ?? route,
+      items: NAVIGATION_BY_ROUTE[route],
+    }))
 
-  // Admin is also a resident and can access guard views
-  const residentNavItems = user.role === 'ADMIN' ? NAVIGATION_CONFIG['RESIDENT'] : []
-  const guardNavItems = user.role === 'ADMIN' ? NAVIGATION_CONFIG['GUARD'] : []
+  const roleLabel = ROLE_LABELS[user.role] ?? user.role
 
   return (
     <>
@@ -77,59 +82,29 @@ export function Sidebar({ isMobileMenuOpen, onClose }: SidebarProps) {
         {/* Navigation */}
         <div className="p-4 overflow-y-auto flex-1">
           <nav className="space-y-6">
-            {/* User's Role Navigation */}
-            <div>
-              <div className="mb-2 px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                {ROLE_LABELS[user.role]}
+            {navSections.length === 0 ? (
+              // Fallback: show role label when no permissions are loaded yet
+              <div className="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                {roleLabel}
               </div>
-              {navItems.map((item) => (
-                <SidebarItem
-                  key={item.href}
-                  href={item.href}
-                  icon={item.icon}
-                  label={item.label}
-                  active={pathname === item.href}
-                  onClick={onClose}
-                />
-              ))}
-            </div>
-
-            {/* Admin is also a resident */}
-            {residentNavItems.length > 0 && (
-              <div>
-                <div className="mb-2 px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                  Resident
+            ) : (
+              navSections.map(section => (
+                <div key={section.key}>
+                  <div className="mb-2 px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    {section.label}
+                  </div>
+                  {section.items.map(item => (
+                    <SidebarItem
+                      key={item.href}
+                      href={item.href}
+                      icon={item.icon}
+                      label={item.label}
+                      active={pathname === item.href}
+                      onClick={onClose}
+                    />
+                  ))}
                 </div>
-                {residentNavItems.map((item) => (
-                  <SidebarItem
-                    key={item.href}
-                    href={item.href}
-                    icon={item.icon}
-                    label={item.label}
-                    active={pathname === item.href}
-                    onClick={onClose}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* Admin can access guard views */}
-            {guardNavItems.length > 0 && (
-              <div>
-                <div className="mb-2 px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                  Guard
-                </div>
-                {guardNavItems.map((item) => (
-                  <SidebarItem
-                    key={item.href}
-                    href={item.href}
-                    icon={item.icon}
-                    label={item.label}
-                    active={pathname === item.href}
-                    onClick={onClose}
-                  />
-                ))}
-              </div>
+              ))
             )}
           </nav>
         </div>

@@ -75,5 +75,5 @@ export function useAdminUsers() {
     })
   }, [allUsers, search, roleFilter])
 
-  return { users, isLoading, search, setSearch, roleFilter, setRoleFilter }
+  return { users, isLoading, search, setSearch, roleFilter, setRoleFilter, refetch: fetchUsers }
 }

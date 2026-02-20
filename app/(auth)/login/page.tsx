@@ -1,13 +1,14 @@
 'use client'
 
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useState, useEffect } from 'react'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   Building2, Mail, Lock, User, Home, CreditCard,
-  ArrowRight, Loader2, CheckCircle2, ChevronDown, Eye, EyeOff,
+  ArrowRight, Loader2, CheckCircle2, ChevronDown, Eye, EyeOff, Search,
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/client'
@@ -21,7 +22,7 @@ const loginSchema = z.object({
 
 const registerSchema = z.object({
   fullName: z.string().min(2, 'Name must be at least 2 characters').regex(/^[a-zA-Z\s\-'@]+$/, 'Name must contain letters only'),
-  houseNumber: z.string().regex(/^\d{1,3}$/, 'House number must be 1–3 digits'),
+  houseNumber: z.string().min(1, 'Please select your house'),
   icNumber: z.string().regex(/^\d{4}$/, 'Enter the last 4 digits of your IC number (numbers only)'),
   residentType: z.enum(['OWNER', 'TENANT'] as const, { message: 'Please select your resident type' }),
   email: z.string().email('Invalid email address'),
@@ -124,17 +125,32 @@ function LoginForm({ onForgotPassword }: { onForgotPassword: () => void }) {
   )
 }
 
+type HouseOption = { id: string; house_number: string; street: string | null }
+
 function RegisterForm() {
   const { register: registerUser } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [housesData, setHousesData] = useState<HouseOption[]>([])
+  const [houseOpen, setHouseOpen] = useState(false)
+  const [houseSearch, setHouseSearch] = useState('')
+
+  useEffect(() => {
+    fetch('/api/houses').then(r => r.json()).then(setHousesData)
+  }, [])
 
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm<RegisterFormData>({ resolver: zodResolver(registerSchema) })
+
+  const filteredHouses = housesData.filter(h => {
+    const q = houseSearch.toLowerCase()
+    return h.house_number.toLowerCase().includes(q) || (h.street ?? '').toLowerCase().includes(q)
+  })
 
   const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true)
@@ -187,46 +203,94 @@ function RegisterForm() {
         {errors.fullName && <p className="mt-1 text-xs text-red-600">{errors.fullName.message}</p>}
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <div className="relative">
-            <Home className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
-            <input
-              type="text"
-              placeholder="House No."
-              inputMode="numeric"
-              maxLength={3}
-              onInput={(e) => {
-                const el = e.currentTarget
-                el.value = el.value.replace(/\D/g, '')
-              }}
-              className={cn(
-                'w-full pl-10 pr-4 py-2.5 rounded-lg border bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-sm shadow-sm',
-                errors.houseNumber ? 'border-red-400' : 'border-slate-300'
-              )}
-              {...register('houseNumber')}
-            />
-          </div>
-          {errors.houseNumber && <p className="mt-1 text-xs text-red-600">{errors.houseNumber.message}</p>}
-        </div>
+      {/* House number combobox — full width */}
+      <div>
+        <Controller
+          name="houseNumber"
+          control={control}
+          render={({ field }) => {
+            const selected = housesData.find(h => h.house_number === field.value)
+            return (
+              <Popover open={houseOpen} onOpenChange={setHouseOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className={cn(
+                      'w-full flex items-center gap-2 pl-10 pr-4 py-2.5 rounded-lg border bg-white text-left text-sm shadow-sm focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all',
+                      errors.houseNumber ? 'border-red-400' : 'border-slate-300'
+                    )}
+                  >
+                    <Home className="absolute left-3 w-5 h-5 text-slate-400 pointer-events-none" />
+                    {selected ? (
+                      <span className="text-slate-900">
+                        No. {selected.house_number}
+                        {selected.street && <span className="text-slate-400"> · {selected.street}</span>}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">Select your house</span>
+                    )}
+                    <ChevronDown className="ml-auto w-4 h-4 text-slate-400 shrink-0" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                  <div className="flex items-center border-b border-slate-200 px-3">
+                    <Search className="w-4 h-4 text-slate-400 shrink-0" />
+                    <input
+                      className="flex-1 py-2 pl-2 text-sm bg-transparent outline-none placeholder:text-slate-400"
+                      placeholder="Search house number or street..."
+                      value={houseSearch}
+                      onChange={e => setHouseSearch(e.target.value)}
+                      autoFocus
+                    />
+                  </div>
+                  <div className="max-h-52 overflow-y-auto py-1">
+                    {filteredHouses.length === 0 ? (
+                      <p className="px-3 py-4 text-xs text-slate-400 text-center">No houses found</p>
+                    ) : (
+                      filteredHouses.map(h => (
+                        <button
+                          key={h.id}
+                          type="button"
+                          onClick={() => {
+                            field.onChange(h.house_number)
+                            setHouseOpen(false)
+                            setHouseSearch('')
+                          }}
+                          className={cn(
+                            'w-full flex flex-col items-start px-3 py-2 text-sm hover:bg-slate-50 transition-colors',
+                            field.value === h.house_number && 'bg-emerald-50 text-emerald-700'
+                          )}
+                        >
+                          <span className="font-medium">No. {h.house_number}</span>
+                          {h.street && <span className="text-xs text-slate-400">{h.street}</span>}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )
+          }}
+        />
+        {errors.houseNumber && <p className="mt-1 text-xs text-red-600">{errors.houseNumber.message}</p>}
+      </div>
 
-        <div>
-          <div className="relative">
-            <CreditCard className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Last 4 digits of IC"
-              inputMode="numeric"
-              maxLength={4}
-              className={cn(
-                'w-full pl-10 pr-4 py-2.5 rounded-lg border bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-sm shadow-sm',
-                errors.icNumber ? 'border-red-400' : 'border-slate-300'
-              )}
-              {...register('icNumber')}
-            />
-          </div>
-          {errors.icNumber && <p className="mt-1 text-xs text-red-600">{errors.icNumber.message}</p>}
+      <div>
+        <div className="relative">
+          <CreditCard className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Last 4 digits of IC"
+            inputMode="numeric"
+            maxLength={4}
+            className={cn(
+              'w-full pl-10 pr-4 py-2.5 rounded-lg border bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-sm shadow-sm',
+              errors.icNumber ? 'border-red-400' : 'border-slate-300'
+            )}
+            {...register('icNumber')}
+          />
         </div>
+        {errors.icNumber && <p className="mt-1 text-xs text-red-600">{errors.icNumber.message}</p>}
       </div>
 
       <div>

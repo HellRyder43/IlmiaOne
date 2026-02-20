@@ -10,10 +10,14 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from('houses')
-    .select('id, house_number')
+    .select('id, house_number, street')
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  const sorted = (data ?? []).sort((a, b) => parseInt(a.house_number) - parseInt(b.house_number))
+  const sorted = (data ?? []).sort((a, b) => {
+    const nA = parseInt(a.house_number), nB = parseInt(b.house_number)
+    if (nA !== nB) return nA - nB
+    return a.house_number < b.house_number ? -1 : 1
+  })
   return NextResponse.json(sorted)
 }

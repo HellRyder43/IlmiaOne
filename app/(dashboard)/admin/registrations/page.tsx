@@ -204,7 +204,12 @@ export default function RegistrationsPage() {
                     <p className="text-sm text-slate-500 mt-0.5">{resident.email}</p>
                     <div className="flex items-center gap-3 mt-1 flex-wrap">
                       {resident.houses?.house_number && (
-                        <span className="text-xs text-slate-500">House {resident.houses.house_number}</span>
+                        <span className="text-xs text-slate-500">
+                          House {resident.houses.house_number}
+                          {resident.houses.street && (
+                            <span className="text-slate-400"> · {resident.houses.street}</span>
+                          )}
+                        </span>
                       )}
                       {resident.ic_number && (
                         <span className="text-xs text-slate-500">IC: ****{resident.ic_number}</span>

@@ -194,7 +194,12 @@ export default function EntryLogsPage() {
                             </span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 font-medium text-slate-900">No. {log.houseNumber}</td>
+                        <td className="px-6 py-4">
+                          <p className="font-medium text-slate-900">No. {log.houseNumber}</p>
+                          {log.street && (
+                            <p className="text-xs text-slate-400 mt-0.5">{log.street}</p>
+                          )}
+                        </td>
                         <td className="px-6 py-4">
                           <Badge variant="outline" className={cn('text-[10px]', methodBadge.className)}>
                             {methodBadge.label}
@@ -258,6 +263,9 @@ export default function EntryLogsPage() {
                       <div className="min-w-0">
                         <p className="font-bold text-slate-900 truncate">{log.visitorName}</p>
                         <p className="text-sm text-slate-500 mt-0.5">No. {log.houseNumber}</p>
+                        {log.street && (
+                          <p className="text-xs text-slate-400">{log.street}</p>
+                        )}
                       </div>
                       <div className="flex flex-col items-end gap-1 shrink-0">
                         {isInside ? (

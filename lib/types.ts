@@ -214,6 +214,7 @@ export interface EntryLog {
   visitorType: VisitorType
   visitReason: string
   houseNumber: string
+  street?: string
   icNumber?: string
   vehicleNumber?: string
   phoneNumber?: string

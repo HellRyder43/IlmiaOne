@@ -28,6 +28,22 @@ export function useVisitorLogs() {
 
   const supabase = useMemo(() => createClient(), [])
   const lastFilterRef = useRef<{ status?: string; search?: string }>({})
+  const streetMapRef = useRef<Record<string, string>>({})
+
+  // Fetch house → street lookup once on mount
+  useEffect(() => {
+    supabase
+      .from('houses')
+      .select('house_number, street')
+      .then(({ data }) => {
+        if (!data) return
+        const map: Record<string, string> = {}
+        for (const h of data) {
+          if (h.street) map[h.house_number as string] = h.street as string
+        }
+        streetMapRef.current = map
+      })
+  }, [supabase])
 
   const fetchLogs = useCallback(async (filter?: { status?: string; search?: string }, silent = false) => {
     lastFilterRef.current = filter ?? {}
@@ -62,6 +78,7 @@ export function useVisitorLogs() {
         visitorType: row.visitor_type as VisitorType,
         visitReason: row.visit_reason,
         houseNumber: row.house_number,
+        street: streetMapRef.current[row.house_number] ?? undefined,
         icNumber: row.ic_number ?? undefined,
         vehicleNumber: row.vehicle_number ?? undefined,
         phoneNumber: row.phone_number ?? undefined,

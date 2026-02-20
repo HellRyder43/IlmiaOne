@@ -51,7 +51,7 @@ export async function POST(_request: Request) {
   const { data: admins } = await service
     .from('profiles')
     .select('id, email')
-    .eq('role', 'ADMIN')
+    .in('role', ['AJK_LEADER', 'AJK_COMMITTEE'])
     .eq('status', 'APPROVED')
 
   if (admins?.length) {

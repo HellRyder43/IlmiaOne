@@ -216,11 +216,11 @@ function RegisterForm() {
                   <button
                     type="button"
                     className={cn(
-                      'w-full flex items-center gap-2 pl-10 pr-4 py-2.5 rounded-lg border bg-white text-left text-sm shadow-sm focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all',
+                      'relative w-full flex items-center gap-2 pl-10 pr-4 py-2.5 rounded-lg border bg-white text-left text-sm shadow-sm focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all',
                       errors.houseNumber ? 'border-red-400' : 'border-slate-300'
                     )}
                   >
-                    <Home className="absolute left-3 w-5 h-5 text-slate-400 pointer-events-none" />
+                    <Home className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
                     {selected ? (
                       <span className="text-slate-900">
                         No. {selected.house_number}

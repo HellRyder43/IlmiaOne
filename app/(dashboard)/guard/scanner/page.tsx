@@ -11,9 +11,7 @@ import { Label } from '@/components/ui/label'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select'
+
 import {
   QrCode, Camera, CheckCircle2, XCircle, AlertTriangle,
   Loader2, ShieldOff, ClipboardList,
@@ -477,19 +475,16 @@ export default function ScannerPage() {
             {/* House Number */}
             <div className="space-y-1.5">
               <Label htmlFor="houseNumber">House Number <span className="text-red-500">*</span></Label>
-              <Select
-                onValueChange={val => walkInForm.setValue('houseNumber', val, { shouldValidate: true })}
-                value={walkInForm.watch('houseNumber') ?? ''}
+              <select
+                id="houseNumber"
+                {...walkInForm.register('houseNumber')}
+                className="w-full h-11 rounded-lg border border-slate-300 bg-white px-3 text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
               >
-                <SelectTrigger id="houseNumber" className="h-11 border-slate-300">
-                  <SelectValue placeholder="Select house" />
-                </SelectTrigger>
-                <SelectContent>
-                  {houses.map(h => (
-                    <SelectItem key={h} value={h}>No. {h}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <option value="">Select house</option>
+                {houses.map(h => (
+                  <option key={h} value={h}>No. {h}</option>
+                ))}
+              </select>
               {walkInForm.formState.errors.houseNumber && (
                 <p className="text-xs text-red-500">{walkInForm.formState.errors.houseNumber.message}</p>
               )}

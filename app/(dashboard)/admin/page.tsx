@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import { useAdminStats } from '@/hooks/use-admin-stats';
+import { useAdminHouses } from '@/hooks/use-admin-houses';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -35,6 +37,15 @@ export default function AdminDashboard() {
     recentActivity,
     isLoading: statsLoading,
   } = useAdminStats();
+
+  const {
+    houses,
+    isLoading: housesLoading,
+    search,
+    setSearch,
+    statusFilter,
+    setStatusFilter,
+  } = useAdminHouses();
 
   return (
     <div className="space-y-6">
@@ -173,16 +184,21 @@ export default function AdminDashboard() {
               <div className="space-y-4">
                 {/* Search and Filter */}
                 <div className="flex gap-4">
-                  <Input placeholder="Search by house number or owner..." className="flex-1" />
-                  <Select defaultValue="all">
-                    <SelectTrigger className="w-[180px]">
+                  <Input
+                    placeholder="Search by house number or owner..."
+                    className="flex-1"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                  />
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-[200px]">
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Houses</SelectItem>
-                      <SelectItem value="occupied">Occupied</SelectItem>
-                      <SelectItem value="vacant">Vacant</SelectItem>
-                      <SelectItem value="for-sale">For Sale</SelectItem>
+                      <SelectItem value="OCCUPIED">Occupied</SelectItem>
+                      <SelectItem value="VACANT">Vacant</SelectItem>
+                      <SelectItem value="UNDER_RENOVATION">Under Renovation</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -201,52 +217,76 @@ export default function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {[
-                        { no: '001', owner: 'Ahmad Ibrahim', residents: 4, status: 'occupied', payment: 'paid' },
-                        { no: '002', owner: 'Siti Nurhaliza', residents: 3, status: 'occupied', payment: 'pending' },
-                        { no: '003', owner: 'John Tan', residents: 5, status: 'occupied', payment: 'paid' },
-                        { no: '004', owner: 'Mary Lee', residents: 0, status: 'vacant', payment: 'n/a' },
-                        { no: '005', owner: 'Raj Kumar', residents: 2, status: 'occupied', payment: 'overdue' },
-                      ].map((house) => (
-                        <tr key={house.no} className="hover:bg-slate-50 transition-colors">
-                          <td className="p-4">
-                            <span className="font-mono font-bold text-slate-900">{house.no}</span>
-                          </td>
-                          <td className="p-4">
-                            <span className="font-medium text-slate-900">{house.owner}</span>
-                          </td>
-                          <td className="p-4">
-                            <span className="text-slate-600">{house.residents > 0 ? `${house.residents} people` : '-'}</span>
-                          </td>
-                          <td className="p-4">
-                            <Badge variant={house.status === 'occupied' ? 'default' : 'secondary'} className="capitalize">
-                              {house.status}
-                            </Badge>
-                          </td>
-                          <td className="p-4">
-                            <Badge
-                              variant={
-                                house.payment === 'paid' ? 'default' :
-                                house.payment === 'pending' ? 'secondary' :
-                                house.payment === 'overdue' ? 'destructive' : 'outline'
-                              }
-                              className="capitalize"
-                            >
-                              {house.payment}
-                            </Badge>
-                          </td>
-                          <td className="p-4">
-                            <div className="flex justify-end gap-2">
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-600 hover:text-red-700">
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
+                      {housesLoading ? (
+                        Array.from({ length: 5 }).map((_, i) => (
+                          <tr key={i}>
+                            <td className="p-4"><Skeleton className="h-4 w-10" /></td>
+                            <td className="p-4"><Skeleton className="h-4 w-36" /></td>
+                            <td className="p-4"><Skeleton className="h-4 w-16" /></td>
+                            <td className="p-4"><Skeleton className="h-6 w-20 rounded-full" /></td>
+                            <td className="p-4"><Skeleton className="h-6 w-12 rounded-full" /></td>
+                            <td className="p-4 flex justify-end gap-2">
+                              <Skeleton className="h-8 w-8 rounded" />
+                              <Skeleton className="h-8 w-8 rounded" />
+                            </td>
+                          </tr>
+                        ))
+                      ) : houses.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="p-12 text-center text-slate-400 text-sm">
+                            No houses found
                           </td>
                         </tr>
-                      ))}
+                      ) : (
+                        houses.map(house => {
+                          const statusLabel =
+                            house.occupancy_status === 'OCCUPIED' ? 'Occupied' :
+                            house.occupancy_status === 'VACANT' ? 'Vacant' :
+                            'Under Renovation';
+                          const statusVariant =
+                            house.occupancy_status === 'OCCUPIED' ? 'default' :
+                            house.occupancy_status === 'VACANT' ? 'secondary' : 'outline';
+                          const residentsLabel =
+                            house.totalCount > 0
+                              ? `${house.totalCount} ${house.totalCount === 1 ? 'person' : 'people'}`
+                              : '—';
+
+                          return (
+                            <tr key={house.id} className="hover:bg-slate-50 transition-colors">
+                              <td className="p-4">
+                                <span className="font-mono font-bold text-slate-900">{house.house_number}</span>
+                              </td>
+                              <td className="p-4">
+                                <span className="font-medium text-slate-900">{house.ownerName ?? '—'}</span>
+                              </td>
+                              <td className="p-4">
+                                <span className="text-slate-600">{residentsLabel}</span>
+                              </td>
+                              <td className="p-4">
+                                <Badge
+                                  variant={statusVariant}
+                                  className={house.occupancy_status === 'UNDER_RENOVATION' ? 'border-amber-300 text-amber-700 bg-amber-50' : ''}
+                                >
+                                  {statusLabel}
+                                </Badge>
+                              </td>
+                              <td className="p-4">
+                                <Badge variant="outline">N/A</Badge>
+                              </td>
+                              <td className="p-4">
+                                <div className="flex justify-end gap-2">
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                    <Edit className="w-4 h-4" />
+                                  </Button>
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-600 hover:text-red-700">
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
                     </tbody>
                   </table>
                 </div>

@@ -126,19 +126,31 @@ function PermissionEditor({ permissions, onChange, isSystem }: PermissionEditorP
       <div>
         <h4 className="text-sm font-semibold text-slate-700 mb-3">Route Access</h4>
         <div className="space-y-3">
-          {ROUTE_SECTIONS.map(section => (
-            <div key={section.key} className="flex items-center justify-between p-3 rounded-lg border border-slate-100 bg-slate-50">
-              <div>
-                <p className="text-sm font-medium text-slate-900">{section.label}</p>
-                <p className="text-xs text-slate-500">{section.description}</p>
+          {ROUTE_SECTIONS.map(section => {
+            const isActive = permissions.routes.includes(section.key);
+            return (
+              <div key={section.key} className="flex items-center justify-between p-3 rounded-lg border border-slate-100 bg-slate-50">
+                <div>
+                  <p className="text-sm font-medium text-slate-900">{section.label}</p>
+                  <p className="text-xs text-slate-500">{section.description}</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className={cn(
+                    'text-xs font-semibold w-6 text-right',
+                    isActive ? 'text-emerald-600' : 'text-slate-400',
+                  )}>
+                    {isActive ? 'On' : 'Off'}
+                  </span>
+                  <Switch
+                    checked={isActive}
+                    onCheckedChange={() => toggleRoute(section.key)}
+                    disabled={isSystem}
+                    className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-slate-300"
+                  />
+                </div>
               </div>
-              <Switch
-                checked={permissions.routes.includes(section.key)}
-                onCheckedChange={() => toggleRoute(section.key)}
-                disabled={isSystem}
-              />
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -155,19 +167,31 @@ function PermissionEditor({ permissions, onChange, isSystem }: PermissionEditorP
                   {CATEGORY_LABELS[cat]}
                 </p>
                 <div className="space-y-2">
-                  {items.map(perm => (
-                    <div key={perm.key} className="flex items-center justify-between p-3 rounded-lg border border-slate-100">
-                      <div>
-                        <p className="text-sm font-medium text-slate-900">{perm.label}</p>
-                        <p className="text-xs text-slate-500">{perm.description}</p>
+                  {items.map(perm => {
+                    const isActive = permissions.actions.includes(perm.key);
+                    return (
+                      <div key={perm.key} className="flex items-center justify-between p-3 rounded-lg border border-slate-100">
+                        <div>
+                          <p className="text-sm font-medium text-slate-900">{perm.label}</p>
+                          <p className="text-xs text-slate-500">{perm.description}</p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className={cn(
+                            'text-xs font-semibold w-6 text-right',
+                            isActive ? 'text-emerald-600' : 'text-slate-400',
+                          )}>
+                            {isActive ? 'On' : 'Off'}
+                          </span>
+                          <Switch
+                            checked={isActive}
+                            onCheckedChange={() => toggleAction(perm.key)}
+                            disabled={isSystem}
+                            className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-slate-300"
+                          />
+                        </div>
                       </div>
-                      <Switch
-                        checked={permissions.actions.includes(perm.key)}
-                        onCheckedChange={() => toggleAction(perm.key)}
-                        disabled={isSystem}
-                      />
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             );

@@ -1,9 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { getCallerClaims, requireAction } from '@/lib/server-auth'
 
 export async function POST(req: NextRequest) {
-  const supabase = await createClient()
+  const claims = await getCallerClaims()
+  const denied = requireAction(claims, 'scan_qr')
+  if (denied) return NextResponse.json(await denied.json(), { status: denied.status })
 
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 

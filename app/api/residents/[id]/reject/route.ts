@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { sendRegistrationRejectedEmail } from '@/lib/email'
+import { getCallerClaims, requireAction } from '@/lib/server-auth'
 
 function createServiceClient() {
   return createAdminClient(
@@ -17,27 +17,10 @@ export async function POST(
 ) {
   const { id } = await params
 
-  // Verify caller is ADMIN
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  let role: string | undefined
-  try {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session) {
-      const payload = JSON.parse(atob(session.access_token.split('.')[1]))
-      role = payload.user_role ?? user.app_metadata?.user_role
-    }
-  } catch {
-    role = user.app_metadata?.user_role
-  }
-
-  if (role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  // Verify caller has approve_registrations permission (AJK_LEADER or AJK_COMMITTEE)
+  const claims = await getCallerClaims()
+  const denied = requireAction(claims, 'approve_registrations')
+  if (denied) return NextResponse.json(await denied.json(), { status: denied.status })
 
   const { reason } = await request.json() as { reason: string }
   if (!reason?.trim() || reason.trim().length < 10) {

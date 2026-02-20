@@ -3,3 +3,4 @@
 
 export { useAuth } from '@/lib/auth'
 export { useNotifications } from './use-notifications'
+export { useAdminStats } from './use-admin-stats'

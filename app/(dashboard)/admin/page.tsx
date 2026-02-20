@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useAdminStats } from '@/hooks/use-admin-stats';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,14 @@ import { Switch } from '@/components/ui/switch';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
+  const {
+    totalHouses,
+    activeResidents,
+    activeGuards,
+    monthlyEvents,
+    recentActivity,
+    isLoading: statsLoading,
+  } = useAdminStats();
 
   return (
     <div className="space-y-6">
@@ -80,7 +89,7 @@ export default function AdminDashboard() {
                     </div>
                     <span className="font-medium text-slate-700">Total Houses</span>
                   </div>
-                  <span className="text-2xl font-bold text-slate-900">190</span>
+                  <span className="text-2xl font-bold text-slate-900">{statsLoading ? '—' : totalHouses}</span>
                 </div>
                 <div className="flex justify-between items-center py-3 border-b border-slate-100">
                   <div className="flex items-center gap-3">
@@ -89,7 +98,7 @@ export default function AdminDashboard() {
                     </div>
                     <span className="font-medium text-slate-700">Active Residents</span>
                   </div>
-                  <span className="text-2xl font-bold text-slate-900">512</span>
+                  <span className="text-2xl font-bold text-slate-900">{statsLoading ? '—' : activeResidents}</span>
                 </div>
                 <div className="flex justify-between items-center py-3 border-b border-slate-100">
                   <div className="flex items-center gap-3">
@@ -98,7 +107,7 @@ export default function AdminDashboard() {
                     </div>
                     <span className="font-medium text-slate-700">Active Guards</span>
                   </div>
-                  <span className="text-2xl font-bold text-slate-900">8</span>
+                  <span className="text-2xl font-bold text-slate-900">{statsLoading ? '—' : activeGuards}</span>
                 </div>
                 <div className="flex justify-between items-center py-3">
                   <div className="flex items-center gap-3">
@@ -107,7 +116,7 @@ export default function AdminDashboard() {
                     </div>
                     <span className="font-medium text-slate-700">Monthly Events</span>
                   </div>
-                  <span className="text-2xl font-bold text-slate-900">23</span>
+                  <span className="text-2xl font-bold text-slate-900">{statsLoading ? '—' : monthlyEvents}</span>
                 </div>
               </CardContent>
             </Card>
@@ -119,29 +128,28 @@ export default function AdminDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {[
-                    { action: 'New house registered', detail: 'House #191 added to system', time: '2 hours ago', type: 'success' },
-                    { action: 'Guard shift updated', detail: 'Evening shift reassigned', time: '5 hours ago', type: 'info' },
-                    { action: 'System backup completed', detail: 'Daily backup successful', time: '12 hours ago', type: 'success' },
-                    { action: 'Failed login attempt', detail: 'Multiple attempts from unknown IP', time: '1 day ago', type: 'warning' },
-                  ].map((activity, index) => (
-                    <div key={index} className="flex items-start gap-3 p-3 hover:bg-slate-50 rounded-lg transition-colors">
-                      <div className={`p-2 rounded-full mt-0.5 ${
-                        activity.type === 'success' ? 'bg-emerald-50 text-emerald-600' :
-                        activity.type === 'warning' ? 'bg-amber-50 text-amber-600' :
-                        'bg-indigo-50 text-indigo-600'
-                      }`}>
-                        {activity.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> :
-                         activity.type === 'warning' ? <AlertCircle className="w-4 h-4" /> :
-                         <Activity className="w-4 h-4" />}
+                  {!statsLoading && recentActivity.length === 0 ? (
+                    <p className="text-sm text-slate-400 text-center py-6">No recent activity</p>
+                  ) : (
+                    recentActivity.map((activity, index) => (
+                      <div key={index} className="flex items-start gap-3 p-3 hover:bg-slate-50 rounded-lg transition-colors">
+                        <div className={`p-2 rounded-full mt-0.5 ${
+                          activity.type === 'success' ? 'bg-emerald-50 text-emerald-600' :
+                          activity.type === 'warning' ? 'bg-amber-50 text-amber-600' :
+                          'bg-indigo-50 text-indigo-600'
+                        }`}>
+                          {activity.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> :
+                           activity.type === 'warning' ? <AlertCircle className="w-4 h-4" /> :
+                           <Activity className="w-4 h-4" />}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium text-slate-900 text-sm">{activity.action}</p>
+                          {activity.detail && <p className="text-xs text-slate-500 mt-0.5">{activity.detail}</p>}
+                          <p className="text-xs text-slate-400 mt-1">{activity.time}</p>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-slate-900 text-sm">{activity.action}</p>
-                        <p className="text-xs text-slate-500 mt-0.5">{activity.detail}</p>
-                        <p className="text-xs text-slate-400 mt-1">{activity.time}</p>
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>

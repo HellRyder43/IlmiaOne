@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { useAdminStats } from '@/hooks/use-admin-stats';
 import { useAdminHouses } from '@/hooks/use-admin-houses';
+import { useAdminUsers } from '@/hooks/use-admin-users';
+import { useAdminAuditLogs } from '@/hooks/use-admin-audit-logs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -46,6 +48,24 @@ export default function AdminDashboard() {
     statusFilter,
     setStatusFilter,
   } = useAdminHouses();
+
+  const {
+    users,
+    isLoading: usersLoading,
+    search: userSearch,
+    setSearch: setUserSearch,
+    roleFilter,
+    setRoleFilter,
+  } = useAdminUsers();
+
+  const {
+    logs,
+    isLoading: auditLoading,
+    actionFilter,
+    setActionFilter,
+    timeFilter,
+    setTimeFilter,
+  } = useAdminAuditLogs();
 
   return (
     <div className="space-y-6">
@@ -396,41 +416,62 @@ export default function AdminDashboard() {
               <div className="space-y-4">
                 {/* Search and Filter */}
                 <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
-                  <Input placeholder="Search by name or email..." className="flex-1" />
-                  <Select defaultValue="all">
+                  <Input
+                    placeholder="Search by name or email..."
+                    className="flex-1"
+                    value={userSearch}
+                    onChange={e => setUserSearch(e.target.value)}
+                  />
+                  <Select value={roleFilter} onValueChange={setRoleFilter}>
                     <SelectTrigger className="w-full sm:w-[180px]">
                       <SelectValue placeholder="Role" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Roles</SelectItem>
-                      <SelectItem value="resident">Resident</SelectItem>
-                      <SelectItem value="treasurer">Treasurer</SelectItem>
-                      <SelectItem value="guard">Guard</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="RESIDENT">Resident</SelectItem>
+                      <SelectItem value="TREASURER">Treasurer</SelectItem>
+                      <SelectItem value="GUARD">Guard</SelectItem>
+                      <SelectItem value="ADMIN">Admin</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 {/* User Grid */}
+                {usersLoading ? (
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {[...Array(4)].map((_, i) => (
+                      <Card key={i} className="border-slate-200">
+                        <CardContent className="p-6">
+                          <div className="flex items-start gap-4">
+                            <Skeleton className="w-12 h-12 rounded-full" />
+                            <div className="flex-1 space-y-2">
+                              <Skeleton className="h-4 w-32" />
+                              <Skeleton className="h-3 w-48" />
+                              <Skeleton className="h-5 w-20" />
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : users.length === 0 ? (
+                  <div className="text-center py-12 text-slate-500">
+                    <Users className="w-10 h-10 mx-auto mb-3 text-slate-300" />
+                    <p className="text-sm">No users found</p>
+                  </div>
+                ) : (
                 <div className="grid md:grid-cols-2 gap-4">
-                  {[
-                    { name: 'Ahmad Ibrahim', email: 'ahmad@example.com', role: 'RESIDENT', house: '001', active: true },
-                    { name: 'Sarah Chen', email: 'sarah@ilmiaone.com', role: 'TREASURER', house: '-', active: true },
-                    { name: 'Azman Hashim', email: 'azman@ilmiaone.com', role: 'GUARD', house: '-', active: true },
-                    { name: 'Admin User', email: 'admin@ilmiaone.com', role: 'ADMIN', house: '-', active: true },
-                    { name: 'John Tan', email: 'john@example.com', role: 'RESIDENT', house: '003', active: false },
-                    { name: 'Mary Lee', email: 'mary@example.com', role: 'RESIDENT', house: '004', active: true },
-                  ].map((user, index) => (
-                    <Card key={index} className="border-slate-200">
+                  {users.map(user => (
+                    <Card key={user.id} className="border-slate-200">
                       <CardContent className="p-6">
                         <div className="flex items-start justify-between">
                           <div className="flex items-start gap-4 flex-1">
                             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg">
-                              {user.name.split(' ').map(n => n[0]).join('')}
+                              {user.fullName.split(' ').map((n: string) => n[0]).join('')}
                             </div>
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
-                                <h4 className="font-semibold text-slate-900">{user.name}</h4>
+                                <h4 className="font-semibold text-slate-900">{user.fullName}</h4>
                                 {user.active ? (
                                   <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
                                 ) : (
@@ -442,9 +483,9 @@ export default function AdminDashboard() {
                                 <Badge variant="outline" className="text-xs">
                                   {user.role}
                                 </Badge>
-                                {user.house !== '-' && (
+                                {user.houseNumber && (
                                   <Badge variant="secondary" className="text-xs">
-                                    House {user.house}
+                                    House {user.houseNumber}
                                   </Badge>
                                 )}
                               </div>
@@ -463,6 +504,7 @@ export default function AdminDashboard() {
                     </Card>
                   ))}
                 </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -479,7 +521,7 @@ export default function AdminDashboard() {
               <div className="space-y-4">
                 {/* Filter */}
                 <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
-                  <Select defaultValue="all">
+                  <Select value={actionFilter} onValueChange={v => setActionFilter(v as typeof actionFilter)}>
                     <SelectTrigger className="w-full sm:w-[200px]">
                       <SelectValue placeholder="Action Type" />
                     </SelectTrigger>
@@ -491,7 +533,7 @@ export default function AdminDashboard() {
                       <SelectItem value="login">Login</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Select defaultValue="today">
+                  <Select value={timeFilter} onValueChange={v => setTimeFilter(v as typeof timeFilter)}>
                     <SelectTrigger className="w-full sm:w-[200px]">
                       <SelectValue placeholder="Time Range" />
                     </SelectTrigger>
@@ -506,63 +548,41 @@ export default function AdminDashboard() {
 
                 {/* Audit Log Timeline */}
                 <div className="border border-slate-200 rounded-lg p-6">
+                  {auditLoading ? (
+                    <div className="space-y-6">
+                      {[...Array(4)].map((_, i) => (
+                        <div key={i} className="flex gap-4">
+                          <Skeleton className="w-10 h-10 rounded-full shrink-0" />
+                          <div className="flex-1 space-y-2 pt-1">
+                            <Skeleton className="h-4 w-48" />
+                            <Skeleton className="h-3 w-64" />
+                            <Skeleton className="h-3 w-24" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : logs.length === 0 ? (
+                    <div className="text-center py-12 text-slate-500">
+                      <FileText className="w-10 h-10 mx-auto mb-3 text-slate-300" />
+                      <p className="text-sm">No audit logs found</p>
+                    </div>
+                  ) : (
                   <div className="space-y-6">
-                    {[
-                      {
-                        time: '10:45 AM',
-                        date: 'Today',
-                        user: 'Admin User',
-                        action: 'Updated house registry',
-                        details: 'Modified House #015 - Changed owner details',
-                        type: 'update'
-                      },
-                      {
-                        time: '09:30 AM',
-                        date: 'Today',
-                        user: 'Sarah Chen',
-                        action: 'Generated financial report',
-                        details: 'Monthly report for January 2026',
-                        type: 'create'
-                      },
-                      {
-                        time: '08:15 AM',
-                        date: 'Today',
-                        user: 'Azman Hashim',
-                        action: 'Logged in',
-                        details: 'Guard login from Main Gate terminal',
-                        type: 'login'
-                      },
-                      {
-                        time: '11:20 PM',
-                        date: 'Yesterday',
-                        user: 'Admin User',
-                        action: 'Deleted guard account',
-                        details: 'Removed inactive guard G005',
-                        type: 'delete'
-                      },
-                      {
-                        time: '05:45 PM',
-                        date: 'Yesterday',
-                        user: 'Sarah Chen',
-                        action: 'Updated payment status',
-                        details: 'Marked 12 invoices as paid',
-                        type: 'update'
-                      },
-                    ].map((log, index) => (
-                      <div key={index} className="flex gap-4">
+                    {logs.map((log, index) => (
+                      <div key={log.id} className="flex gap-4">
                         <div className="flex flex-col items-center">
                           <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                            log.type === 'create' ? 'bg-emerald-100 text-emerald-600' :
-                            log.type === 'update' ? 'bg-indigo-100 text-indigo-600' :
-                            log.type === 'delete' ? 'bg-red-100 text-red-600' :
+                            log.logType === 'create' ? 'bg-emerald-100 text-emerald-600' :
+                            log.logType === 'update' ? 'bg-indigo-100 text-indigo-600' :
+                            log.logType === 'delete' ? 'bg-red-100 text-red-600' :
                             'bg-slate-100 text-slate-600'
                           }`}>
-                            {log.type === 'create' ? <Plus className="w-5 h-5" /> :
-                             log.type === 'update' ? <Edit className="w-5 h-5" /> :
-                             log.type === 'delete' ? <Trash2 className="w-5 h-5" /> :
+                            {log.logType === 'create' ? <Plus className="w-5 h-5" /> :
+                             log.logType === 'update' ? <Edit className="w-5 h-5" /> :
+                             log.logType === 'delete' ? <Trash2 className="w-5 h-5" /> :
                              <CheckCircle2 className="w-5 h-5" />}
                           </div>
-                          {index < 4 && <div className="w-0.5 h-12 bg-slate-200 my-2"></div>}
+                          {index < logs.length - 1 && <div className="w-0.5 h-12 bg-slate-200 my-2"></div>}
                         </div>
                         <div className="flex-1 pb-6">
                           <div className="flex items-start justify-between mb-1">
@@ -573,11 +593,12 @@ export default function AdminDashboard() {
                             </div>
                           </div>
                           <p className="text-sm text-slate-600 mb-2">{log.details}</p>
-                          <p className="text-xs text-slate-500">by <span className="font-medium">{log.user}</span></p>
+                          <p className="text-xs text-slate-500">by <span className="font-medium">{log.userName}</span></p>
                         </div>
                       </div>
                     ))}
                   </div>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -659,10 +680,6 @@ export default function AdminDashboard() {
                     <p className="text-sm text-slate-500">Notify residents of new events</p>
                   </div>
                   <Switch defaultChecked />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="admin-email">Admin Email</Label>
-                  <Input id="admin-email" type="email" defaultValue="admin@ilmiaone.com" />
                 </div>
               </CardContent>
             </Card>

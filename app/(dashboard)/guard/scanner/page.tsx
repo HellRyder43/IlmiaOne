@@ -4,16 +4,17 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   QrCode, Camera, CheckCircle2, XCircle, AlertTriangle,
-  ArrowRight, Keyboard, Loader2,
+  ArrowRight, Keyboard, Loader2, ShieldOff,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/lib/auth'
 import dynamic from 'next/dynamic'
 import type { IDetectedBarcode } from '@yudiel/react-qr-scanner'
 
@@ -56,6 +57,9 @@ interface VerifiedPass {
 }
 
 export default function ScannerPage() {
+  const { hasPermission } = useAuth()
+  const canScan = hasPermission('scan_qr')
+
   const [scanState, setScanState] = useState<ScanState>('IDLE')
   const [verifiedPass, setVerifiedPass] = useState<VerifiedPass | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
@@ -148,6 +152,31 @@ export default function ScannerPage() {
     E_HAILING: 'E-Hailing',
     COURIER: 'Courier',
     OTHERS: 'Others',
+  }
+
+  if (!canScan) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-6 pb-20">
+        <div className="text-center space-y-2">
+          <h2 className="text-2xl font-bold text-slate-900">Access Control Scanner</h2>
+          <p className="text-slate-500">Scan a visitor QR pass or enter the code manually.</p>
+        </div>
+        <Card className="border-slate-200 shadow-sm">
+          <div className="flex flex-col items-center justify-center p-12 text-center gap-4">
+            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center text-amber-500">
+              <ShieldOff className="w-8 h-8" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900">Permission Required</h3>
+              <p className="text-slate-500 text-sm mt-1 max-w-xs">
+                Your role does not have permission to scan QR passes.
+                Contact the AJK Leader to enable this access.
+              </p>
+            </div>
+          </div>
+        </Card>
+      </div>
+    )
   }
 
   return (

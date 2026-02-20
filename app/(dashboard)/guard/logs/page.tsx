@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   Search, Download, ArrowUpRight, ArrowDownRight, Car, User, Truck,
-  Calendar, Hammer, Bike, HelpCircle, Smartphone, Loader2,
+  Calendar, Hammer, Bike, HelpCircle, Smartphone, Loader2, CreditCard,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -173,14 +173,19 @@ export default function EntryLogsPage() {
                         </td>
                         <td className="px-6 py-4">
                           <p className="font-bold text-slate-900">{log.visitorName}</p>
-                          {log.vehicleNumber && (
+                          {log.icNumber && (
                             <p className="text-xs text-slate-500 font-mono mt-0.5 flex items-center gap-1">
-                              <Car className="w-3 h-3" /> {log.vehicleNumber}
+                              <CreditCard className="w-3 h-3" /> IC: ****{log.icNumber}
                             </p>
                           )}
                           {log.phoneNumber && (
                             <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
                               <Smartphone className="w-3 h-3" /> {log.phoneNumber}
+                            </p>
+                          )}
+                          {log.vehicleNumber && (
+                            <p className="text-xs text-slate-500 font-mono mt-0.5 flex items-center gap-1">
+                              <Car className="w-3 h-3" /> {log.vehicleNumber}
                             </p>
                           )}
                         </td>
@@ -289,17 +294,22 @@ export default function EntryLogsPage() {
                       </Badge>
                     </div>
 
-                    {/* Vehicle / phone */}
-                    {(log.vehicleNumber || log.phoneNumber) && (
+                    {/* IC / phone / vehicle */}
+                    {(log.icNumber || log.phoneNumber || log.vehicleNumber) && (
                       <div className="flex flex-wrap gap-x-4 gap-y-1">
-                        {log.vehicleNumber && (
+                        {log.icNumber && (
                           <p className="text-xs text-slate-500 font-mono flex items-center gap-1">
-                            <Car className="w-3 h-3" /> {log.vehicleNumber}
+                            <CreditCard className="w-3 h-3" /> IC: ****{log.icNumber}
                           </p>
                         )}
                         {log.phoneNumber && (
                           <p className="text-xs text-slate-400 flex items-center gap-1">
                             <Smartphone className="w-3 h-3" /> {log.phoneNumber}
+                          </p>
+                        )}
+                        {log.vehicleNumber && (
+                          <p className="text-xs text-slate-500 font-mono flex items-center gap-1">
+                            <Car className="w-3 h-3" /> {log.vehicleNumber}
                           </p>
                         )}
                       </div>

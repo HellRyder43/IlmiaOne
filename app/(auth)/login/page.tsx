@@ -510,6 +510,15 @@ export default function LoginPage() {
           {mode === 'register' && <RegisterForm />}
           {mode === 'forgot' && <ForgotPasswordPanel onBack={() => setMode('login')} />}
 
+          {mode === 'login' && (
+            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-xs font-semibold text-blue-900 mb-2">Demo Credentials:</p>
+              <div className="text-xs text-blue-700 space-y-1">
+                <div><strong>Resident:</strong> resident@ilmiaone.com / resident123</div>
+              </div>
+            </div>
+          )}
+
           {mode !== 'forgot' && (
             <div className="mt-8 text-center">
               <p className="text-sm text-slate-500">

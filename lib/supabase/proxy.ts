@@ -66,7 +66,8 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Redirect authenticated users away from root/login/auth pages to their dashboard
-  if ((isPublicRoute || pathname === "/") && user) {
+  // Do NOT redirect API routes — fetch() calls from authenticated pages need to reach them
+  if ((isPublicRoute || pathname === "/") && user && !pathname.startsWith("/api/")) {
     const role = (user.user_role ?? user.app_metadata?.user_role) as string | undefined
     const dashboard = (role && dashboardMap[role]) || "/resident"
     const url = request.nextUrl.clone()

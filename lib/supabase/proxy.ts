@@ -58,15 +58,11 @@ export async function updateSession(request: NextRequest) {
     pathname === "/api/houses" ||
     pathname === "/api/auth/register-profile"
 
-  // Shared dashboard map (supports new and legacy role values during transition)
   const dashboardMap: Record<string, string> = {
     RESIDENT:      "/resident",
     GUARD:         "/guard",
     AJK_COMMITTEE: "/treasurer",
     AJK_LEADER:    "/admin",
-    // Legacy fallback (tokens issued before the rename migration)
-    TREASURER:     "/treasurer",
-    ADMIN:         "/admin",
   }
 
   // Redirect authenticated users away from root/login/auth pages to their dashboard
@@ -99,27 +95,12 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    // Primary: read allowed route prefixes from JWT (injected by custom_access_token_hook)
+    // Read allowed route prefixes from JWT (injected by custom_access_token_hook)
     const userRoutes = Array.isArray(user.user_routes)
       ? (user.user_routes as string[])
       : []
 
-    // Fallback: legacy hard-coded patterns for tokens issued before the hook update.
-    // Keep this map for at least 1 hour after deploying the JWT hook update.
-    const legacyRouteMap: Record<string, string[]> = {
-      RESIDENT:      ["resident"],
-      GUARD:         ["guard"],
-      AJK_COMMITTEE: ["treasurer", "guard"],
-      AJK_LEADER:    ["admin", "resident", "treasurer", "guard"],
-      // Old values — backward compat during migration window
-      TREASURER:     ["treasurer"],
-      ADMIN:         ["admin", "resident", "treasurer", "guard"],
-    }
-
-    const effectiveRoutes =
-      userRoutes.length > 0 ? userRoutes : (legacyRouteMap[role ?? ""] ?? [])
-
-    const isAllowed = effectiveRoutes.some((r) => pathname.startsWith(`/${r}`))
+    const isAllowed = userRoutes.some((r) => pathname.startsWith(`/${r}`))
 
     if (!isAllowed) {
       const dashboard = (role && dashboardMap[role]) || "/resident"

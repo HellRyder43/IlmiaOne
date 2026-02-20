@@ -103,7 +103,7 @@ export async function updateSession(request: NextRequest) {
 
     const isAllowed = userRoutes.some((r) => pathname.startsWith(`/${r}`))
 
-    if (!isAllowed) {
+    if (!isAllowed && !pathname.startsWith('/api/')) {
       const dashboard = (role && dashboardMap[role]) || "/resident"
       const url = request.nextUrl.clone()
       url.pathname = dashboard

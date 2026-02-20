@@ -104,10 +104,6 @@ const STATUS_PILL: Record<ScanState, { label: string; cls: string }> = {
 interface WalkInFormProps {
   form: ReturnType<typeof useForm<WalkInFormData>>
   houses: HouseOption[]
-  houseOpen: boolean
-  setHouseOpen: (v: boolean) => void
-  houseSearch: string
-  setHouseSearch: (v: string) => void
   isSubmitting: boolean
   onSubmit: (data: WalkInFormData) => Promise<void>
   onCancel?: () => void
@@ -116,9 +112,11 @@ interface WalkInFormProps {
 }
 
 function WalkInForm({
-  form, houses, houseOpen, setHouseOpen, houseSearch, setHouseSearch,
-  isSubmitting, onSubmit, onCancel, showCancel, successVisible,
+  form, houses, isSubmitting, onSubmit, onCancel, showCancel, successVisible,
 }: WalkInFormProps) {
+  const [houseOpen, setHouseOpen] = useState(false)
+  const [houseSearch, setHouseSearch] = useState('')
+
   const filteredHouses = houses.filter(h => {
     const q = houseSearch.toLowerCase()
     return h.house_number.toLowerCase().includes(q) || (h.street ?? '').toLowerCase().includes(q)
@@ -348,8 +346,6 @@ export default function ScannerPage() {
   const [cameraError, setCameraError] = useState(false)
   const [isManualOpen, setIsManualOpen] = useState(false)
   const [houses, setHouses] = useState<HouseOption[]>([])
-  const [houseOpen, setHouseOpen] = useState(false)
-  const [houseSearch, setHouseSearch] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [walkInSuccess, setWalkInSuccess] = useState(false)
 
@@ -846,10 +842,6 @@ export default function ScannerPage() {
                 <WalkInForm
                   form={walkInForm}
                   houses={houses}
-                  houseOpen={houseOpen}
-                  setHouseOpen={setHouseOpen}
-                  houseSearch={houseSearch}
-                  setHouseSearch={setHouseSearch}
                   isSubmitting={isSubmitting}
                   onSubmit={onSubmitWalkIn}
                   successVisible={walkInSuccess}
@@ -872,10 +864,6 @@ export default function ScannerPage() {
             <WalkInForm
               form={walkInForm}
               houses={houses}
-              houseOpen={houseOpen}
-              setHouseOpen={setHouseOpen}
-              houseSearch={houseSearch}
-              setHouseSearch={setHouseSearch}
               isSubmitting={isSubmitting}
               onSubmit={onSubmitWalkIn}
               onCancel={() => setIsManualOpen(false)}

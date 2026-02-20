@@ -35,7 +35,7 @@ export function useVisitorLogs() {
     supabase
       .from('houses')
       .select('house_number, street')
-      .then(({ data }) => {
+      .then(({ data }: { data: { house_number: string; street: string | null }[] | null }) => {
         if (!data) return
         const map: Record<string, string> = {}
         for (const h of data) {

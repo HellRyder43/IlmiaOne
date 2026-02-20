@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Card, CardContent } from '@/components/ui/card'
@@ -10,8 +10,12 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog'
 import {
+  Popover, PopoverContent, PopoverTrigger,
+} from '@/components/ui/popover'
+import {
   QrCode, FileText, Users, AlertTriangle, ShieldCheck,
   Truck, Car, UserPlus, Loader2, Hammer, Bike, HelpCircle, User,
+  Search, ChevronDown,
 } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
@@ -34,6 +38,7 @@ type WalkInFormData = z.infer<typeof walkInSchema>
 interface HouseOption {
   id: string
   house_number: string
+  street: string | null
 }
 
 const VISITOR_TYPES: { value: VisitorType; label: string; Icon: React.ElementType }[] = [
@@ -48,14 +53,21 @@ export default function GuardDashboard() {
   const { stats, isLoading: statsLoading, refresh } = useGuardStats()
   const [isWalkInOpen, setIsWalkInOpen] = useState(false)
   const [houses, setHouses] = useState<HouseOption[]>([])
+  const [houseOpen, setHouseOpen] = useState(false)
+  const [houseSearch, setHouseSearch] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<WalkInFormData>({
+  const { register, handleSubmit, setValue, watch, reset, control, formState: { errors } } = useForm<WalkInFormData>({
     resolver: zodResolver(walkInSchema),
     defaultValues: { visitorType: 'VISITOR' },
   })
 
   const selectedType = watch('visitorType')
+
+  const filteredHouses = houses.filter(h => {
+    const q = houseSearch.toLowerCase()
+    return h.house_number.toLowerCase().includes(q) || (h.street ?? '').toLowerCase().includes(q)
+  })
 
   useEffect(() => {
     fetch('/api/houses')
@@ -284,23 +296,72 @@ export default function GuardDashboard() {
               <label className="text-sm font-medium text-slate-700">
                 House Number <span className="text-red-500">*</span>
               </label>
-              {houses.length > 0 ? (
-                <select
-                  {...register('houseNumber')}
-                  className="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all appearance-none"
-                >
-                  <option value="">Select house number</option>
-                  {houses.map(h => (
-                    <option key={h.id} value={h.house_number}>No. {h.house_number}</option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  {...register('houseNumber')}
-                  placeholder="e.g. 12"
-                  className="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
-                />
-              )}
+              <Controller
+                name="houseNumber"
+                control={control}
+                render={({ field }) => {
+                  const selected = houses.find(h => h.house_number === field.value)
+                  return (
+                    <Popover open={houseOpen} onOpenChange={setHouseOpen} modal={false}>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className={cn(
+                            'w-full flex items-center gap-2 px-3 h-11 rounded-lg border bg-white text-left text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all',
+                            errors.houseNumber ? 'border-red-400' : 'border-slate-300',
+                          )}
+                        >
+                          {selected ? (
+                            <span className="text-slate-900 flex-1">
+                              No. {selected.house_number}
+                              {selected.street && <span className="text-slate-400"> · {selected.street}</span>}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 flex-1">Select house</span>
+                          )}
+                          <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                        <div className="flex items-center border-b border-slate-200 px-3">
+                          <Search className="w-4 h-4 text-slate-400 shrink-0" />
+                          <input
+                            className="flex-1 py-2 pl-2 text-sm bg-transparent outline-none placeholder:text-slate-400"
+                            placeholder="Search house number..."
+                            value={houseSearch}
+                            onChange={e => setHouseSearch(e.target.value)}
+                            autoFocus
+                          />
+                        </div>
+                        <div className="max-h-52 overflow-y-auto py-1">
+                          {filteredHouses.length === 0 ? (
+                            <p className="px-3 py-4 text-xs text-slate-400 text-center">No houses found</p>
+                          ) : (
+                            filteredHouses.map(h => (
+                              <button
+                                key={h.id}
+                                type="button"
+                                onClick={() => {
+                                  field.onChange(h.house_number)
+                                  setHouseOpen(false)
+                                  setHouseSearch('')
+                                }}
+                                className={cn(
+                                  'w-full flex flex-col items-start px-3 py-2 text-sm hover:bg-slate-50 transition-colors',
+                                  field.value === h.house_number && 'bg-indigo-50 text-indigo-700',
+                                )}
+                              >
+                                <span className="font-medium">No. {h.house_number}</span>
+                                {h.street && <span className="text-xs text-slate-400">{h.street}</span>}
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  )
+                }}
+              />
               {errors.houseNumber && <p className="text-xs text-red-500">{errors.houseNumber.message}</p>}
             </div>
 

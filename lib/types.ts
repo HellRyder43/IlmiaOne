@@ -222,7 +222,7 @@ export interface EntryLog {
   checkOutTime?: string
   status: 'INSIDE' | 'EXITED'
   guardId: string
-  entryMethod: 'QR_SCAN' | 'WALK_IN' | 'MANUAL' | 'SELF_SERVICE'
+  entryMethod: 'QR_SCAN' | 'WALK_IN' | 'SELF_SERVICE'
 }
 
 export interface GuardStats {

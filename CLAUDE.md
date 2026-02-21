@@ -264,7 +264,7 @@ visitor_logs
   - check_out_time (TIMESTAMPTZ, nullable)
   - status (TEXT: 'INSIDE' | 'EXITED', DEFAULT 'INSIDE')
   - guard_id (UUID, nullable, references profiles.id) — nullable for SELF_SERVICE entries
-  - entry_method (TEXT: 'QR_SCAN' | 'WALK_IN' | 'MANUAL' | 'SELF_SERVICE')
+  - entry_method (TEXT: 'QR_SCAN' | 'WALK_IN' | 'SELF_SERVICE')
 
 events
   - id (UUID)

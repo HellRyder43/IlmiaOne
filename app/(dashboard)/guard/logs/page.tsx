@@ -33,11 +33,10 @@ const TYPE_LABEL: Record<VisitorType, string> = {
   OTHERS: 'Others',
 }
 
-const ENTRY_METHOD_BADGE: Record<string, { label: string; className: string }> = {
-  QR_SCAN: { label: 'QR Scan', className: 'bg-emerald-100 text-emerald-700 border-transparent' },
-  WALK_IN: { label: 'Walk-In', className: 'bg-blue-100 text-blue-700 border-transparent' },
-  MANUAL: { label: 'Manual', className: 'bg-slate-100 text-slate-600 border-transparent' },
-  SELF_SERVICE: { label: 'Self-Service', className: 'bg-amber-100 text-amber-700 border-transparent' },
+const ENTRY_METHOD_BADGE: Record<string, { label: string; description: string; className: string }> = {
+  QR_SCAN: { label: 'QR Scan', description: 'Resident pre-registered — QR code scanned at gate', className: 'bg-emerald-100 text-emerald-700 border-transparent' },
+  WALK_IN: { label: 'Walk-In', description: 'Unannounced visitor — logged by guard at guardhouse', className: 'bg-blue-100 text-blue-700 border-transparent' },
+  SELF_SERVICE: { label: 'Self-Service', description: 'Visitor registered themselves at the entrance kiosk', className: 'bg-amber-100 text-amber-700 border-transparent' },
 }
 
 export default function EntryLogsPage() {
@@ -133,13 +132,18 @@ export default function EntryLogsPage() {
         </div>
 
         {/* Entry Method Legend */}
-        <div className="px-4 md:px-6 py-2 border-b border-slate-100 flex flex-wrap items-center gap-x-4 gap-y-1.5">
-          <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">Entry Method:</span>
-          {Object.values(ENTRY_METHOD_BADGE).map(({ label, className }) => (
-            <span key={label} className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border', className)}>
-              {label}
-            </span>
-          ))}
+        <div className="px-4 md:px-6 py-3 border-b border-slate-100 bg-slate-50/60">
+          <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Entry Method Legend</p>
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            {Object.values(ENTRY_METHOD_BADGE).map(({ label, description, className }) => (
+              <div key={label} className="flex items-center gap-2">
+                <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border shrink-0', className)}>
+                  {label}
+                </span>
+                <span className="text-xs text-slate-500">{description}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         {isLoading ? (

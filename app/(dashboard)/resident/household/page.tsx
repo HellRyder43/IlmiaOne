@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -26,6 +26,8 @@ import {
   ShieldCheck,
   Loader2,
   AlertCircle,
+  Pencil,
+  X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getInitials } from '@/lib/utils'
@@ -50,17 +52,52 @@ const RELATIONSHIP_LABELS: Record<Relationship, string> = {
 
 export default function HouseholdPage() {
   const { user } = useAuth()
-  const { data, isLoading, updateResidentType, addMember, removeMember } = useHousehold(
+  const { data, isLoading, updateResidentType, updateHouseNumber, addMember, removeMember } = useHousehold(
     user?.id ?? null,
   )
 
-  const [isSavingType, setIsSavingType] = useState(false)
-  const [deletingId,   setDeletingId]   = useState<string | null>(null)
+  const [isSavingType,    setIsSavingType]    = useState(false)
+  const [deletingId,      setDeletingId]      = useState<string | null>(null)
+  const [isEditingHouse,  setIsEditingHouse]  = useState(false)
+  const [selectedHouseNo, setSelectedHouseNo] = useState('')
+  const [isSavingHouse,   setIsSavingHouse]   = useState(false)
+  const [allHouses, setAllHouses]             = useState<{ id: string; house_number: string }[]>([])
 
   const form = useForm<AddMemberForm>({
     resolver: zodResolver(addMemberSchema),
     defaultValues: { name: '', relationship: 'SPOUSE', phoneNumber: '' },
   })
+
+  // Fetch all houses for the house-number dropdown (only when entering edit mode)
+  useEffect(() => {
+    if (!isEditingHouse || allHouses.length > 0) return
+    fetch('/api/houses')
+      .then(r => r.json())
+      .then((houses: { id: string; house_number: string }[]) => setAllHouses(houses))
+      .catch(() => {})
+  }, [isEditingHouse, allHouses.length])
+
+  const openHouseEdit = () => {
+    setSelectedHouseNo(data?.houseNumber ?? '')
+    setIsEditingHouse(true)
+  }
+
+  const handleSaveHouseNumber = async () => {
+    if (!selectedHouseNo || selectedHouseNo === data?.houseNumber) {
+      setIsEditingHouse(false)
+      return
+    }
+    setIsSavingHouse(true)
+    try {
+      await updateHouseNumber(selectedHouseNo)
+      toast.success(`House updated to No. ${selectedHouseNo}.`)
+      setIsEditingHouse(false)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update house number.')
+    } finally {
+      setIsSavingHouse(false)
+    }
+  }
 
   // Sort co-residents: current user first
   const sortedCoResidents = data
@@ -131,7 +168,7 @@ export default function HouseholdPage() {
               ) : !data?.houseId ? (
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-100 text-amber-700 text-sm">
                   <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                  <span>No house assigned to your profile. Please contact management.</span>
+                  <span>No house assigned to your profile. Please contact AJK.</span>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-4">
@@ -187,23 +224,83 @@ export default function HouseholdPage() {
                 </div>
               )}
 
-              {data?.houseId && (
-                <div className="mt-2 p-4 bg-slate-50 rounded-lg border border-slate-100 text-sm text-slate-500">
-                  <p className="flex gap-2">
-                    <span className="font-bold text-slate-700">House No:</span>
-                    {data.houseNumber ?? '—'}
-                  </p>
-                  {data.street && (
-                    <p className="flex gap-2 mt-2">
-                      <span className="font-bold text-slate-700">Street:</span>
-                      {data.street}
-                    </p>
-                  )}
-                  <p className="mt-4 text-xs text-slate-400 italic">
-                    To update property details, please contact management office.
-                  </p>
-                </div>
-              )}
+              <div className="mt-2 p-4 bg-slate-50 rounded-lg border border-slate-100 text-sm">
+                {isEditingHouse ? (
+                  <div className="space-y-3">
+                    <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                      Select House No.
+                    </label>
+                    <Select
+                      value={selectedHouseNo}
+                      onValueChange={setSelectedHouseNo}
+                      disabled={isSavingHouse}
+                    >
+                      <SelectTrigger className="h-9 border-slate-300 bg-white text-sm">
+                        <SelectValue placeholder="Choose house…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allHouses.length === 0 ? (
+                          <SelectItem value="loading" disabled>Loading…</SelectItem>
+                        ) : (
+                          allHouses.map(h => (
+                            <SelectItem key={h.id} value={h.house_number}>
+                              House {h.house_number}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={handleSaveHouseNumber}
+                        disabled={isSavingHouse || !selectedHouseNo}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white h-8 text-xs"
+                      >
+                        {isSavingHouse ? (
+                          <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                        ) : (
+                          <CheckCircle2 className="w-3 h-3 mr-1" />
+                        )}
+                        Save
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setIsEditingHouse(false)}
+                        disabled={isSavingHouse}
+                        className="h-8 text-xs text-slate-500"
+                      >
+                        <X className="w-3 h-3 mr-1" />
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <p className="flex gap-2 text-slate-500">
+                        <span className="font-bold text-slate-700">House No:</span>
+                        {data?.houseNumber ?? '—'}
+                      </p>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={openHouseEdit}
+                        className="h-6 w-6 text-slate-400 hover:text-indigo-600"
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </Button>
+                    </div>
+                    {data?.street && (
+                      <p className="flex gap-2 mt-2 text-slate-500">
+                        <span className="font-bold text-slate-700">Street:</span>
+                        {data.street}
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>

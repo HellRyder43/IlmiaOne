@@ -24,6 +24,7 @@ export function useHousehold(currentUserId: string | null): {
   isLoading:          boolean
   error:              string | null
   updateResidentType: (type: ResidencyType) => Promise<void>
+  updateHouseNumber:  (houseNumber: string) => Promise<void>
   addMember:          (input: AddMemberInput) => Promise<void>
   removeMember:       (id: string) => Promise<void>
   refresh:            () => Promise<void>
@@ -102,6 +103,31 @@ export function useHousehold(currentUserId: string | null): {
     setData(prev => prev ? { ...prev, residentType: type } : prev)
   }
 
+  const updateHouseNumber = async (houseNumber: string): Promise<void> => {
+    const res = await fetch('/api/resident/household', {
+      method:  'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ houseNumber }),
+    })
+    if (!res.ok) {
+      const body = await res.json()
+      throw new Error(body.error ?? 'Failed to update house number')
+    }
+    const result = await res.json() as { houseId: string; houseNumber: string; street: string | null }
+    // Optimistic update with server-returned values
+    setData(prev => prev ? {
+      ...prev,
+      houseId:     result.houseId,
+      houseNumber: result.houseNumber,
+      street:      result.street,
+      // Reset co-residents and members since house changed
+      coResidents: [],
+      members:     [],
+    } : prev)
+    // Refetch to load co-residents and members for the new house
+    await fetchHousehold()
+  }
+
   const addMember = async (input: AddMemberInput): Promise<void> => {
     const res = await fetch('/api/resident/household/members', {
       method:  'POST',
@@ -129,5 +155,5 @@ export function useHousehold(currentUserId: string | null): {
     }
   }
 
-  return { data, isLoading, error, updateResidentType, addMember, removeMember, refresh: fetchHousehold }
+  return { data, isLoading, error, updateResidentType, updateHouseNumber, addMember, removeMember, refresh: fetchHousehold }
 }

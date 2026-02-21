@@ -99,14 +99,63 @@ export async function PUT(req: NextRequest) {
   const claims = await getCallerClaims()
   if (!claims) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await req.json()
-  const { residentType } = body as { residentType: string }
+  const body = await req.json() as { residentType?: string; houseNumber?: string }
+  const supabase = await createClient()
 
-  if (residentType !== 'OWNER' && residentType !== 'TENANT') {
-    return NextResponse.json({ error: 'Invalid residentType' }, { status: 400 })
+  // --- House number change ---
+  if (body.houseNumber !== undefined) {
+    const houseNumber = body.houseNumber.trim()
+    if (!houseNumber) {
+      return NextResponse.json({ error: 'House number is required' }, { status: 400 })
+    }
+
+    // Look up the house by number (service role to bypass RLS on houses table)
+    const service = createServiceClient()
+    const { data: house, error: houseError } = await service
+      .from('houses')
+      .select('id, house_number, street')
+      .eq('house_number', houseNumber)
+      .single()
+
+    if (houseError || !house) {
+      return NextResponse.json({ error: 'House not found' }, { status: 404 })
+    }
+
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ house_id: house.id })
+      .eq('id', claims.userId)
+
+    if (updateError) {
+      return NextResponse.json({ error: 'Failed to update house number' }, { status: 500 })
+    }
+
+    await supabase.from('audit_logs').insert({
+      user_id:     claims.userId,
+      action:      'house_number_updated',
+      entity_type: 'profiles',
+      entity_id:   claims.userId,
+      metadata:    {
+        detail:      `Updated house number to ${houseNumber}`,
+        houseNumber,
+        houseId:     house.id,
+      },
+    })
+
+    return NextResponse.json({
+      success:     true,
+      houseId:     house.id,
+      houseNumber: house.house_number as string,
+      street:      house.street as string | null,
+    })
   }
 
-  const supabase = await createClient()
+  // --- Resident type change ---
+  const { residentType } = body
+
+  if (residentType !== 'OWNER' && residentType !== 'TENANT') {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+  }
 
   // If switching to TENANT, require at least one house member
   if (residentType === 'TENANT') {
@@ -140,7 +189,6 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to update resident type' }, { status: 500 })
   }
 
-  // Audit log
   await supabase.from('audit_logs').insert({
     user_id:     claims.userId,
     action:      'resident_type_updated',

@@ -130,6 +130,15 @@ export interface FamilyMember {
   name: string
   relationship: Relationship
   phoneNumber?: string
+  createdAt?: string
+}
+
+export interface CoResident {
+  id:            string
+  fullName:      string
+  email:         string
+  residentType:  ResidencyType | null
+  isCurrentUser: boolean  // computed client-side, not from DB
 }
 
 export interface Household {

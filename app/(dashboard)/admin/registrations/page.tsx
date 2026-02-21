@@ -50,6 +50,7 @@ export default function RegistrationsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [detailTarget, setDetailTarget] = useState<PendingResident | null>(null)
   const [coResidents, setCoResidents] = useState<{ full_name: string; email: string }[]>([])
+  const [houseMembers, setHouseMembers] = useState<{ id: string; name: string; relationship: string; phone_number: string | null }[]>([])
   const [isLoadingDetails, setIsLoadingDetails] = useState(false)
   const [showRejectForm, setShowRejectForm] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
@@ -77,17 +78,26 @@ export default function RegistrationsPage() {
     setShowRejectForm(false)
     setRejectReason('')
     setCoResidents([])
+    setHouseMembers([])
 
     if (resident.house_id) {
       setIsLoadingDetails(true)
-      const { data } = await supabase
-        .from('profiles')
-        .select('full_name, email')
-        .eq('house_id', resident.house_id)
-        .eq('status', 'APPROVED')
-        .eq('role', 'RESIDENT')
-        .neq('id', resident.id)
-      setCoResidents((data as { full_name: string; email: string }[]) ?? [])
+      const [profilesResult, membersResult] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('full_name, email')
+          .eq('house_id', resident.house_id)
+          .eq('status', 'APPROVED')
+          .eq('role', 'RESIDENT')
+          .neq('id', resident.id),
+        supabase
+          .from('house_members')
+          .select('id, name, relationship, phone_number')
+          .eq('house_id', resident.house_id)
+          .order('created_at', { ascending: true }),
+      ])
+      setCoResidents((profilesResult.data as { full_name: string; email: string }[]) ?? [])
+      setHouseMembers((membersResult.data as { id: string; name: string; relationship: string; phone_number: string | null }[]) ?? [])
       setIsLoadingDetails(false)
     }
   }
@@ -95,6 +105,7 @@ export default function RegistrationsPage() {
   const closeDetail = () => {
     setDetailTarget(null)
     setCoResidents([])
+    setHouseMembers([])
     setShowRejectForm(false)
     setRejectReason('')
   }
@@ -142,6 +153,10 @@ export default function RegistrationsPage() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  function capitalize(str: string) {
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
   }
 
   function OccupancyBadge({ status }: { status: string }) {
@@ -318,25 +333,52 @@ export default function RegistrationsPage() {
 
                 {isLoadingDetails ? (
                   <p className="text-xs text-slate-400 px-1">Checking existing accounts…</p>
-                ) : coResidents.length > 0 ? (
-                  <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-blue-500 shrink-0" />
-                      <span className="text-sm font-medium text-blue-800">
-                        {coResidents.length} other account{coResidents.length !== 1 ? 's' : ''} registered at this address
-                      </span>
-                    </div>
-                    <ul className="space-y-1 pl-6">
-                      {coResidents.map((cr, i) => (
-                        <li key={i} className="text-xs text-blue-700">
-                          <span className="font-medium">{cr.full_name}</span>
-                          <span className="text-blue-500"> · {cr.email}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <p className="text-xs text-blue-600 pl-0.5">This is expected if multiple household members are registered.</p>
-                  </div>
-                ) : null}
+                ) : (
+                  <>
+                    {coResidents.length > 0 && (
+                      <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4 text-blue-500 shrink-0" />
+                          <span className="text-sm font-medium text-blue-800">
+                            {coResidents.length} other account{coResidents.length !== 1 ? 's' : ''} registered at this address
+                          </span>
+                        </div>
+                        <ul className="space-y-1 pl-6">
+                          {coResidents.map((cr, i) => (
+                            <li key={i} className="text-xs text-blue-700">
+                              <span className="font-medium">{cr.full_name}</span>
+                              <span className="text-blue-500"> · {cr.email}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        <p className="text-xs text-blue-600 pl-0.5">This is expected if multiple household members are registered.</p>
+                      </div>
+                    )}
+
+                    {houseMembers.length > 0 && (
+                      <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-3 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <UserCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span className="text-sm font-medium text-emerald-800">
+                            {houseMembers.length} household member{houseMembers.length !== 1 ? 's' : ''} registered at this address
+                          </span>
+                        </div>
+                        <ul className="space-y-1 pl-6">
+                          {houseMembers.map(m => (
+                            <li key={m.id} className="text-xs text-emerald-700">
+                              <span className="font-medium">{m.name}</span>
+                              <span className="text-emerald-500"> · {capitalize(m.relationship)}</span>
+                              {m.phone_number && <span className="text-emerald-400"> · {m.phone_number}</span>}
+                            </li>
+                          ))}
+                        </ul>
+                        <p className="text-xs text-emerald-600">
+                          The applicant may already be listed here by an existing resident.
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
 
               {/* Reject form (slides in) */}

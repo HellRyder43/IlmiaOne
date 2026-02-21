@@ -63,8 +63,8 @@ export default function ResetPasswordPage() {
 
     if (accessToken && refreshToken) {
       supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
-        .then(({ error }) => {
-          setPageState(error ? 'invalid' : 'form')
+        .then((result) => {
+          setPageState(result.error ? 'invalid' : 'form')
         })
       return
     }

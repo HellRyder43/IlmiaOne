@@ -67,5 +67,18 @@ export async function PUT(
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+  await service.from('audit_logs').insert({
+    user_id: claims!.userId,
+    action: 'user_role_assigned',
+    entity_type: 'profiles',
+    entity_id: id,
+    metadata: {
+      detail: `Changed ${profile.full_name}'s role from ${profile.role} to ${role}`,
+      userId: id,
+      fromRole: profile.role,
+      toRole: role,
+    },
+  })
+
   return NextResponse.json({ success: true, userId: id, newRole: role })
 }

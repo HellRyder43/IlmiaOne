@@ -54,6 +54,18 @@ export async function POST(
     return NextResponse.json({ error: 'Failed to reject' }, { status: 500 })
   }
 
+  await service.from('audit_logs').insert({
+    user_id: claims!.userId,
+    action: 'registration_rejected',
+    entity_type: 'profiles',
+    entity_id: id,
+    metadata: {
+      detail: `Rejected registration for ${profile.full_name}`,
+      residentName: profile.full_name,
+      reason,
+    },
+  })
+
   // Insert in-app notification for the resident
   await service.from('notifications').insert({
     user_id: id,

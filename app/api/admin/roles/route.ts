@@ -101,6 +101,18 @@ export async function POST(request: Request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+  await service.from('audit_logs').insert({
+    user_id: claims!.userId,
+    action: 'role_created',
+    entity_type: 'roles',
+    entity_id: data.id,
+    metadata: {
+      detail: `Created role "${data.display_name}" (${data.value})`,
+      roleValue: data.value,
+      displayName: data.display_name,
+    },
+  })
+
   return NextResponse.json({
     id:          data.id,
     value:       data.value,

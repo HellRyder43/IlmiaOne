@@ -49,6 +49,17 @@ export async function POST(
     return NextResponse.json({ error: 'Failed to approve' }, { status: 500 })
   }
 
+  await service.from('audit_logs').insert({
+    user_id: claims!.userId,
+    action: 'registration_approved',
+    entity_type: 'profiles',
+    entity_id: id,
+    metadata: {
+      detail: `Approved registration for ${profile.full_name}`,
+      residentName: profile.full_name,
+    },
+  })
+
   // Insert in-app notification for the resident
   await service.from('notifications').insert({
     user_id: id,

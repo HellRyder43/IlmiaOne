@@ -79,6 +79,18 @@ export async function PUT(
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+  await service.from('audit_logs').insert({
+    user_id: claims!.userId,
+    action: 'role_updated',
+    entity_type: 'roles',
+    entity_id: data.id,
+    metadata: {
+      detail: `Updated role "${data.display_name}"`,
+      roleValue: data.value,
+      changes: Object.keys(updatePayload),
+    },
+  })
+
   return NextResponse.json({
     id:          data.id,
     value:       data.value,
@@ -133,6 +145,17 @@ export async function DELETE(
 
   const { error } = await service.from('roles').delete().eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  await service.from('audit_logs').insert({
+    user_id: claims!.userId,
+    action: 'role_deleted',
+    entity_type: 'roles',
+    entity_id: id,
+    metadata: {
+      detail: `Deleted role "${role.value}"`,
+      roleValue: role.value,
+    },
+  })
 
   return NextResponse.json({ success: true })
 }

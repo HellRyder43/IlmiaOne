@@ -157,29 +157,6 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
 
-  // If switching to TENANT, require at least one house member
-  if (residentType === 'TENANT') {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('house_id')
-      .eq('id', claims.userId)
-      .single()
-
-    if (profile?.house_id) {
-      const { count } = await supabase
-        .from('house_members')
-        .select('id', { count: 'exact', head: true })
-        .eq('house_id', profile.house_id)
-
-      if ((count ?? 0) === 0) {
-        return NextResponse.json(
-          { error: 'Tenants must register at least one additional household member first.' },
-          { status: 422 },
-        )
-      }
-    }
-  }
-
   const { error: updateError } = await supabase
     .from('profiles')
     .update({ resident_type: residentType })

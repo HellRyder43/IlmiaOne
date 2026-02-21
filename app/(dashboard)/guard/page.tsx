@@ -107,12 +107,6 @@ export default function GuardDashboard() {
           <h2 className="text-3xl font-bold text-slate-900">Guard Station Dashboard</h2>
           <p className="text-slate-500 mt-1">Main Gate · {new Date().toLocaleDateString('en-MY', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="px-4 py-2 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-100 flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-sm font-semibold">System Online</span>
-          </div>
-        </div>
       </div>
 
       {/* Main Stats */}

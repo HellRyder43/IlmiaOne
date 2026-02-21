@@ -732,7 +732,7 @@ export default function AdminDashboard() {
                     <SelectContent>
                       <SelectItem value="all">All Roles</SelectItem>
                       {rolesLoading ? (
-                        <SelectItem value="" disabled>Loading…</SelectItem>
+                        <SelectItem value="__loading__" disabled>Loading…</SelectItem>
                       ) : (
                         roles.map(r => (
                           <SelectItem key={r.value} value={r.value}>{r.displayName}</SelectItem>

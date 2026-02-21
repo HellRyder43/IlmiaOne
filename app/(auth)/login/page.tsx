@@ -378,7 +378,7 @@ function ForgotPasswordPanel({ onBack }: { onBack: () => void }) {
     e.preventDefault()
     setIsLoading(true)
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset-password`,
+      redirectTo: `${window.location.origin}/auth/callback`,
     })
     setIsLoading(false)
     if (error) {

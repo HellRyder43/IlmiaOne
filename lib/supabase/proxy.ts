@@ -14,6 +14,16 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse
   }
 
+  // Forward PKCE code from root path to callback (handles old-email fallback)
+  const { pathname } = request.nextUrl
+  const codeParam = request.nextUrl.searchParams.get('code')
+  if (pathname === '/' && codeParam) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/auth/callback'
+    url.search = `code=${encodeURIComponent(codeParam)}`
+    return NextResponse.redirect(url)
+  }
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
@@ -45,8 +55,6 @@ export async function updateSession(request: NextRequest) {
   // instead of getSession() for server-side auth checks.
   const { data } = await supabase.auth.getClaims()
   const user = data?.claims
-
-  const { pathname } = request.nextUrl
 
   // Define public routes that don't require authentication
   const isPublicRoute =

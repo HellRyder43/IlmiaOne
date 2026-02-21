@@ -44,8 +44,10 @@ export default function ResetPasswordPage() {
   } = useForm<ResetPasswordData>({ resolver: zodResolver(resetPasswordSchema) })
 
   useEffect(() => {
-    // Check URL hash for error fragments (e.g. expired or invalid token)
     const hash = window.location.hash
+    const searchParams = new URLSearchParams(window.location.search)
+
+    // Flow C: error fragment in hash (expired or invalid token)
     if (hash.includes('error=')) {
       const params = new URLSearchParams(hash.replace('#', ''))
       const errorCode = params.get('error_code')
@@ -53,39 +55,37 @@ export default function ResetPasswordPage() {
       return
     }
 
-    // Determine the flow type from the hash (recovery, invite, signup)
+    // Flow A: implicit flow — admin.generateLink always produces #access_token=...&refresh_token=...
+    // createBrowserClient (PKCE) silently ignores hash tokens, so we call setSession() explicitly.
     const hashParams = new URLSearchParams(hash.replace('#', ''))
-    const type = hashParams.get('type')
-    const isValidType = type === 'recovery' || type === 'invite' || type === 'signup'
+    const accessToken = hashParams.get('access_token')
+    const refreshToken = hashParams.get('refresh_token')
 
-    const showForm = () => setPageState('form')
+    if (accessToken && refreshToken) {
+      supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+        .then(({ error }) => {
+          setPageState(error ? 'invalid' : 'form')
+        })
+      return
+    }
 
-    // Race-condition-safe: Supabase may have already exchanged the hash tokens
-    // for a session before this effect runs (PASSWORD_RECOVERY fires early).
-    // onAuthStateChange immediately emits INITIAL_SESSION with the current state,
-    // so we catch both "already done" and "in-flight" cases here.
+    // Flow B: PKCE flow — createBrowserClient auto-exchanges ?code= via detectSessionInUrl:true
+    const hasPkceCode = searchParams.has('code')
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event: AuthChangeEvent, session: Session | null) => {
         if (event === 'PASSWORD_RECOVERY') {
-          showForm()
-        } else if (event === 'SIGNED_IN' && isValidType) {
-          showForm()
-        } else if (event === 'INITIAL_SESSION' && session && isValidType) {
-          // Supabase finished exchanging the hash before our listener registered
-          showForm()
+          setPageState('form')
+        } else if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session && hasPkceCode) {
+          setPageState('form')
         }
       }
     )
 
-    // Belt-and-suspenders: if there is already an active session and the hash
-    // looks like a valid recovery/invite link, show the form immediately.
     supabase.auth.getSession().then(({ data: { session } }: { data: { session: Session | null } }) => {
-      if (session && isValidType) {
-        showForm()
-      }
+      if (session && hasPkceCode) setPageState('form')
     })
 
-    // Final fallback: if nothing resolved after 5 seconds, show invalid state
     const timer = setTimeout(() => {
       setPageState((current) => (current === 'loading' ? 'invalid' : current))
     }, 5000)

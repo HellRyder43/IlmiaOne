@@ -16,6 +16,7 @@ export async function GET() {
   if (!claims) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const supabase = await createClient()
+  const service = createServiceClient()
 
   // Fetch own profile with house join
   const { data: profile, error: profileError } = await supabase
@@ -31,19 +32,35 @@ export async function GET() {
   const houseId = profile.house_id as string | null
   const house = profile.houses as unknown as { house_number: string; street: string | null } | null
 
+  // Check for pending house change request
+  const { data: pendingRequest } = await service
+    .from('house_change_requests')
+    .select('id, requested_house_id, houses!house_change_requests_requested_house_id_fkey(house_number)')
+    .eq('resident_id', claims.userId)
+    .eq('status', 'PENDING')
+    .maybeSingle()
+
+  const pendingHouseChange = pendingRequest
+    ? {
+        id:                   pendingRequest.id as string,
+        requestedHouseId:     pendingRequest.requested_house_id as string,
+        requestedHouseNumber: (pendingRequest.houses as unknown as { house_number: string } | null)?.house_number ?? '',
+      }
+    : null
+
   if (!houseId) {
     return NextResponse.json({
-      residentType:  profile.resident_type ?? null,
-      houseId:       null,
-      houseNumber:   null,
-      street:        null,
-      coResidents:   [],
-      members:       [],
+      residentType:      profile.resident_type ?? null,
+      houseId:           null,
+      houseNumber:       null,
+      street:            null,
+      coResidents:       [],
+      members:           [],
+      pendingHouseChange,
     })
   }
 
   // Co-residents: use service role since residents can't SELECT other profiles via RLS
-  const service = createServiceClient()
   const [coResidentsResult, membersResult] = await Promise.all([
     service
       .from('profiles')
@@ -92,6 +109,7 @@ export async function GET() {
     street:       house?.street ?? null,
     coResidents,
     members,
+    pendingHouseChange,
   })
 }
 
@@ -121,32 +139,113 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'House not found' }, { status: 404 })
     }
 
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({ house_id: house.id })
-      .eq('id', claims.userId)
+    const callerRole = claims.role as string
 
-    if (updateError) {
-      return NextResponse.json({ error: 'Failed to update house number' }, { status: 500 })
+    // AJK members can update house directly; residents submit a change request
+    if (callerRole === 'AJK_COMMITTEE' || callerRole === 'AJK_LEADER') {
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ house_id: house.id })
+        .eq('id', claims.userId)
+
+      if (updateError) {
+        return NextResponse.json({ error: 'Failed to update house number' }, { status: 500 })
+      }
+
+      await supabase.from('audit_logs').insert({
+        user_id:     claims.userId,
+        action:      'house_number_updated',
+        entity_type: 'profiles',
+        entity_id:   claims.userId,
+        metadata:    {
+          detail:      `Updated house number to ${houseNumber}`,
+          houseNumber,
+          houseId:     house.id,
+        },
+      })
+
+      return NextResponse.json({
+        success:     true,
+        houseId:     house.id,
+        houseNumber: house.house_number as string,
+        street:      house.street as string | null,
+      })
     }
 
-    await supabase.from('audit_logs').insert({
+    // RESIDENT path: submit a change request
+    // Check for existing PENDING request
+    const { data: existing } = await service
+      .from('house_change_requests')
+      .select('id')
+      .eq('resident_id', claims.userId)
+      .eq('status', 'PENDING')
+      .maybeSingle()
+
+    if (existing) {
+      return NextResponse.json(
+        { error: 'You already have a pending house change request. Cancel it before submitting a new one.' },
+        { status: 409 },
+      )
+    }
+
+    // Get caller's current house_id for the request record
+    const { data: currentProfile } = await service
+      .from('profiles')
+      .select('house_id')
+      .eq('id', claims.userId)
+      .single()
+
+    const { data: newRequest, error: insertError } = await service
+      .from('house_change_requests')
+      .insert({
+        resident_id:        claims.userId,
+        current_house_id:   currentProfile?.house_id ?? null,
+        requested_house_id: house.id,
+        status:             'PENDING',
+      })
+      .select('id')
+      .single()
+
+    if (insertError || !newRequest) {
+      return NextResponse.json({ error: 'Failed to submit change request' }, { status: 500 })
+    }
+
+    // Notify all AJK_LEADER and AJK_COMMITTEE profiles
+    const { data: ajkProfiles } = await service
+      .from('profiles')
+      .select('id')
+      .in('role', ['AJK_LEADER', 'AJK_COMMITTEE'])
+      .eq('status', 'APPROVED')
+
+    if (ajkProfiles && ajkProfiles.length > 0) {
+      await service.from('notifications').insert(
+        ajkProfiles.map(p => ({
+          user_id: p.id,
+          title:   'House Change Request',
+          message: `A resident has requested a house number change to No. ${houseNumber}.`,
+          type:    'HOUSE_CHANGE_REQUESTED',
+          read:    false,
+        })),
+      )
+    }
+
+    await service.from('audit_logs').insert({
       user_id:     claims.userId,
-      action:      'house_number_updated',
-      entity_type: 'profiles',
-      entity_id:   claims.userId,
+      action:      'house_change_requested',
+      entity_type: 'house_change_requests',
+      entity_id:   newRequest.id,
       metadata:    {
-        detail:      `Updated house number to ${houseNumber}`,
-        houseNumber,
-        houseId:     house.id,
+        detail:               `Requested house change to No. ${houseNumber}`,
+        requestedHouseNumber: houseNumber,
+        requestedHouseId:     house.id,
       },
     })
 
     return NextResponse.json({
-      success:     true,
-      houseId:     house.id,
-      houseNumber: house.house_number as string,
-      street:      house.street as string | null,
+      pending:              true,
+      requestId:            newRequest.id,
+      requestedHouseNumber: house.house_number as string,
+      requestedHouseId:     house.id as string,
     })
   }
 

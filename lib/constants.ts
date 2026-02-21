@@ -47,7 +47,7 @@ export const NAVIGATION_BY_ROUTE: Record<string, NavItem[]> = {
   ],
   admin: [
     { href: '/admin',               label: 'System Config', icon: Settings },
-    { href: '/admin/registrations', label: 'Registrations', icon: UserCheck },
+    { href: '/admin/registrations', label: 'Approvals', icon: UserCheck },
   ],
 }
 

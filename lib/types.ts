@@ -241,6 +241,29 @@ export interface GuardStats {
   overstayedVisitors: number
 }
 
+// House Change Request types
+export interface HouseChangeRequest {
+  id:                   string
+  residentId:           string
+  residentName?:        string
+  residentEmail?:       string
+  currentHouseId:       string | null
+  currentHouseNumber:   string | null
+  requestedHouseId:     string
+  requestedHouseNumber: string
+  status:               'PENDING' | 'APPROVED' | 'REJECTED'
+  rejectionReason?:     string
+  reviewedBy?:          string
+  reviewedAt?:          string
+  createdAt:            string
+}
+
+export interface HousePendingChange {
+  id:                   string
+  requestedHouseId:     string
+  requestedHouseNumber: string
+}
+
 // Admin types
 export interface SystemConfig {
   siteName: string

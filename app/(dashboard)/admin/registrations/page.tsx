@@ -27,10 +27,14 @@ import {
   Home,
   Users,
   ArrowLeft,
+  ArrowRight,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { formatDistanceToNow, format } from 'date-fns'
+import { useAdminHouseChanges } from '@/hooks/use-admin-house-changes'
+import { cn } from '@/lib/utils'
+import type { HouseChangeRequest } from '@/lib/types'
 
 interface PendingResident {
   id: string
@@ -45,7 +49,19 @@ interface PendingResident {
   houses: { house_number: string; street: string | null; occupancy_status: string } | null
 }
 
-export default function RegistrationsPage() {
+function OccupancyBadge({ status }: { status: string }) {
+  if (status === 'OCCUPIED') return <Badge className="bg-emerald-100 text-emerald-700 border-0 text-xs font-medium">Occupied</Badge>
+  if (status === 'VACANT') return <Badge className="bg-slate-100 text-slate-600 border-0 text-xs font-medium">Vacant</Badge>
+  return <Badge className="bg-amber-100 text-amber-700 border-0 text-xs font-medium">Under Renovation</Badge>
+}
+
+function capitalize(str: string) {
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
+}
+
+// ─── Registrations Tab ──────────────────────────────────────────────────────
+
+function RegistrationsTab() {
   const [residents, setResidents] = useState<PendingResident[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [detailTarget, setDetailTarget] = useState<PendingResident | null>(null)
@@ -155,23 +171,8 @@ export default function RegistrationsPage() {
     }
   }
 
-  function capitalize(str: string) {
-    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
-  }
-
-  function OccupancyBadge({ status }: { status: string }) {
-    if (status === 'OCCUPIED') return <Badge className="bg-emerald-100 text-emerald-700 border-0 text-xs font-medium">Occupied</Badge>
-    if (status === 'VACANT') return <Badge className="bg-slate-100 text-slate-600 border-0 text-xs font-medium">Vacant</Badge>
-    return <Badge className="bg-amber-100 text-amber-700 border-0 text-xs font-medium">Under Renovation</Badge>
-  }
-
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">Resident Registrations</h1>
-        <p className="text-slate-500 mt-1">Review and approve or reject pending resident applications.</p>
-      </div>
-
+    <>
       <Card className="border-slate-200 shadow-sm">
         <CardHeader className="border-b border-slate-100 px-6 py-5">
           <div className="flex items-center justify-between">
@@ -202,12 +203,9 @@ export default function RegistrationsPage() {
             <div className="divide-y divide-slate-100">
               {residents.map(resident => (
                 <div key={resident.id} className="flex items-center gap-4 px-6 py-4 hover:bg-slate-50/50 transition-colors">
-                  {/* Avatar */}
                   <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm shrink-0">
                     {getInitials(resident.full_name)}
                   </div>
-
-                  {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-semibold text-slate-900">{resident.full_name}</p>
@@ -236,8 +234,6 @@ export default function RegistrationsPage() {
                       </span>
                     </div>
                   </div>
-
-                  {/* Action */}
                   <div className="shrink-0">
                     <Button
                       size="sm"
@@ -270,7 +266,6 @@ export default function RegistrationsPage() {
 
           {detailTarget && (
             <div className="space-y-4 py-1">
-              {/* Applicant section */}
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-base shrink-0">
                   {getInitials(detailTarget.full_name)}
@@ -311,7 +306,6 @@ export default function RegistrationsPage() {
 
               <Separator />
 
-              {/* Property section */}
               <div className="space-y-2">
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   <Home className="w-3.5 h-3.5" />
@@ -381,7 +375,6 @@ export default function RegistrationsPage() {
                 )}
               </div>
 
-              {/* Reject form (slides in) */}
               {showRejectForm && (
                 <div className="space-y-2 pt-1">
                   <Label htmlFor="reject-reason" className="text-sm font-medium text-slate-700">
@@ -446,6 +439,280 @@ export default function RegistrationsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </>
+  )
+}
+
+// ─── House Changes Tab ───────────────────────────────────────────────────────
+
+function HouseChangesTab() {
+  const { requests, isLoading, approveRequest, rejectRequest } = useAdminHouseChanges()
+  const [reviewTarget, setReviewTarget] = useState<HouseChangeRequest | null>(null)
+  const [showRejectForm, setShowRejectForm] = useState(false)
+  const [rejectReason, setRejectReason] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const closeReview = () => {
+    setReviewTarget(null)
+    setShowRejectForm(false)
+    setRejectReason('')
+  }
+
+  const handleApprove = async () => {
+    if (!reviewTarget) return
+    setIsSubmitting(true)
+    try {
+      await approveRequest(reviewTarget.id)
+      toast.success(`House change approved for ${reviewTarget.residentName ?? 'resident'}.`)
+      closeReview()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleRejectSubmit = async () => {
+    if (!reviewTarget) return
+    if (rejectReason.trim().length < 10) {
+      toast.error('Reason must be at least 10 characters.')
+      return
+    }
+    setIsSubmitting(true)
+    try {
+      await rejectRequest(reviewTarget.id, rejectReason.trim())
+      toast.success(`House change request rejected.`)
+      closeReview()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <>
+      <Card className="border-slate-200 shadow-sm">
+        <CardHeader className="border-b border-slate-100 px-6 py-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg font-bold text-slate-900">House Change Requests</CardTitle>
+              <CardDescription className="mt-1">
+                {isLoading ? 'Loading…' : `${requests.length} request${requests.length !== 1 ? 's' : ''} pending review`}
+              </CardDescription>
+            </div>
+            {requests.length > 0 && (
+              <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-0">
+                {requests.length} pending
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
+
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="p-8 text-center text-slate-400 text-sm">Loading requests…</div>
+          ) : requests.length === 0 ? (
+            <div className="py-16 text-center">
+              <Home className="w-12 h-12 text-slate-200 mx-auto mb-3" />
+              <p className="font-medium text-slate-500">No pending house change requests</p>
+              <p className="text-sm text-slate-400 mt-1">All requests have been reviewed.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {requests.map(req => (
+                <div key={req.id} className="flex items-center gap-4 px-6 py-4 hover:bg-slate-50/50 transition-colors">
+                  <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm shrink-0">
+                    {getInitials(req.residentName ?? '?')}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-slate-900">{req.residentName ?? 'Unknown'}</p>
+                    <p className="text-sm text-slate-500 mt-0.5">{req.residentEmail}</p>
+                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                      <span className="text-xs font-medium text-slate-600">
+                        House {req.currentHouseNumber ?? '—'}
+                      </span>
+                      <ArrowRight className="w-3 h-3 text-slate-400 shrink-0" />
+                      <Badge className="bg-indigo-50 text-indigo-700 border-indigo-100 border text-xs">
+                        House {req.requestedHouseNumber}
+                      </Badge>
+                      <span className="flex items-center gap-1 text-xs text-slate-400">
+                        <Clock className="w-3 h-3" />
+                        {formatDistanceToNow(new Date(req.createdAt), { addSuffix: true })}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="shrink-0">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5"
+                      onClick={() => { setReviewTarget(req); setShowRejectForm(false); setRejectReason('') }}
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      Review
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Review Dialog */}
+      <Dialog open={!!reviewTarget} onOpenChange={(open) => { if (!open) closeReview() }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>House Change Request</DialogTitle>
+            {reviewTarget && (
+              <p className="text-sm text-slate-500 mt-0.5">
+                Submitted {formatDistanceToNow(new Date(reviewTarget.createdAt), { addSuffix: true })}
+              </p>
+            )}
+          </DialogHeader>
+
+          {reviewTarget && (
+            <div className="space-y-4 py-1">
+              {/* Resident info */}
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm shrink-0">
+                  {getInitials(reviewTarget.residentName ?? '?')}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-slate-900">{reviewTarget.residentName ?? 'Unknown'}</p>
+                  <div className="flex items-center gap-2 text-sm text-slate-600 mt-0.5">
+                    <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>{reviewTarget.residentEmail}</span>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* House change details */}
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Requested Change</p>
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+                  <div className="flex-1 text-center">
+                    <p className="text-xs text-slate-400 mb-1">Current</p>
+                    <p className="font-bold text-slate-700">House {reviewTarget.currentHouseNumber ?? '—'}</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-slate-400 shrink-0" />
+                  <div className="flex-1 text-center">
+                    <p className="text-xs text-slate-400 mb-1">Requested</p>
+                    <p className="font-bold text-indigo-700">House {reviewTarget.requestedHouseNumber}</p>
+                  </div>
+                </div>
+              </div>
+
+              {showRejectForm && (
+                <div className="space-y-2 pt-1">
+                  <Label htmlFor="hc-reject-reason" className="text-sm font-medium text-slate-700">
+                    Reason for rejection <span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    id="hc-reject-reason"
+                    placeholder="e.g. This house number is already occupied by another registered resident."
+                    rows={3}
+                    value={rejectReason}
+                    onChange={e => setRejectReason(e.target.value)}
+                    className="resize-none"
+                    autoFocus
+                  />
+                  <p className="text-xs text-slate-400">{rejectReason.trim().length} / 10 min characters</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-2">
+            {showRejectForm ? (
+              <>
+                <Button
+                  variant="outline"
+                  className="gap-1.5"
+                  onClick={() => { setShowRejectForm(false); setRejectReason('') }}
+                  disabled={isSubmitting}
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  Back
+                </Button>
+                <Button
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                  onClick={handleRejectSubmit}
+                  disabled={isSubmitting || rejectReason.trim().length < 10}
+                >
+                  {isSubmitting ? 'Rejecting…' : 'Confirm Rejection'}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  className="border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 gap-1.5"
+                  onClick={() => setShowRejectForm(true)}
+                  disabled={isSubmitting}
+                >
+                  <XCircle className="w-3.5 h-3.5" />
+                  Reject
+                </Button>
+                <Button
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
+                  onClick={handleApprove}
+                  disabled={isSubmitting}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  {isSubmitting ? 'Approving…' : 'Approve'}
+                </Button>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
+// ─── Main Page ───────────────────────────────────────────────────────────────
+
+export default function ApprovalsPage() {
+  const [activeTab, setActiveTab] = useState<'registrations' | 'houseChanges'>('registrations')
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold text-slate-900">Approvals</h1>
+        <p className="text-slate-500 mt-1">Review and approve resident registrations and house change requests.</p>
+      </div>
+
+      {/* Tab switcher */}
+      <div className="bg-slate-100 p-1 rounded-lg inline-flex gap-1">
+        <button
+          onClick={() => setActiveTab('registrations')}
+          className={cn(
+            'px-4 py-2 rounded-md text-sm font-medium transition-all',
+            activeTab === 'registrations'
+              ? 'bg-white shadow-sm text-slate-900'
+              : 'text-slate-500 hover:text-slate-700',
+          )}
+        >
+          Registrations
+        </button>
+        <button
+          onClick={() => setActiveTab('houseChanges')}
+          className={cn(
+            'px-4 py-2 rounded-md text-sm font-medium transition-all',
+            activeTab === 'houseChanges'
+              ? 'bg-white shadow-sm text-slate-900'
+              : 'text-slate-500 hover:text-slate-700',
+          )}
+        >
+          House Changes
+        </button>
+      </div>
+
+      {activeTab === 'registrations' ? <RegistrationsTab /> : <HouseChangesTab />}
     </div>
   )
 }

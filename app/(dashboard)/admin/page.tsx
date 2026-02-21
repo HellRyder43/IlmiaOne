@@ -883,12 +883,22 @@ export default function AdminDashboard() {
                   {/* Display name */}
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5">
-                      <Label htmlFor="edit-display-name">Display Name</Label>
+                      <Label htmlFor="edit-display-name" className="flex items-center gap-1.5">
+                        Display Name
+                        {selectedRole.isSystem && (
+                          <Lock className="w-3 h-3 text-slate-400" />
+                        )}
+                      </Label>
                       <Input
                         id="edit-display-name"
                         value={editorDraft.displayName}
                         onChange={e => setEditorDraft(d => d ? { ...d, displayName: e.target.value } : d)}
+                        disabled={selectedRole.isSystem}
+                        className={selectedRole.isSystem ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : ''}
                       />
+                      {selectedRole.isSystem && (
+                        <p className="text-xs text-slate-400">Fixed for system roles</p>
+                      )}
                     </div>
                     <div className="space-y-1.5">
                       <Label>Color</Label>

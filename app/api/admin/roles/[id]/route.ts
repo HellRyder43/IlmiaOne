@@ -40,8 +40,15 @@ export async function PUT(
     permissions?:  RolePermissions
   }
 
-  // System roles: only allow display_name, description, color, and permissions to change
+  // System roles: block display name changes — it is immutable for system roles
   // The 'value' field is always immutable (FK cascade makes it technically possible but dangerous)
+  if (existing.is_system && body.displayName !== undefined) {
+    return NextResponse.json(
+      { error: 'System role display names cannot be changed' },
+      { status: 403 },
+    )
+  }
+
   const updatePayload: Record<string, unknown> = {}
 
   if (body.displayName !== undefined) {

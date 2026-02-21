@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   Select,
   SelectContent,
@@ -28,6 +29,8 @@ import {
   AlertCircle,
   Pencil,
   X,
+  ChevronDown,
+  Search,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getInitials } from '@/lib/utils'
@@ -59,9 +62,11 @@ export default function HouseholdPage() {
   const [isSavingType,    setIsSavingType]    = useState(false)
   const [deletingId,      setDeletingId]      = useState<string | null>(null)
   const [isEditingHouse,  setIsEditingHouse]  = useState(false)
+  const [housePopoverOpen, setHousePopoverOpen] = useState(false)
   const [selectedHouseNo, setSelectedHouseNo] = useState('')
+  const [houseSearch,     setHouseSearch]     = useState('')
   const [isSavingHouse,   setIsSavingHouse]   = useState(false)
-  const [allHouses, setAllHouses]             = useState<{ id: string; house_number: string }[]>([])
+  const [allHouses, setAllHouses]             = useState<{ id: string; house_number: string; street: string | null }[]>([])
 
   const form = useForm<AddMemberForm>({
     resolver: zodResolver(addMemberSchema),
@@ -73,12 +78,13 @@ export default function HouseholdPage() {
     if (!isEditingHouse || allHouses.length > 0) return
     fetch('/api/houses')
       .then(r => r.json())
-      .then((houses: { id: string; house_number: string }[]) => setAllHouses(houses))
+      .then((houses: { id: string; house_number: string; street: string | null }[]) => setAllHouses(houses))
       .catch(() => {})
   }, [isEditingHouse, allHouses.length])
 
   const openHouseEdit = () => {
     setSelectedHouseNo(data?.houseNumber ?? '')
+    setHouseSearch('')
     setIsEditingHouse(true)
   }
 
@@ -168,7 +174,7 @@ export default function HouseholdPage() {
               ) : !data?.houseId ? (
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-100 text-amber-700 text-sm">
                   <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                  <span>No house assigned to your profile. Please contact AJK.</span>
+                  <span>No house assigned to your profile. Please update below.</span>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-4">
@@ -230,26 +236,70 @@ export default function HouseholdPage() {
                     <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide">
                       Select House No.
                     </label>
-                    <Select
-                      value={selectedHouseNo}
-                      onValueChange={setSelectedHouseNo}
-                      disabled={isSavingHouse}
-                    >
-                      <SelectTrigger className="h-9 border-slate-300 bg-white text-sm">
-                        <SelectValue placeholder="Choose house…" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {allHouses.length === 0 ? (
-                          <SelectItem value="loading" disabled>Loading…</SelectItem>
-                        ) : (
-                          allHouses.map(h => (
-                            <SelectItem key={h.id} value={h.house_number}>
-                              House {h.house_number}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
+                    <Popover open={housePopoverOpen} onOpenChange={setHousePopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          disabled={isSavingHouse}
+                          className="relative w-full flex items-center gap-2 pl-3 pr-4 py-2 rounded-lg border border-slate-300 bg-white text-left text-sm shadow-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all disabled:opacity-60"
+                        >
+                          {selectedHouseNo ? (
+                            <span className="text-slate-900 flex-1">
+                              No. {selectedHouseNo}
+                              {(() => {
+                                const h = allHouses.find(h => h.house_number === selectedHouseNo)
+                                return h?.street ? <span className="text-slate-400"> · {h.street}</span> : null
+                              })()}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 flex-1">Select your house</span>
+                          )}
+                          <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                        <div className="flex items-center border-b border-slate-200 px-3">
+                          <Search className="w-4 h-4 text-slate-400 shrink-0" />
+                          <input
+                            className="flex-1 py-2 pl-2 text-sm bg-transparent outline-none placeholder:text-slate-400"
+                            placeholder="Search house no. or street…"
+                            value={houseSearch}
+                            onChange={e => setHouseSearch(e.target.value)}
+                            autoFocus
+                          />
+                        </div>
+                        <div className="max-h-52 overflow-y-auto py-1">
+                          {allHouses.length === 0 ? (
+                            <p className="px-3 py-4 text-xs text-slate-400 text-center">Loading…</p>
+                          ) : (() => {
+                            const q = houseSearch.toLowerCase()
+                            const filtered = allHouses.filter(
+                              h => h.house_number.toLowerCase().includes(q) || (h.street ?? '').toLowerCase().includes(q)
+                            )
+                            return filtered.length === 0 ? (
+                              <p className="px-3 py-4 text-xs text-slate-400 text-center">No houses found</p>
+                            ) : filtered.map(h => (
+                              <button
+                                key={h.id}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedHouseNo(h.house_number)
+                                  setHousePopoverOpen(false)
+                                  setHouseSearch('')
+                                }}
+                                className={cn(
+                                  'w-full flex flex-col items-start px-3 py-2 text-sm hover:bg-slate-50 transition-colors',
+                                  selectedHouseNo === h.house_number && 'bg-indigo-50 text-indigo-700',
+                                )}
+                              >
+                                <span className="font-medium">No. {h.house_number}</span>
+                                {h.street && <span className="text-xs text-slate-400">{h.street}</span>}
+                              </button>
+                            ))
+                          })()}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                     <div className="flex gap-2">
                       <Button
                         size="sm"
@@ -267,7 +317,7 @@ export default function HouseholdPage() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => setIsEditingHouse(false)}
+                        onClick={() => { setIsEditingHouse(false); setHouseSearch('') }}
                         disabled={isSavingHouse}
                         className="h-8 text-xs text-slate-500"
                       >

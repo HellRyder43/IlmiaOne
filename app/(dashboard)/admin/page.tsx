@@ -1366,7 +1366,7 @@ export default function AdminDashboard() {
                 </SelectTrigger>
                 <SelectContent>
                   {rolesLoading ? (
-                    <SelectItem value="" disabled>Loading…</SelectItem>
+                    <SelectItem value="__loading__" disabled>Loading…</SelectItem>
                   ) : (
                     roles
                       .filter(r => r.value !== 'RESIDENT')

@@ -122,7 +122,7 @@ export async function POST(request: Request) {
     action: 'user_invited',
     entity_type: 'profile',
     entity_id: newUser.id,
-    metadata: { email, role },
+    metadata: { email, role, detail: `Invited ${email} as ${role}` },
   })
 
   return NextResponse.json({ success: true, userId: newUser.id, emailSent: true }, { status: 201 })

@@ -571,7 +571,6 @@ export default function AdminDashboard() {
                         <th className="text-left p-4 text-sm font-semibold text-slate-700">Owner Name</th>
                         <th className="text-left p-4 text-sm font-semibold text-slate-700">Residents</th>
                         <th className="text-left p-4 text-sm font-semibold text-slate-700">Status</th>
-                        <th className="text-left p-4 text-sm font-semibold text-slate-700">Payment</th>
                         <th className="text-right p-4 text-sm font-semibold text-slate-700">Actions</th>
                       </tr>
                     </thead>
@@ -583,7 +582,6 @@ export default function AdminDashboard() {
                             <td className="p-4"><Skeleton className="h-4 w-36" /></td>
                             <td className="p-4"><Skeleton className="h-4 w-16" /></td>
                             <td className="p-4"><Skeleton className="h-6 w-20 rounded-full" /></td>
-                            <td className="p-4"><Skeleton className="h-6 w-12 rounded-full" /></td>
                             <td className="p-4 flex justify-end gap-2">
                               <Skeleton className="h-8 w-8 rounded" />
                               <Skeleton className="h-8 w-8 rounded" />
@@ -592,7 +590,7 @@ export default function AdminDashboard() {
                         ))
                       ) : houses.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="p-12 text-center text-slate-400 text-sm">No houses found</td>
+                          <td colSpan={5} className="p-12 text-center text-slate-400 text-sm">No houses found</td>
                         </tr>
                       ) : (
                         houses.map(house => {
@@ -614,7 +612,6 @@ export default function AdminDashboard() {
                                   {statusLabel}
                                 </Badge>
                               </td>
-                              <td className="p-4"><Badge variant="outline">N/A</Badge></td>
                               <td className="p-4">
                                 <div className="flex justify-end gap-2">
                                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0"><Edit className="w-4 h-4" /></Button>

@@ -119,7 +119,7 @@ export async function POST(request: Request) {
   // Audit log
   await service.from('audit_logs').insert({
     user_id: claims!.userId,
-    action: 'staff_invited',
+    action: 'user_invited',
     entity_type: 'profile',
     entity_id: newUser.id,
     metadata: { email, role },

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
+import type { AuthChangeEvent, Session, AuthError } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Building2, Lock, Loader2, ArrowRight, AlertCircle, ArrowLeft } from 'lucide-react'
@@ -63,8 +63,8 @@ export default function ResetPasswordPage() {
 
     if (accessToken && refreshToken) {
       supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
-        .then((result) => {
-          setPageState(result.error ? 'invalid' : 'form')
+        .then(({ error }: { error: AuthError | null }) => {
+          setPageState(error ? 'invalid' : 'form')
         })
       return
     }

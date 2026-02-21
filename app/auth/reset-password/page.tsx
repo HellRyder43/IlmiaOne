@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import type { AuthChangeEvent } from '@supabase/supabase-js'
+import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Building2, Lock, Loader2, ArrowRight, AlertCircle, ArrowLeft } from 'lucide-react'
@@ -35,7 +35,7 @@ export default function ResetPasswordPage() {
   const [pageState, setPageState] = useState<PageState>('loading')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   const {
     register,
@@ -49,31 +49,52 @@ export default function ResetPasswordPage() {
     if (hash.includes('error=')) {
       const params = new URLSearchParams(hash.replace('#', ''))
       const errorCode = params.get('error_code')
-      if (errorCode === 'otp_expired') {
-        setPageState('expired')
-      } else {
-        setPageState('invalid')
-      }
+      setPageState(errorCode === 'otp_expired' ? 'expired' : 'invalid')
       return
     }
 
-    // If no error in hash, listen for Supabase to exchange the token for a session
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent) => {
-      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
-        setPageState('form')
+    // Determine the flow type from the hash (recovery, invite, signup)
+    const hashParams = new URLSearchParams(hash.replace('#', ''))
+    const type = hashParams.get('type')
+    const isValidType = type === 'recovery' || type === 'invite' || type === 'signup'
+
+    const showForm = () => setPageState('form')
+
+    // Race-condition-safe: Supabase may have already exchanged the hash tokens
+    // for a session before this effect runs (PASSWORD_RECOVERY fires early).
+    // onAuthStateChange immediately emits INITIAL_SESSION with the current state,
+    // so we catch both "already done" and "in-flight" cases here.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event: AuthChangeEvent, session: Session | null) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          showForm()
+        } else if (event === 'SIGNED_IN' && isValidType) {
+          showForm()
+        } else if (event === 'INITIAL_SESSION' && session && isValidType) {
+          // Supabase finished exchanging the hash before our listener registered
+          showForm()
+        }
+      }
+    )
+
+    // Belt-and-suspenders: if there is already an active session and the hash
+    // looks like a valid recovery/invite link, show the form immediately.
+    supabase.auth.getSession().then(({ data: { session } }: { data: { session: Session | null } }) => {
+      if (session && isValidType) {
+        showForm()
       }
     })
 
-    // Fallback: if no session established after 4 seconds, show invalid state
+    // Final fallback: if nothing resolved after 5 seconds, show invalid state
     const timer = setTimeout(() => {
-      setPageState((current) => current === 'loading' ? 'invalid' : current)
-    }, 4000)
+      setPageState((current) => (current === 'loading' ? 'invalid' : current))
+    }, 5000)
 
     return () => {
       subscription.unsubscribe()
       clearTimeout(timer)
     }
-  }, [supabase.auth])
+  }, [supabase])
 
   const onSubmit = async (data: ResetPasswordData) => {
     setIsSubmitting(true)

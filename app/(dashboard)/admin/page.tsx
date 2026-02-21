@@ -52,6 +52,7 @@ import {
   AlertCircle,
   Shield,
   Lock,
+  UserPlus,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -330,6 +331,40 @@ export default function AdminDashboard() {
       toast.error(err instanceof Error ? err.message : 'Failed to delete role');
     } finally {
       setDeletingRoleId(null);
+    }
+  };
+
+  // ── Staff invite
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [inviteForm, setInviteForm] = useState({ email: '', fullName: '', role: '' });
+  const [inviting, setInviting] = useState(false);
+
+  const handleInviteStaff = async () => {
+    setInviting(true);
+    try {
+      const res = await fetch('/api/admin/staff/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(inviteForm),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        if (res.status === 409) {
+          toast.error('An account with this email already exists');
+        } else {
+          toast.error(body.error ?? 'Failed to send invite');
+        }
+        return;
+      }
+      toast.success(`Invite sent to ${inviteForm.email}`);
+      if (body.warning) toast.warning(body.warning);
+      setShowInviteDialog(false);
+      setInviteForm({ email: '', fullName: '', role: '' });
+      await refetchUsers();
+    } catch {
+      toast.error('Failed to send invite');
+    } finally {
+      setInviting(false);
     }
   };
 
@@ -676,9 +711,9 @@ export default function AdminDashboard() {
                 <CardTitle>User Management</CardTitle>
                 <CardDescription>Manage all user accounts across the system</CardDescription>
               </div>
-              <Button className="gap-2 self-start sm:self-auto">
-                <Plus className="w-4 h-4" />
-                Add User
+              <Button className="gap-2 self-start sm:self-auto" onClick={() => setShowInviteDialog(true)}>
+                <UserPlus className="w-4 h-4" />
+                Invite Staff
               </Button>
             </CardHeader>
             <CardContent>
@@ -1277,6 +1312,69 @@ export default function AdminDashboard() {
             <Button variant="outline" onClick={() => setRoleChangePending(null)}>Cancel</Button>
             <Button onClick={confirmRoleChange} disabled={!!changingRoleFor}>
               {changingRoleFor ? 'Updating…' : 'Confirm'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Invite Staff Dialog ───────────────────────────────────── */}
+      <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Invite Staff Member</DialogTitle>
+            <DialogDescription>
+              Create a pre-approved account. The invitee will receive an email to set their password.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="invite-fullname">Full Name</Label>
+              <Input
+                id="invite-fullname"
+                placeholder="e.g. Ahmad bin Ismail"
+                value={inviteForm.fullName}
+                onChange={e => setInviteForm(f => ({ ...f, fullName: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="invite-email">Email</Label>
+              <Input
+                id="invite-email"
+                type="email"
+                placeholder="e.g. ahmad@example.com"
+                value={inviteForm.email}
+                onChange={e => setInviteForm(f => ({ ...f, email: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="invite-role">Role</Label>
+              <Select value={inviteForm.role} onValueChange={v => setInviteForm(f => ({ ...f, role: v }))}>
+                <SelectTrigger id="invite-role">
+                  <SelectValue placeholder="Select a role…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {rolesLoading ? (
+                    <SelectItem value="" disabled>Loading…</SelectItem>
+                  ) : (
+                    roles
+                      .filter(r => r.value !== 'RESIDENT')
+                      .map(r => (
+                        <SelectItem key={r.value} value={r.value}>{r.displayName}</SelectItem>
+                      ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setShowInviteDialog(false); setInviteForm({ email: '', fullName: '', role: '' }); }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleInviteStaff}
+              disabled={inviting || !inviteForm.fullName.trim() || !inviteForm.email.trim() || !inviteForm.role}
+            >
+              {inviting ? 'Sending…' : 'Send Invite'}
             </Button>
           </DialogFooter>
         </DialogContent>

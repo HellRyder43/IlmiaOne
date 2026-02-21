@@ -138,14 +138,14 @@ These are inferred from the existing codebase. Follow them strictly.
 ### Setup
 
 - Use `@supabase/ssr` (not `@supabase/auth-helpers-nextjs`) — already installed
-- Browser client: `lib/supabase/client.ts` — `createBrowserClient()` ✅ done
-- Server client: `lib/supabase/server.ts` — `createServerClient()` with cookie store ✅ done
-- Session proxy: `lib/supabase/proxy.ts` — `updateSession()` called from `middleware.ts` ✅ done
+- Browser client: `lib/supabase/client.ts` (`createBrowserClient()`)
+- Server client: `lib/supabase/server.ts` (`createServerClient()` with cookie store)
+- Session proxy: `lib/supabase/proxy.ts` — `updateSession()` called from `middleware.ts`
 - Environment variables: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
   - Note: uses **publishable key** (`sb_publishable_...`), not the legacy anon JWT key
-- Use Supabase Auth for authentication — replace the current mock auth in `lib/auth.tsx`
-- Use Supabase Storage for file uploads (pet photos, visitor ID images)
-- Use Supabase Realtime for guard dashboard live updates (optional)
+- Supabase Auth for authentication (email/password) — implemented in `lib/auth.tsx`
+- Supabase Storage for file uploads (pet photos, visitor ID images)
+- Supabase Realtime for guard dashboard live updates (optional)
 
 ### Authentication
 
@@ -309,32 +309,17 @@ notifications
 
 ### Seeded & Existing Data
 
-> Last verified: 2026-02-15 (new project `qznhxahydseejcpgrxlb`, Singapore)
+> Last verified: 2026-02-15 (project `qznhxahydseejcpgrxlb`, Singapore)
 
-**houses** (1 row)
-| house_number | street | occupancy_status |
-|---|---|---|
-| 12 | null | OCCUPIED |
+**houses:** 1 row — house 12, OCCUPIED. Houses 1–11, 13–92 not seeded (required before Phase 3).
 
-> Only house 12 is seeded. Houses 1–92 still need to be populated before Phase 3 (billing) can generate invoices.
+**profiles:** 4 rows (all `status: APPROVED`, emails pre-confirmed):
+- `resident@ilmiaone.com` / `resident123` → RESIDENT, OWNER, house 12 (UUID: `aaaaaaaa-0001-0001-0001-000000000001`)
+- `treasurer@ilmiaone.com` / `treasurer123` → AJK_COMMITTEE (UUID: `aaaaaaaa-0002-0002-0002-000000000002`)
+- `guard@ilmiaone.com` / `guard123` → GUARD (UUID: `aaaaaaaa-0003-0003-0003-000000000003`)
+- `admin@ilmiaone.com` / `admin123` → AJK_LEADER (UUID: `aaaaaaaa-0004-0004-0004-000000000004`)
 
-**profiles** (4 rows — all `status: APPROVED`, emails pre-confirmed in auth.users)
-| full_name | email | role | resident_type | house |
-|---|---|---|---|---|
-| Ahmad bin Abdullah | resident@ilmiaone.com | RESIDENT | OWNER | 12 |
-| Sarah Lee | treasurer@ilmiaone.com | AJK_COMMITTEE | null | — |
-| Kumar Raj | guard@ilmiaone.com | GUARD | null | — |
-| System Administrator | admin@ilmiaone.com | AJK_LEADER | null | — |
-
-Passwords: `resident123`, `treasurer123`, `guard123`, `admin123`
-
-Seed user UUIDs (fixed, for reference):
-- resident: `aaaaaaaa-0001-0001-0001-000000000001`
-- treasurer: `aaaaaaaa-0002-0002-0002-000000000002`
-- guard: `aaaaaaaa-0003-0003-0003-000000000003`
-- admin: `aaaaaaaa-0004-0004-0004-000000000004`
-
-**All other tables** — 0 rows (visitor_logs, visitor_pre_registrations, house_members, invoices, payment_transactions, events, pets, audit_logs, notifications)
+**All other tables** — 0 rows.
 
 ### Data Retention
 
@@ -344,184 +329,17 @@ Seed user UUIDs (fixed, for reference):
 
 ---
 
-## TypeScript Types — PRD Alignment (`lib/types.ts`)
+## TypeScript Types (`lib/types.ts`)
 
-The current `lib/types.ts` has several mismatches with the PRD data model. Below are the **correct** type definitions to use. When implementing, update `lib/types.ts` to match these exactly.
+All types are defined in `lib/types.ts`. Key rules to remember:
 
-### Types that must change
-
-```typescript
-// ❌ WRONG (current): 'VISITOR' | 'CONTRACTOR' | 'DELIVERY'
-// ✅ CORRECT (PRD): 5 types, not 3 — 'DELIVERY' does not exist in PRD
-export type VisitorType =
-  | "VISITOR"
-  | "CONTRACTOR"
-  | "E_HAILING"
-  | "COURIER"
-  | "OTHERS";
-
-// ❌ WRONG (current): 'OWNER' | 'TENANT' | 'FAMILY_MEMBER'
-// ✅ CORRECT (PRD): 2 types only — FAMILY_MEMBER is not a residency type
-export type ResidencyType = "OWNER" | "TENANT";
-
-// ❌ WRONG (current): relationship is untyped string
-// ✅ CORRECT (PRD): constrained dropdown values
-export type Relationship = "SPOUSE" | "CHILD" | "RELATIVE" | "TENANT";
-```
-
-### VisitorPass (pre-registration by resident)
-
-```typescript
-// Aligns with `visitor_pre_registrations` table
-export interface VisitorPass {
-  id: string;
-  residentId: string;
-  houseId: string;
-  visitorName: string;
-  visitorType: VisitorType; // was `type` — rename for clarity
-  visitReason: string; // REQUIRED per PRD (was `purpose?` optional)
-  expectedDate: string; // was `date`
-  phoneNumber?: string;
-  vehicleNumber?: string;
-  qrCode: string; // was `qrCodeUrl` — stores the code value, not a URL
-  status: "ACTIVE" | "USED" | "EXPIRED";
-  expiresAt: string; // NEW — missing from current type
-  createdAt: string;
-}
-```
-
-### EntryLog (visitor log by guard)
-
-```typescript
-// Aligns with `visitor_logs` table
-export interface EntryLog {
-  id: string;
-  preRegistrationId?: string; // NEW — links to VisitorPass if QR scan
-  visitorName: string;
-  visitorType: VisitorType; // was `type`
-  visitReason: string; // NEW — required per PRD
-  houseNumber: string;
-  icNumber?: string; // last 4 digits only
-  vehicleNumber?: string;
-  phoneNumber?: string; // NEW — missing from current type
-  checkInTime: string;
-  checkOutTime?: string;
-  status: "INSIDE" | "EXITED";
-  guardId: string; // was `guardName` — use ID, resolve name via join
-  entryMethod: "QR_SCAN" | "WALK_IN" | "MANUAL" | "SELF_SERVICE"; // SELF_SERVICE = static QR at guardhouse
-}
-```
-
-### FamilyMember (household members)
-
-```typescript
-export interface FamilyMember {
-  id: string;
-  houseId: string; // NEW — link to house
-  name: string;
-  relationship: Relationship; // was untyped `string`
-  phoneNumber?: string;
-  // NOTE: icNumber REMOVED — PRD says "No house member NRIC or DOB collected in v1"
-}
-```
-
-### User (profile)
-
-```typescript
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: UserRole;
-  avatarUrl?: string;
-  houseNumber?: string;
-  houseId?: string; // NEW — UUID reference to houses table
-  icNumber?: string; // last 4 digits only
-  residentType?: ResidencyType; // NEW — Owner or Tenant (per PRD)
-  status: "PENDING_APPROVAL" | "APPROVED" | "REJECTED" | "INACTIVE"; // NEW
-}
-```
-
-### RegisterData
-
-```typescript
-export interface RegisterData {
-  fullName: string;
-  houseNumber: string;
-  icNumber: string;
-  email: string;
-  password: string;
-  residentType: ResidencyType; // NEW — required per PRD
-}
-```
-
-### Invoice
-
-```typescript
-export interface Invoice {
-  id: string;
-  houseId: string; // NEW — UUID reference
-  month: string; // format: 'YYYY-MM'
-  amount: number;
-  status: "PAID" | "PENDING" | "OVERDUE";
-  dueDate: string;
-  breakdown: InvoiceBreakdown; // was only on DetailedInvoice, now always present
-}
-
-export interface InvoiceBreakdown {
-  maintenance: number;
-  sinkingFund: number;
-  water?: number;
-  // NOTE: lateInterest REMOVED — PRD says "No late fees"
-}
-```
-
-### SystemConfig
-
-```typescript
-export interface SystemConfig {
-  siteName: string;
-  monthlyMaintenanceFee: number;
-  sinkingFundRate: number;
-  gracePeriodDays: number;
-  waterChargePerUnit: number;
-  // NOTE: latePaymentInterestRate REMOVED — PRD says "No late fees"
-}
-```
-
-### House
-
-```typescript
-export interface House {
-  id: string; // NEW — UUID, not using houseNumber as ID
-  houseNumber: string;
-  street?: string; // NEW — per PRD
-  ownerName: string;
-  ownerEmail: string;
-  ownerPhone: string;
-  occupancyStatus: "OCCUPIED" | "VACANT" | "UNDER_RENOVATION"; // was `residencyStatus`
-  registrationDate: string;
-}
-```
-
-### Types that remain unchanged
-
-- `UserRole` — correct as-is
-- `LoginCredentials` — correct as-is
-- `EventCategory` — correct as-is
-- `CalendarEvent` — correct as-is
-- `ActivityType` — correct as-is
-- `FinancialStat` — correct as-is
-- `Defaulter` — correct as-is
-- `Transaction` — correct as-is
-- `GuardStats` — correct as-is
-- `GuardAccount` — correct as-is
-
-### Migration note
-
-- `Activity.metadata` type should be `Record<string, unknown>` not `Record<string, any>` — avoid `any`
-- `DetailedInvoice` can be removed — `Invoice` now always includes `breakdown`
-- `Household` interface should update `residencyType` to use the corrected `ResidencyType` (2 values, not 3)
+- `VisitorType`: 5 values — `'VISITOR' | 'CONTRACTOR' | 'E_HAILING' | 'COURIER' | 'OTHERS'` (no `DELIVERY`)
+- `ResidencyType`: 2 values — `'OWNER' | 'TENANT'` (no `FAMILY_MEMBER`)
+- `Relationship`: `'SPOUSE' | 'CHILD' | 'RELATIVE' | 'TENANT'`
+- `Invoice` always includes `breakdown: InvoiceBreakdown` — no separate `DetailedInvoice`
+- `InvoiceBreakdown` has no `lateInterest` — PRD has no late fees
+- `User.status`: `'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'INACTIVE'`
+- `Activity.metadata`: `Record<string, unknown>` (not `any`)
 
 ---
 
@@ -567,131 +385,13 @@ The following infrastructure has been set up and is ready to use:
 
 ### Phase 1: Guard & Visitor Module ✅ COMPLETED
 
-Both walk-in and pre-registered visitor flows are to be implemented simultaneously.
-
-#### Guard Walk-In Visitor Logging
-
-When the guard is present at the guardhouse, they register visitors manually:
-
-1. Guard opens guard dashboard → clicks "Register Walk-In" action card
-2. Guard fills visitor form directly on their device:
-   - Visitor name (required)
-   - IC number (optional, last 4 digits only)
-   - Visitor type (required, dropdown: Visitor, Contractor, E-hailing, Courier, Others)
-   - Reason for visit (required, text)
-   - House number visiting (required, dropdown from house list)
-   - Vehicle number (optional)
-   - Phone number (optional)
-3. All mandatory fields validated with Zod before submission
-4. Entry saved to `visitor_logs` table with `entry_method: 'WALK_IN'`
-5. Guard dashboard shows live stats (visitors inside, total entries today, deliveries, overstayed)
-
-#### Static QR Self-Service Visitor Logging
-
-A printed static QR code is posted at the guardhouse entrance. This handles the case when **the guard is on patrol or temporarily away from the post**. The visitor scans the QR and self-registers without needing a guard present.
-
-**Flow:**
-1. Admin generates the static QR from the Admin panel (one-time setup). The QR encodes a fixed public URL: `/visitor/self-register`
-2. The QR is printed and displayed at the gate entrance
-3. Visitor scans the QR with their phone → lands on a **public, unauthenticated** self-registration page
-4. Visitor fills in their own details:
-   - Visitor name (required)
-   - Phone number (required — for accountability since no guard is present)
-   - Visitor type (required, dropdown)
-   - House number visiting (required, dropdown)
-   - Reason for visit (required)
-   - Vehicle number (optional)
-   - IC number (optional, last 4 digits only)
-5. On submit → entry saved to `visitor_logs` with `entry_method: 'SELF_SERVICE'`
-6. Guard reviews self-registered entries on their dashboard when they return
-
-**Design notes:**
-- The static QR itself never expires and never changes — only the URL it points to matters
-- The `/visitor/self-register` page is fully public (no login required)
-- Phone number is required (not optional) in this flow for accountability
-- Guard can flag or remove suspicious self-service entries
-- In-app notification sent to guard's device when a self-service entry is created (Supabase Realtime)
-
-#### Resident Visitor Pre-Registration
-
-1. Resident opens Visitor Pass page → fills pre-registration form:
-   - Visitor name (required)
-   - Visitor type (required, dropdown: Visitor, Contractor, E-hailing, Courier, Others)
-   - Reason for visit (required, text)
-   - Expected arrival date (required)
-   - Phone number (optional)
-   - Vehicle number (optional)
-2. On submit → system generates a unique QR code and stores it in `visitor_pre_registrations`
-3. Resident sees a pass card with the QR image and visitor details
-4. Resident shares the **QR image + visit details** directly to the visitor (via WhatsApp share, download image, or copy details). There is **no public-facing page** for the visitor — the visitor simply shows the QR image to the guard at the gate.
-5. QR expires at end of expected date (23:59) by default
-
-#### Guard QR Scan Verification
-
-1. Guard opens scanner → scans QR code from pre-registered visitor
-2. System verifies: QR exists, not expired, not already used
-3. If valid → show visitor details → guard confirms → entry logged to `visitor_logs` with `entry_method: 'QR_SCAN'`, pre-registration status updated to 'USED'
-4. If invalid/expired → show error with reason → guard denies entry
-5. Manual code entry fallback if camera fails
-
-#### Guard Entry Logs
-
-1. Guard views all visitor logs (filtered to last 90 days)
-2. Filter by: status (Inside/Exited/All), visitor type, date range
-3. Search by name, house number, or vehicle plate
-4. Check-out action: guard marks visitor as exited → updates `check_out_time` and status
-5. Export to CSV (stretch goal)
-
-#### Edge Cases to Handle
-
-- Expired QR: reject and prompt re-registration
-- Duplicate entries: warn guard if same visitor name + house checked in within last hour
-- Invalid IC: guard manually corrects or skips
-- Camera permission denied: fall back to manual code entry
-- Offline mode: not required for v1
-- Self-service abuse: guard can delete or flag suspicious `SELF_SERVICE` entries; all self-service entries are visually distinct in the logs (tagged "Self-Service") so the guard can review them on return
-
-#### Key Files to Modify
-
-- `app/(dashboard)/guard/page.tsx` — connect to live Supabase data
-- `app/(dashboard)/guard/scanner/page.tsx` — real QR scanning + Supabase verification
-- `app/(dashboard)/guard/logs/page.tsx` — Supabase queries with filters
-- `app/(dashboard)/resident/visitors/page.tsx` — pre-registration with Supabase + real QR generation
-- `lib/types.ts` — update/align types with Supabase schema
-- ✅ `lib/auth.tsx` — Supabase Auth (done)
-
-#### New Files to Create
-
-- ✅ `lib/supabase/client.ts` — browser Supabase client (done)
-- ✅ `lib/supabase/server.ts` — server Supabase client (done)
-- `app/api/guard/scan/route.ts` — API route for QR verification
-- `app/api/visitors/pre-register/route.ts` — API route for pre-registration
-- `app/visitor/self-register/page.tsx` — **public** (unauthenticated) self-service form linked from the static guardhouse QR
+Walk-in logging, QR scan verification, resident pre-registration, self-service kiosk (`/visitor/self-register`), and entry logs with check-out are fully implemented. See `app/(dashboard)/guard/` and `app/(dashboard)/resident/visitors/`.
 
 ---
 
 ### Phase 2: Authentication & User Registration ✅ COMPLETED
 
-#### Requirements
-
-1. Replace mock auth in `lib/auth.tsx` with Supabase Auth (email/password)
-2. Registration flow: sign up → email verification → status set to 'PENDING_APPROVAL'
-3. Treasurer/Admin receives in-app notification of new registration
-4. Treasurer approves/rejects with reason → resident notified via email
-5. Rejected residents can edit and resubmit
-6. Guard accounts created by Super Admin only (no self-registration)
-7. ✅ Middleware validates Supabase session via `getClaims()` (done in `lib/supabase/proxy.ts`)
-8. Password reset: "Forgot password?" link on login → Supabase `resetPasswordForEmail()` → reset page at `/auth/reset-password`
-9. ✅ Authenticated root `/` redirects to role-based dashboard (done in proxy.ts)
-10. Remove all `console.log` statements from auth flow before production
-
-#### Key Files
-
-- `lib/auth.tsx` — rewrite with Supabase Auth (currently still mock)
-- `app/(auth)/login/page.tsx` — connect to Supabase Auth, add forgot password link
-- `app/(auth)/reset-password/page.tsx` — new, password reset form
-- ✅ `middleware.ts` + `lib/supabase/proxy.ts` — session-based middleware (done)
-- `lib/constants.ts` — remove `MOCK_CREDENTIALS`
+Supabase Auth (email/password), registration with PENDING_APPROVAL flow, AJK approval/rejection with Resend emails, rejection banner + resubmit, password reset at `/auth/reset-password`, dynamic roles, and real-time notification bell are fully implemented.
 
 ---
 
@@ -1021,28 +721,21 @@ npm run type-check   # TypeScript type checking
 
 ### Do
 
-- Use Shadcn UI components from `components/ui/` — they're already installed and themed
-- Use `cn()` from `lib/utils` for conditional Tailwind classes
-- Define all shared types in `lib/types.ts`
-- Define constants and color maps in `lib/constants.ts`
 - Use Supabase RLS for data access control — never trust client-side role checks alone
 - Keep page components in their route folder as `page.tsx`
 - Use Sonner (`toast()`) for user-facing notifications
-- Follow the existing indigo + slate color palette
 - Use `date-fns` for all date formatting and manipulation
 - Validate **all** forms with react-hook-form + Zod schemas (not raw `useState` + `onChange`)
 - Use server components for data fetching, client components for interactivity
 - Add `loading.tsx` and `error.tsx` to every route group
 - Use custom hooks in `hooks/` for reusable Supabase queries
 - Validate middleware auth server-side via `supabase.auth.getUser()` — never trust cookies alone
-- Align `VisitorType` with PRD values: `'VISITOR' | 'CONTRACTOR' | 'E_HAILING' | 'COURIER' | 'OTHERS'`
 
 ### Don't
 
 - Don't expose `SUPABASE_SERVICE_ROLE_KEY` to the client
 - Don't store full NRIC numbers — mask to last 4 digits
 - Don't skip RLS on any table
-- Don't create new UI primitives if a Shadcn component exists
 - Don't use inline styles — always use Tailwind classes
 - Don't add new npm packages without justification — the stack is comprehensive
 - Don't use `any` type — define proper interfaces

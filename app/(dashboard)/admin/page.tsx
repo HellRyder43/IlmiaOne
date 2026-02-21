@@ -713,7 +713,7 @@ export default function AdminDashboard() {
               </div>
               <Button className="gap-2 self-start sm:self-auto" onClick={() => setShowInviteDialog(true)}>
                 <UserPlus className="w-4 h-4" />
-                Invite Staff
+                Invite User
               </Button>
             </CardHeader>
             <CardContent>
@@ -1329,13 +1329,13 @@ export default function AdminDashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Invite Staff Dialog ───────────────────────────────────── */}
+      {/* ── Invite User Dialog ────────────────────────────────────── */}
       <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Invite Staff Member</DialogTitle>
+            <DialogTitle>Invite User</DialogTitle>
             <DialogDescription>
-              Create a pre-approved account. The invitee will receive an email to set their password.
+              Residents and staff should register through the sign-up page and await approval. Use this only for special cases — such as onboarding a guard or committee member directly. The invitee will receive an email to set their password.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">

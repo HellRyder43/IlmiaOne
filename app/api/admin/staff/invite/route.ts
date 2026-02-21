@@ -91,9 +91,13 @@ export async function POST(request: Request) {
   }
 
   // Generate password-set link (recovery type lands on /auth/reset-password)
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://ilmiaone.org'
   const { data: linkData, error: linkError } = await service.auth.admin.generateLink({
     type: 'recovery',
     email,
+    options: {
+      redirectTo: `${siteUrl}/auth/reset-password`,
+    },
   })
 
   if (linkError || !linkData?.properties?.action_link) {

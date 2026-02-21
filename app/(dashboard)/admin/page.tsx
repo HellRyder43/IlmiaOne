@@ -417,7 +417,7 @@ export default function AdminDashboard() {
       {/* Main Admin Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <div className="overflow-x-auto -mx-1 px-1">
-          <TabsList className="flex w-max min-w-full h-auto gap-1 lg:grid lg:grid-cols-7 lg:w-full">
+          <TabsList className="flex w-max min-w-full h-auto gap-1 lg:grid lg:grid-cols-6 lg:w-full">
             <TabsTrigger value="overview" className="flex-none gap-2 whitespace-nowrap">
               <Settings className="w-4 h-4 shrink-0" />
               Overview
@@ -426,11 +426,7 @@ export default function AdminDashboard() {
               <Home className="w-4 h-4 shrink-0" />
               Houses
             </TabsTrigger>
-            <TabsTrigger value="guards" className="flex-none gap-2 whitespace-nowrap">
-              <ShieldCheck className="w-4 h-4 shrink-0" />
-              Guards
-            </TabsTrigger>
-            <TabsTrigger value="users" className="flex-none gap-2 whitespace-nowrap">
+<TabsTrigger value="users" className="flex-none gap-2 whitespace-nowrap">
               <Users className="w-4 h-4 shrink-0" />
               Users
             </TabsTrigger>
@@ -632,73 +628,6 @@ export default function AdminDashboard() {
                     </tbody>
                   </table>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Guards Tab */}
-        <TabsContent value="guards" className="space-y-6">
-          <Card>
-            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <CardTitle>Guard Management</CardTitle>
-                <CardDescription>Manage security guard accounts and shifts</CardDescription>
-              </div>
-              <Button className="gap-2 self-start sm:self-auto">
-                <Plus className="w-4 h-4" />
-                Add Guard
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="border border-slate-200 rounded-lg overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-slate-50 border-b border-slate-200">
-                    <tr>
-                      <th className="text-left p-4 text-sm font-semibold text-slate-700">Guard Name</th>
-                      <th className="text-left p-4 text-sm font-semibold text-slate-700">Badge ID</th>
-                      <th className="text-left p-4 text-sm font-semibold text-slate-700">Shift</th>
-                      <th className="text-left p-4 text-sm font-semibold text-slate-700">Status</th>
-                      <th className="text-left p-4 text-sm font-semibold text-slate-700">Last Active</th>
-                      <th className="text-right p-4 text-sm font-semibold text-slate-700">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {[
-                      { name: 'Azman Hashim',  badge: 'G001', shift: 'Morning (7AM-3PM)',   status: 'active',   lastActive: 'Now' },
-                      { name: 'Wong Wei Ming', badge: 'G002', shift: 'Afternoon (3PM-11PM)', status: 'active',   lastActive: '5 mins ago' },
-                      { name: 'Kumar Selvam',  badge: 'G003', shift: 'Night (11PM-7AM)',    status: 'off-duty', lastActive: '2 hours ago' },
-                      { name: 'David Lim',     badge: 'G004', shift: 'Morning (7AM-3PM)',   status: 'off-duty', lastActive: '1 day ago' },
-                    ].map(guard => (
-                      <tr key={guard.badge} className="hover:bg-slate-50 transition-colors">
-                        <td className="p-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold">
-                              {getInitials(guard.name)}
-                            </div>
-                            <span className="font-medium text-slate-900">{guard.name}</span>
-                          </div>
-                        </td>
-                        <td className="p-4"><span className="font-mono font-bold text-slate-700">{guard.badge}</span></td>
-                        <td className="p-4"><span className="text-slate-600 text-sm">{guard.shift}</span></td>
-                        <td className="p-4">
-                          <Badge variant={guard.status === 'active' ? 'default' : 'secondary'}>
-                            {guard.status === 'active' ? (
-                              <><div className="w-1.5 h-1.5 rounded-full bg-white mr-1.5 animate-pulse" /> On Duty</>
-                            ) : 'Off Duty'}
-                          </Badge>
-                        </td>
-                        <td className="p-4"><span className="text-slate-500 text-sm">{guard.lastActive}</span></td>
-                        <td className="p-4">
-                          <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0"><Edit className="w-4 h-4" /></Button>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-600 hover:text-red-700"><Trash2 className="w-4 h-4" /></Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
               </div>
             </CardContent>
           </Card>

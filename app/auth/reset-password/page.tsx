@@ -47,6 +47,12 @@ export default function ResetPasswordPage() {
     const hash = window.location.hash
     const searchParams = new URLSearchParams(window.location.search)
 
+    // Error from callback redirect (invalid or expired PKCE code)
+    if (searchParams.get('error') === 'invalid_code') {
+      setPageState('invalid')
+      return
+    }
+
     // Flow C: error fragment in hash (expired or invalid token)
     if (hash.includes('error=')) {
       const params = new URLSearchParams(hash.replace('#', ''))
@@ -69,21 +75,19 @@ export default function ResetPasswordPage() {
       return
     }
 
-    // Flow B: PKCE flow — createBrowserClient auto-exchanges ?code= via detectSessionInUrl:true
-    const hasPkceCode = searchParams.has('code')
-
+    // Flow B (callback-established session): session already in cookies after /auth/callback exchange
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event: AuthChangeEvent, session: Session | null) => {
         if (event === 'PASSWORD_RECOVERY') {
           setPageState('form')
-        } else if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session && hasPkceCode) {
+        } else if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
           setPageState('form')
         }
       }
     )
 
     supabase.auth.getSession().then(({ data: { session } }: { data: { session: Session | null } }) => {
-      if (session && hasPkceCode) setPageState('form')
+      if (session) setPageState('form')
     })
 
     const timer = setTimeout(() => {

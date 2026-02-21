@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import {
   Search, Download, ArrowUpRight, ArrowDownRight, Car, User, Truck,
   Calendar, Hammer, Bike, HelpCircle, Smartphone, Loader2, CreditCard,
+  MessageSquare,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -131,6 +132,16 @@ export default function EntryLogsPage() {
           </div>
         </div>
 
+        {/* Entry Method Legend */}
+        <div className="px-4 md:px-6 py-2 border-b border-slate-100 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+          <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">Entry Method:</span>
+          {Object.values(ENTRY_METHOD_BADGE).map(({ label, className }) => (
+            <span key={label} className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border', className)}>
+              {label}
+            </span>
+          ))}
+        </div>
+
         {isLoading ? (
           <div className="flex items-center justify-center py-16 text-slate-400">
             <Loader2 className="w-6 h-6 animate-spin mr-2" />
@@ -173,6 +184,11 @@ export default function EntryLogsPage() {
                         </td>
                         <td className="px-6 py-4">
                           <p className="font-bold text-slate-900">{log.visitorName}</p>
+                          {log.visitReason && (
+                            <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
+                              <MessageSquare className="w-3 h-3 shrink-0" /> {log.visitReason}
+                            </p>
+                          )}
                           {log.icNumber && (
                             <p className="text-xs text-slate-500 font-mono mt-0.5 flex items-center gap-1">
                               <CreditCard className="w-3 h-3" /> IC: ****{log.icNumber}
@@ -294,9 +310,14 @@ export default function EntryLogsPage() {
                       </Badge>
                     </div>
 
-                    {/* IC / phone / vehicle */}
-                    {(log.icNumber || log.phoneNumber || log.vehicleNumber) && (
+                    {/* Reason + IC / phone / vehicle */}
+                    {(log.visitReason || log.icNumber || log.phoneNumber || log.vehicleNumber) && (
                       <div className="flex flex-wrap gap-x-4 gap-y-1">
+                        {log.visitReason && (
+                          <p className="text-xs text-slate-500 flex items-center gap-1 w-full">
+                            <MessageSquare className="w-3 h-3 shrink-0" /> {log.visitReason}
+                          </p>
+                        )}
                         {log.icNumber && (
                           <p className="text-xs text-slate-500 font-mono flex items-center gap-1">
                             <CreditCard className="w-3 h-3" /> IC: ****{log.icNumber}

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { getInitials } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -188,7 +189,7 @@ export default function RegistrationsPage() {
                 <div key={resident.id} className="flex items-center gap-4 px-6 py-4 hover:bg-slate-50/50 transition-colors">
                   {/* Avatar */}
                   <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm shrink-0">
-                    {resident.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                    {getInitials(resident.full_name)}
                   </div>
 
                   {/* Info */}
@@ -257,7 +258,7 @@ export default function RegistrationsPage() {
               {/* Applicant section */}
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-base shrink-0">
-                  {detailTarget.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                  {getInitials(detailTarget.full_name)}
                 </div>
                 <div className="flex-1 min-w-0 space-y-1.5">
                   <div className="flex items-center gap-2 flex-wrap">

@@ -8,6 +8,7 @@ import { useAdminAuditLogs } from '@/hooks/use-admin-audit-logs';
 import { useAdminRoles } from '@/hooks/use-admin-roles';
 import { useAuth } from '@/lib/auth';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getInitials } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -673,7 +674,7 @@ export default function AdminDashboard() {
                         <td className="p-4">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold">
-                              {guard.name.split(' ').map(n => n[0]).join('')}
+                              {getInitials(guard.name)}
                             </div>
                             <span className="font-medium text-slate-900">{guard.name}</span>
                           </div>
@@ -788,7 +789,7 @@ export default function AdminDashboard() {
                             <div className="flex items-start justify-between">
                               <div className="flex items-start gap-4 flex-1 min-w-0">
                                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg shrink-0">
-                                  {u.fullName.split(' ').map((n: string) => n[0]).join('')}
+                                  {getInitials(u.fullName)}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1">

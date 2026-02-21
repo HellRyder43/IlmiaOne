@@ -1,24 +1,27 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
-import { ShieldCheck, User, Phone, MapPin, FileText, Car, CheckCircle2, Loader2, Truck, Hammer, Bike, HelpCircle } from 'lucide-react'
+import { ShieldCheck, CheckCircle2, Loader2, Truck, Hammer, Bike, HelpCircle, User, Search, ChevronDown } from 'lucide-react'
 import { toast } from 'sonner'
 import type { VisitorType } from '@/lib/types'
 
 const schema = z.object({
   visitorName: z.string().min(1, 'Visitor name is required'),
-  phoneNumber: z.string().min(1, 'Phone number is required'),
   visitorType: z.enum(['VISITOR', 'CONTRACTOR', 'E_HAILING', 'COURIER', 'OTHERS']),
   houseNumber: z.string().min(1, 'House number is required'),
-  visitReason: z.string().min(1, 'Reason is required'),
+  visitReason: z.string().min(1, 'Reason for visit is required'),
+  icNumber: z.string().max(4, 'Last 4 digits only').optional(),
   vehicleNumber: z.string().optional(),
-  icNumber: z.string().max(4, 'Enter last 4 digits only').optional(),
+  phoneNumber: z.string().min(1, 'Phone number is required'),
 })
 
 type FormData = z.infer<typeof schema>
@@ -26,6 +29,7 @@ type FormData = z.infer<typeof schema>
 interface HouseOption {
   id: string
   house_number: string
+  street: string | null
 }
 
 const VISITOR_TYPES: { value: VisitorType; label: string; Icon: React.ElementType }[] = [
@@ -40,19 +44,26 @@ export default function SelfRegisterPage() {
   const [houses, setHouses] = useState<HouseOption[]>([])
   const [submitted, setSubmitted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [houseOpen, setHouseOpen] = useState(false)
+  const [houseSearch, setHouseSearch] = useState('')
 
-  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, setValue, watch, control, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { visitorType: 'VISITOR' },
   })
 
   const selectedType = watch('visitorType')
 
+  const filteredHouses = houses.filter(h => {
+    const q = houseSearch.toLowerCase()
+    return h.house_number.toLowerCase().includes(q) || (h.street ?? '').toLowerCase().includes(q)
+  })
+
   useEffect(() => {
     fetch('/api/houses')
       .then(r => r.json())
       .then(setHouses)
-      .catch(() => { /* fail silently, user can type house number */ })
+      .catch(() => { /* fail silently */ })
   }, [])
 
   const onSubmit = async (data: FormData) => {
@@ -121,49 +132,25 @@ export default function SelfRegisterPage() {
 
         <Card className="border-slate-200 shadow-sm">
           <CardContent className="p-6">
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
               {/* Visitor Name */}
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-slate-700">
-                  Full Name <span className="text-red-500">*</span>
+                  Visitor Name <span className="text-red-500">*</span>
                 </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                  <input
-                    {...register('visitorName')}
-                    placeholder="e.g. Ahmad bin Razak"
-                    className="w-full pl-9 pr-4 h-11 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
-                  />
-                </div>
-                {errors.visitorName && (
-                  <p className="text-xs text-red-500">{errors.visitorName.message}</p>
-                )}
-              </div>
-
-              {/* Phone Number */}
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-700">
-                  Phone Number <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                  <input
-                    {...register('phoneNumber')}
-                    type="tel"
-                    placeholder="e.g. 0123456789"
-                    className="w-full pl-9 pr-4 h-11 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
-                  />
-                </div>
-                {errors.phoneNumber && (
-                  <p className="text-xs text-red-500">{errors.phoneNumber.message}</p>
-                )}
+                <input
+                  {...register('visitorName')}
+                  placeholder="e.g. Ahmad bin Razak"
+                  className="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                />
+                {errors.visitorName && <p className="text-xs text-red-500">{errors.visitorName.message}</p>}
               </div>
 
               {/* Visitor Type */}
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-slate-700">
-                  Visit Type <span className="text-red-500">*</span>
+                  Visitor Type <span className="text-red-500">*</span>
                 </label>
                 <div className="grid grid-cols-5 gap-2">
                   {VISITOR_TYPES.map(({ value, label, Icon }) => (
@@ -172,7 +159,7 @@ export default function SelfRegisterPage() {
                       type="button"
                       onClick={() => setValue('visitorType', value)}
                       className={cn(
-                        'flex flex-col items-center gap-1 py-2.5 rounded-lg border text-xs font-medium transition-all',
+                        'flex flex-col items-center gap-1 py-2 rounded-lg border text-xs font-medium transition-all',
                         selectedType === value
                           ? 'bg-indigo-50 border-indigo-500 text-indigo-700'
                           : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50',
@@ -188,33 +175,75 @@ export default function SelfRegisterPage() {
               {/* House Number */}
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-slate-700">
-                  House Number Visiting <span className="text-red-500">*</span>
+                  House Number <span className="text-red-500">*</span>
                 </label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                  {houses.length > 0 ? (
-                    <select
-                      {...register('houseNumber')}
-                      className="w-full pl-9 pr-4 h-11 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all appearance-none"
-                    >
-                      <option value="">Select house number</option>
-                      {houses.map(h => (
-                        <option key={h.id} value={h.house_number}>
-                          No. {h.house_number}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      {...register('houseNumber')}
-                      placeholder="e.g. 12"
-                      className="w-full pl-9 pr-4 h-11 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
-                    />
-                  )}
-                </div>
-                {errors.houseNumber && (
-                  <p className="text-xs text-red-500">{errors.houseNumber.message}</p>
-                )}
+                <Controller
+                  name="houseNumber"
+                  control={control}
+                  render={({ field }) => {
+                    const selected = houses.find(h => h.house_number === field.value)
+                    return (
+                      <Popover open={houseOpen} onOpenChange={setHouseOpen} modal={false}>
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
+                            className={cn(
+                              'w-full flex items-center gap-2 px-3 h-11 rounded-lg border bg-white text-left text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all',
+                              errors.houseNumber ? 'border-red-400' : 'border-slate-300',
+                            )}
+                          >
+                            {selected ? (
+                              <span className="text-slate-900 flex-1">
+                                No. {selected.house_number}
+                                {selected.street && <span className="text-slate-400"> · {selected.street}</span>}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 flex-1">Select house</span>
+                            )}
+                            <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                          <div className="flex items-center border-b border-slate-200 px-3">
+                            <Search className="w-4 h-4 text-slate-400 shrink-0" />
+                            <input
+                              className="flex-1 py-2 pl-2 text-sm bg-transparent outline-none placeholder:text-slate-400"
+                              placeholder="Search house number..."
+                              value={houseSearch}
+                              onChange={e => setHouseSearch(e.target.value)}
+                              autoFocus
+                            />
+                          </div>
+                          <div className="max-h-52 overflow-y-auto py-1">
+                            {filteredHouses.length === 0 ? (
+                              <p className="px-3 py-4 text-xs text-slate-400 text-center">No houses found</p>
+                            ) : (
+                              filteredHouses.map(h => (
+                                <button
+                                  key={h.id}
+                                  type="button"
+                                  onClick={() => {
+                                    field.onChange(h.house_number)
+                                    setHouseOpen(false)
+                                    setHouseSearch('')
+                                  }}
+                                  className={cn(
+                                    'w-full flex flex-col items-start px-3 py-2 text-sm hover:bg-slate-50 transition-colors',
+                                    field.value === h.house_number && 'bg-indigo-50 text-indigo-700',
+                                  )}
+                                >
+                                  <span className="font-medium">No. {h.house_number}</span>
+                                  {h.street && <span className="text-xs text-slate-400">{h.street}</span>}
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    )
+                  }}
+                />
+                {errors.houseNumber && <p className="text-xs text-red-500">{errors.houseNumber.message}</p>}
               </div>
 
               {/* Reason for Visit */}
@@ -222,44 +251,48 @@ export default function SelfRegisterPage() {
                 <label className="text-sm font-medium text-slate-700">
                   Reason for Visit <span className="text-red-500">*</span>
                 </label>
-                <div className="relative">
-                  <FileText className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                  <input
-                    {...register('visitReason')}
-                    placeholder="e.g. Family visit, parcel delivery"
-                    className="w-full pl-9 pr-4 h-11 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
-                  />
-                </div>
-                {errors.visitReason && (
-                  <p className="text-xs text-red-500">{errors.visitReason.message}</p>
-                )}
+                <input
+                  {...register('visitReason')}
+                  placeholder="e.g. Social visit, maintenance work"
+                  className="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                />
+                {errors.visitReason && <p className="text-xs text-red-500">{errors.visitReason.message}</p>}
               </div>
 
               {/* Optional Fields */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">Vehicle No. <span className="text-slate-400 font-normal">(optional)</span></label>
-                  <div className="relative">
-                    <Car className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                    <input
-                      {...register('vehicleNumber')}
-                      placeholder="e.g. WXX 1234"
-                      className="w-full pl-9 pr-4 h-11 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all uppercase"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">IC No. (last 4) <span className="text-slate-400 font-normal">(optional)</span></label>
+                  <label className="text-sm font-medium text-slate-700">IC No. (last 4)</label>
                   <input
                     {...register('icNumber')}
-                    placeholder="e.g. 1234"
+                    placeholder="1234"
                     maxLength={4}
-                    className="w-full px-4 h-11 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-mono"
+                    className="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-mono"
                   />
-                  {errors.icNumber && (
-                    <p className="text-xs text-red-500">{errors.icNumber.message}</p>
-                  )}
+                  {errors.icNumber && <p className="text-xs text-red-500">{errors.icNumber.message}</p>}
                 </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-slate-700">Vehicle No.</label>
+                  <input
+                    {...register('vehicleNumber')}
+                    placeholder="WXX 1234"
+                    className="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all uppercase"
+                  />
+                </div>
+              </div>
+
+              {/* Phone Number */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">
+                  Phone Number <span className="text-red-500">*</span>
+                </label>
+                <input
+                  {...register('phoneNumber')}
+                  type="tel"
+                  placeholder="e.g. 0123456789"
+                  className="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
+                />
+                {errors.phoneNumber && <p className="text-xs text-red-500">{errors.phoneNumber.message}</p>}
               </div>
 
               <div className="pt-2">
@@ -269,7 +302,7 @@ export default function SelfRegisterPage() {
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full h-12 text-base font-semibold bg-indigo-600 hover:bg-indigo-700 text-white"
+                  className="w-full h-12 text-base font-semibold bg-slate-900 hover:bg-slate-800 text-white"
                 >
                   {isSubmitting
                     ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting...</>

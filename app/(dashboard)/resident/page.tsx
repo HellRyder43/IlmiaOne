@@ -186,10 +186,10 @@ export default function ResidentDashboard() {
   const { user } = useAuth()
   const [resubmitOpen, setResubmitOpen] = useState(false)
 
-  return (
-    <div className="space-y-8">
-      {/* Status Banners */}
-      {user?.status === 'REJECTED' && (
+  // Rejected users only see the rejection banner — nothing else
+  if (user?.status === 'REJECTED') {
+    return (
+      <>
         <Alert className="border-red-200 bg-red-50">
           <AlertTriangle className="h-4 w-4 text-red-600" />
           <AlertTitle className="text-red-800 font-semibold">Registration Not Approved</AlertTitle>
@@ -208,8 +208,13 @@ export default function ResidentDashboard() {
             </Button>
           </AlertDescription>
         </Alert>
-      )}
+        <ResubmitDialog open={resubmitOpen} onOpenChange={setResubmitOpen} user={user} />
+      </>
+    )
+  }
 
+  return (
+    <div className="space-y-8">
       {user?.status === 'PENDING_APPROVAL' && (
         <Alert className="border-amber-200 bg-amber-50">
           <Info className="h-4 w-4 text-amber-600" />
@@ -375,14 +380,6 @@ export default function ResidentDashboard() {
         </CardContent>
       </Card>
 
-      {/* Resubmit Dialog */}
-      {user && (
-        <ResubmitDialog
-          open={resubmitOpen}
-          onOpenChange={setResubmitOpen}
-          user={user}
-        />
-      )}
     </div>
   )
 }

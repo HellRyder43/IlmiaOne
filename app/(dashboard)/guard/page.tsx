@@ -25,7 +25,7 @@ import type { VisitorType } from '@/lib/types'
 
 const walkInSchema = z.object({
   visitorName: z.string().min(1, 'Visitor name is required'),
-  icNumber: z.string().max(4, 'Last 4 digits only').optional(),
+  icNumber: z.string().regex(/^\d{0,4}$/, 'Digits only').max(4, 'Last 4 digits only').optional(),
   visitorType: z.enum(['VISITOR', 'CONTRACTOR', 'E_HAILING', 'COURIER', 'OTHERS']),
   visitReason: z.string().min(1, 'Reason for visit is required'),
   houseNumber: z.string().min(1, 'House number is required'),
@@ -377,7 +377,10 @@ export default function GuardDashboard() {
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-slate-700">IC No. (last 4)</label>
                 <input
-                  {...register('icNumber')}
+                  {...register('icNumber', {
+                    onChange: (e) => { e.target.value = e.target.value.replace(/\D/g, '') }
+                  })}
+                  inputMode="numeric"
                   placeholder="1234"
                   maxLength={4}
                   className="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-mono"

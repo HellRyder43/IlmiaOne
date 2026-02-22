@@ -15,7 +15,7 @@ function createServiceClient() {
 const resubmitSchema = z.object({
   fullName: z.string().min(2),
   houseNumber: z.string().min(1),
-  icNumber: z.string().min(4),
+  icNumber: z.string().regex(/^\d{4}$/),
   residentType: z.enum(['OWNER', 'TENANT']),
 })
 
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
     .update({
       full_name: fullName,
       house_id: house.id,
-      ic_number: icNumber,
+      ic_number: icNumber.slice(-4),
       resident_type: residentType,
       status: 'PENDING_APPROVAL',
       rejection_reason: null,

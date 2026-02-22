@@ -297,7 +297,11 @@ function RegisterForm() {
               'w-full pl-10 pr-4 py-2.5 rounded-lg border bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-sm shadow-sm',
               errors.icNumber ? 'border-red-400' : 'border-slate-300'
             )}
-            {...register('icNumber')}
+            {...register('icNumber', {
+              onChange: (e) => {
+                e.target.value = e.target.value.replace(/\D/g, '')
+              }
+            })}
           />
         </div>
         {errors.icNumber && <p className="mt-1 text-xs text-red-600">{errors.icNumber.message}</p>}

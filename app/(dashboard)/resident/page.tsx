@@ -49,7 +49,7 @@ const dashboardInvoices: Invoice[] = [
 const resubmitSchema = z.object({
   fullName: z.string().min(2, 'Full name is required'),
   houseNumber: z.string().min(1, 'House number is required'),
-  icNumber: z.string().min(4, 'IC number is required'),
+  icNumber: z.string().regex(/^\d{4}$/, 'Enter the last 4 digits (numbers only)'),
   residentType: z.enum(['OWNER', 'TENANT']),
 })
 
@@ -227,7 +227,12 @@ function ResubmitDialog({
                 <FormItem>
                   <FormLabel>IC Number (last 4 digits)</FormLabel>
                   <FormControl>
-                    <Input {...field} maxLength={4} />
+                    <Input
+                      {...field}
+                      inputMode="numeric"
+                      maxLength={4}
+                      onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ''))}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

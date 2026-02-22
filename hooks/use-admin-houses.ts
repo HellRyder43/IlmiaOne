@@ -9,6 +9,7 @@ export interface HouseWithDetails {
   street: string | null
   occupancy_status: 'OCCUPIED' | 'VACANT' | 'UNDER_RENOVATION'
   ownerName: string | null
+  residentType: 'OWNER' | 'TENANT' | null
   totalCount: number
 }
 
@@ -17,6 +18,7 @@ interface ProfileRow {
   full_name: string
   role: string
   status: string
+  resident_type: string | null
 }
 
 interface HouseRow {
@@ -33,6 +35,7 @@ export function useAdminHouses() {
   const [isLoading, setIsLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [residencyFilter, setResidencyFilter] = useState('all')
 
   const supabase = useMemo(() => createClient(), [])
 
@@ -46,7 +49,7 @@ export function useAdminHouses() {
         house_number,
         street,
         occupancy_status,
-        profiles(id, full_name, role, status),
+        profiles(id, full_name, role, status, resident_type),
         house_members(id)
       `)
 
@@ -70,6 +73,7 @@ export function useAdminHouses() {
         street: house.street,
         occupancy_status: house.occupancy_status as HouseWithDetails['occupancy_status'],
         ownerName: owner?.full_name ?? null,
+        residentType: (owner?.resident_type as 'OWNER' | 'TENANT' | null) ?? null,
         totalCount,
       }
     }).sort((a, b) => {
@@ -93,9 +97,10 @@ export function useAdminHouses() {
         h.house_number.includes(search) ||
         (h.ownerName?.toLowerCase().includes(search.toLowerCase()) ?? false)
       const matchesStatus = statusFilter === 'all' || h.occupancy_status === statusFilter
-      return matchesSearch && matchesStatus
+      const matchesResidency = residencyFilter === 'all' || h.residentType === residencyFilter
+      return matchesSearch && matchesStatus && matchesResidency
     })
-  }, [allHouses, search, statusFilter])
+  }, [allHouses, search, statusFilter, residencyFilter])
 
-  return { houses, isLoading, search, setSearch, statusFilter, setStatusFilter }
+  return { houses, isLoading, search, setSearch, statusFilter, setStatusFilter, residencyFilter, setResidencyFilter }
 }

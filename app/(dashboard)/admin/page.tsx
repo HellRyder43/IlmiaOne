@@ -226,6 +226,7 @@ export default function AdminDashboard() {
   const {
     houses, isLoading: housesLoading,
     search, setSearch, statusFilter, setStatusFilter,
+    residencyFilter, setResidencyFilter,
   } = useAdminHouses();
 
   const {
@@ -561,6 +562,16 @@ export default function AdminDashboard() {
                       <SelectItem value="UNDER_RENOVATION">Under Renovation</SelectItem>
                     </SelectContent>
                   </Select>
+                  <Select value={residencyFilter} onValueChange={setResidencyFilter}>
+                    <SelectTrigger className="w-full sm:w-[180px]">
+                      <SelectValue placeholder="Residency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Residency</SelectItem>
+                      <SelectItem value="OWNER">Owner</SelectItem>
+                      <SelectItem value="TENANT">Tenant</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="border border-slate-200 rounded-lg overflow-x-auto">
@@ -569,6 +580,7 @@ export default function AdminDashboard() {
                       <tr>
                         <th className="text-left p-4 text-sm font-semibold text-slate-700">House No.</th>
                         <th className="text-left p-4 text-sm font-semibold text-slate-700">Owner Name</th>
+                        <th className="text-left p-4 text-sm font-semibold text-slate-700">Residency</th>
                         <th className="text-left p-4 text-sm font-semibold text-slate-700">Residents</th>
                         <th className="text-left p-4 text-sm font-semibold text-slate-700">Status</th>
                         <th className="text-right p-4 text-sm font-semibold text-slate-700">Actions</th>
@@ -580,6 +592,7 @@ export default function AdminDashboard() {
                           <tr key={i}>
                             <td className="p-4"><Skeleton className="h-4 w-10" /></td>
                             <td className="p-4"><Skeleton className="h-4 w-36" /></td>
+                            <td className="p-4"><Skeleton className="h-6 w-16 rounded-full" /></td>
                             <td className="p-4"><Skeleton className="h-4 w-16" /></td>
                             <td className="p-4"><Skeleton className="h-6 w-20 rounded-full" /></td>
                             <td className="p-4 flex justify-end gap-2">
@@ -590,7 +603,7 @@ export default function AdminDashboard() {
                         ))
                       ) : houses.length === 0 ? (
                         <tr>
-                          <td colSpan={5} className="p-12 text-center text-slate-400 text-sm">No houses found</td>
+                          <td colSpan={6} className="p-12 text-center text-slate-400 text-sm">No houses found</td>
                         </tr>
                       ) : (
                         houses.map(house => {
@@ -606,6 +619,15 @@ export default function AdminDashboard() {
                             <tr key={house.id} className="hover:bg-slate-50 transition-colors">
                               <td className="p-4"><span className="font-mono font-bold text-slate-900">{house.house_number}</span></td>
                               <td className="p-4"><span className="font-medium text-slate-900">{house.ownerName ?? '—'}</span></td>
+                              <td className="p-4">
+                                {house.residentType === 'OWNER' ? (
+                                  <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 border">Owner</Badge>
+                                ) : house.residentType === 'TENANT' ? (
+                                  <Badge className="bg-amber-50 text-amber-700 border-amber-200 border">Tenant</Badge>
+                                ) : (
+                                  <span className="text-slate-400 text-sm">—</span>
+                                )}
+                              </td>
                               <td className="p-4"><span className="text-slate-600">{residentsLabel}</span></td>
                               <td className="p-4">
                                 <Badge variant={statusVariant} className={house.occupancy_status === 'UNDER_RENOVATION' ? 'border-amber-300 text-amber-700 bg-amber-50' : ''}>

@@ -42,7 +42,7 @@ export async function PUT(
 
   // System roles: block display name changes — it is immutable for system roles
   // The 'value' field is always immutable (FK cascade makes it technically possible but dangerous)
-  if (existing.is_system && body.displayName !== undefined) {
+  if (existing.is_system && body.displayName !== undefined && body.displayName !== existing.display_name) {
     return NextResponse.json(
       { error: 'System role display names cannot be changed' },
       { status: 403 },

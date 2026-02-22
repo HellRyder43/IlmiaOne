@@ -154,7 +154,6 @@ function PermissionEditor({ permissions, onChange, isSystem }: PermissionEditorP
                   <Switch
                     checked={isActive}
                     onCheckedChange={() => toggleRoute(section.key)}
-                    disabled={isSystem}
                     className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-slate-300"
                   />
                 </div>
@@ -195,7 +194,6 @@ function PermissionEditor({ permissions, onChange, isSystem }: PermissionEditorP
                           <Switch
                             checked={isActive}
                             onCheckedChange={() => toggleAction(perm.key)}
-                            disabled={isSystem}
                             className="data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-slate-300"
                           />
                         </div>
@@ -280,7 +278,7 @@ export default function AdminDashboard() {
     setEditorSaving(true);
     try {
       await updateRole(selectedRole.id, {
-        displayName:  editorDraft.displayName,
+        ...(!selectedRole.isSystem && { displayName: editorDraft.displayName }),
         description:  editorDraft.description,
         color:        editorDraft.color,
         permissions:  editorDraft.permissions,

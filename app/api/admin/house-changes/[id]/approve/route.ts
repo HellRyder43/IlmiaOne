@@ -54,14 +54,16 @@ export async function POST(
     return NextResponse.json({ error: 'Failed to update resident profile' }, { status: 500 })
   }
 
-  // Update old house to VACANT
-  const { error: oldHouseError } = await service
-    .from('houses')
-    .update({ occupancy_status: 'VACANT' })
-    .eq('id', request.current_house_id)
+  // Only set old house to VACANT if the resident had a previous house
+  if (request.current_house_id) {
+    const { error: oldHouseError } = await service
+      .from('houses')
+      .update({ occupancy_status: 'VACANT' })
+      .eq('id', request.current_house_id)
 
-  if (oldHouseError) {
-    return NextResponse.json({ error: 'Failed to update old house status' }, { status: 500 })
+    if (oldHouseError) {
+      return NextResponse.json({ error: 'Failed to update old house status' }, { status: 500 })
+    }
   }
 
   // Update new house to OCCUPIED

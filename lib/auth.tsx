@@ -143,6 +143,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (authUser) {
       const profile = await loadUserProfile(authUser.id)
       if (profile) {
+        if (profile.status === 'PENDING_APPROVAL') {
+          await supabase.auth.signOut()
+          throw new Error('pending_approval')
+        }
+        if (profile.status === 'REJECTED') {
+          await supabase.auth.signOut()
+          throw new Error('rejected')
+        }
+        if (profile.status === 'INACTIVE') {
+          await supabase.auth.signOut()
+          throw new Error('inactive')
+        }
         // Merge permissions from the current session JWT
         const { data: { session } } = await supabase.auth.getSession()
         const sessionUser = session ? extractUserFromSession(session) : null
@@ -159,6 +171,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       password: data.password,
       options: {
         data: { full_name: data.fullName },
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/login`,
       },
     })
 

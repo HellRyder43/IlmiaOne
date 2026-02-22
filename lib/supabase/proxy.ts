@@ -75,7 +75,11 @@ export async function updateSession(request: NextRequest) {
 
   // Redirect authenticated users away from root/login/auth pages to their dashboard
   // Do NOT redirect API routes — fetch() calls from authenticated pages need to reach them
-  if ((isPublicRoute || pathname === "/") && user && !pathname.startsWith("/api/") && pathname !== "/auth/reset-password") {
+  // Do NOT redirect PENDING_APPROVAL or REJECTED users — let them stay on /login to see their status
+  const userStatus = user ? (user.user_status as string | undefined) ?? '' : ''
+  const isApproved = !userStatus || userStatus === 'APPROVED'
+
+  if ((isPublicRoute || pathname === "/") && user && isApproved && !pathname.startsWith("/api/") && pathname !== "/auth/reset-password") {
     const role = (user.user_role ?? user.app_metadata?.user_role) as string | undefined
     const dashboard = (role && dashboardMap[role]) || "/resident"
     const url = request.nextUrl.clone()
@@ -95,12 +99,24 @@ export async function updateSession(request: NextRequest) {
   if (!isPublicRoute && user) {
     const role = (user.user_role ?? user.app_metadata?.user_role) as string | undefined
 
-    // Block INACTIVE users from accessing protected routes
-    const userStatus = user.user_status as string | undefined
-    if (userStatus === "INACTIVE") {
+    // Block non-approved users from accessing protected routes
+    const protectedUserStatus = user.user_status as string | undefined
+    if (protectedUserStatus === "INACTIVE") {
       const url = request.nextUrl.clone()
       url.pathname = "/login"
       url.searchParams.set("reason", "inactive")
+      return NextResponse.redirect(url)
+    }
+    if (protectedUserStatus === "PENDING_APPROVAL") {
+      const url = request.nextUrl.clone()
+      url.pathname = "/login"
+      url.searchParams.set("reason", "pending")
+      return NextResponse.redirect(url)
+    }
+    if (protectedUserStatus === "REJECTED") {
+      const url = request.nextUrl.clone()
+      url.pathname = "/login"
+      url.searchParams.set("reason", "rejected")
       return NextResponse.redirect(url)
     }
 

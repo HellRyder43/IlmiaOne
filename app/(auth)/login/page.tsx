@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -52,7 +53,16 @@ function LoginForm({ onForgotPassword }: { onForgotPassword: () => void }) {
       await login(data)
     } catch (err) {
       setIsLoading(false)
-      toast.error(err instanceof Error ? err.message : 'Login failed')
+      const msg = err instanceof Error ? err.message : 'Login failed'
+      if (msg === 'pending_approval') {
+        toast.warning('Your account is pending approval by the AJK Committee.')
+      } else if (msg === 'rejected') {
+        toast.error('Your registration was rejected. Please contact the management.')
+      } else if (msg === 'inactive') {
+        toast.error('Your account has been deactivated. Please contact support.')
+      } else {
+        toast.error(msg)
+      }
     }
   }
 
@@ -448,8 +458,10 @@ function ForgotPasswordPanel({ onBack }: { onBack: () => void }) {
   )
 }
 
-export default function LoginPage() {
+function LoginPageContent() {
   const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login')
+  const searchParams = useSearchParams()
+  const reason = searchParams.get('reason')
 
   return (
     <div className="max-w-4xl w-full bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row h-auto md:h-[700px]">
@@ -493,6 +505,22 @@ export default function LoginPage() {
       {/* Right Side — Form */}
       <div className="flex-1 flex flex-col justify-center p-8 md:p-12">
         <div className="max-w-sm mx-auto w-full">
+          {reason === 'pending' && mode === 'login' && (
+            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-sm font-medium text-amber-800">Your account is awaiting approval from the AJK Committee.</p>
+            </div>
+          )}
+          {reason === 'rejected' && mode === 'login' && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm font-medium text-red-800">Your registration was rejected. Please contact the management.</p>
+            </div>
+          )}
+          {reason === 'inactive' && mode === 'login' && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm font-medium text-red-800">Your account has been deactivated. Please contact support.</p>
+            </div>
+          )}
+
           {mode !== 'forgot' && (
             <div className="text-center mb-8">
               <h2 className="text-2xl font-bold text-slate-900 mb-2">
@@ -537,5 +565,15 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-4xl w-full bg-white rounded-2xl shadow-xl overflow-hidden h-[700px] animate-pulse" />
+    }>
+      <LoginPageContent />
+    </Suspense>
   )
 }

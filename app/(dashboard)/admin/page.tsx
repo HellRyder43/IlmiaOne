@@ -617,7 +617,12 @@ export default function AdminDashboard() {
                             ? `${house.totalCount} ${house.totalCount === 1 ? 'person' : 'people'}` : '—';
                           return (
                             <tr key={house.id} className="hover:bg-slate-50 transition-colors">
-                              <td className="p-4"><span className="font-mono font-bold text-slate-900">{house.house_number}</span></td>
+                              <td className="p-4">
+                                <span className="font-mono font-bold text-slate-900">{house.house_number}</span>
+                                {house.street && (
+                                  <p className="text-xs text-slate-400 mt-0.5">{house.street}</p>
+                                )}
+                              </td>
                               <td className="p-4"><span className="font-medium text-slate-900">{house.ownerName ?? '—'}</span></td>
                               <td className="p-4">
                                 {house.residentType === 'OWNER' ? (

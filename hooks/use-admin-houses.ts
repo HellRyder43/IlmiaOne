@@ -60,7 +60,7 @@ export function useAdminHouses() {
       const profiles: ProfileRow[] = rawProfiles
         ? Array.isArray(rawProfiles) ? rawProfiles : [rawProfiles]
         : []
-      const owner = profiles.find(p => p.role === 'RESIDENT' && p.status === 'APPROVED')
+      const owner = profiles.find(p => p.status === 'APPROVED')
       const members = house.house_members ?? []
       const totalCount = (owner ? 1 : 0) + members.length
 

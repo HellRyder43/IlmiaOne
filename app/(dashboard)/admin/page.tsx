@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { useAdminStats } from '@/hooks/use-admin-stats';
-import { useAdminHouses } from '@/hooks/use-admin-houses';
+import { useAdminHouses, type HouseWithDetails } from '@/hooks/use-admin-houses';
 import { useAdminUsers } from '@/hooks/use-admin-users';
 import { useAdminAuditLogs } from '@/hooks/use-admin-audit-logs';
 import { useAdminRoles } from '@/hooks/use-admin-roles';
@@ -46,6 +46,7 @@ import {
   FileText,
   Activity,
   Edit,
+  Eye,
   Trash2,
   Plus,
   CheckCircle2,
@@ -98,6 +99,13 @@ const CATEGORY_LABELS: Record<string, string> = {
   visitors:   'Visitors',
   financials: 'Financials',
   system:     'System',
+};
+
+const RELATIONSHIP_LABELS: Record<string, string> = {
+  SPOUSE: 'Spouse',
+  CHILD: 'Child',
+  RELATIVE: 'Relative',
+  TENANT: 'Tenant',
 };
 
 // ─── Permission Editor Component ────────────────────────────────────────────
@@ -216,6 +224,10 @@ export default function AdminDashboard() {
   const { user, hasPermission } = useAuth();
   const canManageRoles = hasPermission('manage_roles');
   const canAssignRole  = hasPermission('assign_user_role');
+  const canViewHouseholdMembers = hasPermission('view_household_members');
+
+  // ── View household members dialog state
+  const [viewHouseMembers, setViewHouseMembers] = useState<HouseWithDetails | null>(null);
 
   // ── Existing hooks
   const {
@@ -641,6 +653,18 @@ export default function AdminDashboard() {
                               </td>
                               <td className="p-4">
                                 <div className="flex justify-end gap-2">
+                                  {canViewHouseholdMembers && (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setViewHouseMembers(house)}>
+                                            <Eye className="w-4 h-4" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>View members</TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  )}
                                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0"><Edit className="w-4 h-4" /></Button>
                                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-600 hover:text-red-700"><Trash2 className="w-4 h-4" /></Button>
                                 </div>
@@ -1290,6 +1314,62 @@ export default function AdminDashboard() {
               {changingRoleFor ? 'Updating…' : 'Confirm'}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── View Household Members Dialog ──────────────────────────── */}
+      <Dialog open={!!viewHouseMembers} onOpenChange={() => setViewHouseMembers(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>House {viewHouseMembers?.house_number} — Members</DialogTitle>
+            <DialogDescription>
+              {viewHouseMembers?.totalCount
+                ? `${viewHouseMembers.totalCount} ${viewHouseMembers.totalCount === 1 ? 'person' : 'people'} registered`
+                : 'No residents registered'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {/* Primary resident */}
+            {viewHouseMembers?.primaryResident ? (
+              <div className="p-4 rounded-lg border border-indigo-200 bg-indigo-50/50">
+                <div className="flex items-center justify-between mb-1">
+                  <h4 className="font-semibold text-slate-900">{viewHouseMembers.primaryResident.fullName}</h4>
+                  {viewHouseMembers.primaryResident.residentType === 'OWNER' ? (
+                    <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200 border">Owner</Badge>
+                  ) : viewHouseMembers.primaryResident.residentType === 'TENANT' ? (
+                    <Badge className="bg-amber-100 text-amber-700 border-amber-200 border">Tenant</Badge>
+                  ) : null}
+                </div>
+                <p className="text-xs text-slate-500">Primary Resident</p>
+              </div>
+            ) : (
+              <div className="p-4 rounded-lg border border-slate-200 bg-slate-50 text-center">
+                <p className="text-sm text-slate-400">No primary resident assigned</p>
+              </div>
+            )}
+
+            {/* Household members */}
+            {viewHouseMembers?.members && viewHouseMembers.members.length > 0 ? (
+              <div>
+                <h4 className="text-sm font-semibold text-slate-700 mb-2">Household Members</h4>
+                <div className="space-y-2">
+                  {viewHouseMembers.members.map(member => (
+                    <div key={member.id} className="flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-white">
+                      <div>
+                        <p className="font-medium text-slate-900 text-sm">{member.name}</p>
+                        <p className="text-xs text-slate-500">{RELATIONSHIP_LABELS[member.relationship] ?? member.relationship}</p>
+                      </div>
+                      {member.phoneNumber && (
+                        <span className="text-xs text-slate-500 font-mono">{member.phoneNumber}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : viewHouseMembers?.primaryResident ? (
+              <p className="text-sm text-slate-400 text-center py-2">No additional household members</p>
+            ) : null}
+          </div>
         </DialogContent>
       </Dialog>
 

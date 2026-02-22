@@ -85,6 +85,7 @@ export const APP_PERMISSIONS: Array<{
   { key: 'manage_users',          label: 'Manage Users',           description: 'View, activate and deactivate user accounts',                    category: 'system' },
   { key: 'manage_roles',          label: 'Manage Roles',           description: 'Create, edit and delete custom roles',                           category: 'system' },
   { key: 'assign_user_role',      label: 'Assign User Roles',      description: 'Change the role assigned to any user account',                   category: 'system' },
+  { key: 'view_household_members', label: 'View Household Members', description: 'View household member details for any house in the registry',     category: 'residents' },
 ]
 
 // Role display names (fallback for roles not yet fetched from DB)

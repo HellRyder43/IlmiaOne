@@ -2,6 +2,20 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import type { Relationship } from '@/lib/types'
+
+export interface HouseMember {
+  id: string
+  name: string
+  relationship: Relationship
+  phoneNumber: string | null
+}
+
+export interface HousePrimaryResident {
+  id: string
+  fullName: string
+  residentType: 'OWNER' | 'TENANT' | null
+}
 
 export interface HouseWithDetails {
   id: string
@@ -11,6 +25,8 @@ export interface HouseWithDetails {
   ownerName: string | null
   residentType: 'OWNER' | 'TENANT' | null
   totalCount: number
+  members: HouseMember[]
+  primaryResident: HousePrimaryResident | null
 }
 
 interface ProfileRow {
@@ -21,13 +37,20 @@ interface ProfileRow {
   resident_type: string | null
 }
 
+interface HouseMemberRow {
+  id: string
+  name: string
+  relationship: string
+  phone_number: string | null
+}
+
 interface HouseRow {
   id: string
   house_number: string
   street: string | null
   occupancy_status: string
   profiles: ProfileRow | ProfileRow[] | null
-  house_members: { id: string }[] | null
+  house_members: HouseMemberRow[] | null
 }
 
 export function useAdminHouses() {
@@ -50,7 +73,7 @@ export function useAdminHouses() {
         street,
         occupancy_status,
         profiles(id, full_name, role, status, resident_type),
-        house_members(id)
+        house_members(id, name, relationship, phone_number)
       `)
 
     if (error || !data) {
@@ -64,8 +87,18 @@ export function useAdminHouses() {
         ? Array.isArray(rawProfiles) ? rawProfiles : [rawProfiles]
         : []
       const owner = profiles.find(p => p.status === 'APPROVED')
-      const members = house.house_members ?? []
+      const rawMembers = house.house_members ?? []
+      const members: HouseMember[] = rawMembers.map(m => ({
+        id: m.id,
+        name: m.name,
+        relationship: m.relationship as Relationship,
+        phoneNumber: m.phone_number,
+      }))
       const totalCount = (owner ? 1 : 0) + members.length
+
+      const primaryResident: HousePrimaryResident | null = owner
+        ? { id: owner.id, fullName: owner.full_name, residentType: (owner.resident_type as 'OWNER' | 'TENANT' | null) ?? null }
+        : null
 
       return {
         id: house.id,
@@ -75,6 +108,8 @@ export function useAdminHouses() {
         ownerName: owner?.full_name ?? null,
         residentType: (owner?.resident_type as 'OWNER' | 'TENANT' | null) ?? null,
         totalCount,
+        members,
+        primaryResident,
       }
     }).sort((a, b) => {
       const nA = parseInt(a.house_number) || 0

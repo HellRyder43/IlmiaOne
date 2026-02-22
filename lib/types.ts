@@ -19,6 +19,7 @@ export type AppPermission =
   | 'view_all_invoices'
   | 'view_all_payments'
   | 'export_reports'
+  | 'view_household_members'
 
 export interface RolePermissions {
   routes:  string[]

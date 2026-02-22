@@ -21,52 +21,7 @@ const today = new Date();
 const currentYear = today.getFullYear();
 const currentMonth = today.getMonth();
 
-const events: CalendarEvent[] = [
-  {
-    id: '1',
-    title: "Annual General Meeting (AGM)",
-    category: "COMMUNITY_EVENT",
-    date: new Date(currentYear, currentMonth, 15).toISOString(),
-    time: "10:00 AM - 1:00 PM",
-    location: "Community Hall",
-    description: "Join us to discuss the budget for 2024 and vote on new proposals.",
-  },
-  {
-    id: '2',
-    title: "Playground Upgrades",
-    category: "MAINTENANCE",
-    date: new Date(currentYear, currentMonth, 20).toISOString(),
-    time: "8:00 AM - 4:00 PM",
-    location: "Central Park",
-    description: "New swings and slides are being installed at the central park.",
-  },
-  {
-    id: '3',
-    title: "New Security Protocols",
-    category: "NOTICE",
-    date: new Date(currentYear, currentMonth, 22).toISOString(),
-    location: "Guard House",
-    description: "All delivery vehicles must now be registered via the app before entry.",
-  },
-  {
-    id: '4',
-    title: "Diwali Potluck",
-    category: "COMMUNITY_EVENT",
-    date: new Date(currentYear, currentMonth, 28).toISOString(),
-    time: "6:00 PM - 9:00 PM",
-    location: "Clubhouse",
-    description: "Celebrate the Festival of Lights! Bring your favorite dish.",
-  },
-  {
-    id: '5',
-    title: "Drainage Cleaning",
-    category: "MAINTENANCE",
-    date: new Date(currentYear, currentMonth, 5).toISOString(),
-    time: "All Day",
-    location: "Jalan Merbhau",
-    description: "Drains along Jalan Merbhau will undergo scheduled cleaning to prevent flooding.",
-  }
-];
+const events: CalendarEvent[] = [];
 
 // --- Helper Functions ---
 const getDaysInMonth = (year: number, month: number) => {
@@ -309,38 +264,48 @@ export default function CommunityCalendarPage() {
       {/* List View */}
       {view === 'list' && (
         <div className="space-y-6">
-           {upcomingEvents.map((event) => (
-             <Card key={event.id} className="overflow-hidden flex flex-col hover:shadow-md transition-shadow">
-               <div className={cn("h-2", getBadgeColor(event.category).replace('text-', 'bg-').split(' ')[0])}></div>
+           {upcomingEvents.length > 0 ? (
+             upcomingEvents.map((event) => (
+               <Card key={event.id} className="overflow-hidden flex flex-col hover:shadow-md transition-shadow">
+                 <div className={cn("h-2", getBadgeColor(event.category).replace('text-', 'bg-').split(' ')[0])}></div>
 
-               <div className="p-6 flex-1 flex flex-col justify-center">
-                 <div className="flex items-start justify-between mb-2">
-                   <div>
-                     <p className="text-sm font-semibold text-primary-600 mb-1">
-                       {new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-                     </p>
-                     <h3 className="text-xl font-bold text-slate-900">{event.title}</h3>
+                 <div className="p-6 flex-1 flex flex-col justify-center">
+                   <div className="flex items-start justify-between mb-2">
+                     <div>
+                       <p className="text-sm font-semibold text-primary-600 mb-1">
+                         {new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                       </p>
+                       <h3 className="text-xl font-bold text-slate-900">{event.title}</h3>
+                     </div>
+                     <Badge variant={getBadgeVariant(event.category) as any}>{event.category.replace('_', ' ')}</Badge>
                    </div>
-                   <Badge variant={getBadgeVariant(event.category) as any}>{event.category.replace('_', ' ')}</Badge>
-                 </div>
 
-                 <p className="text-slate-600 mb-4">{event.description}</p>
+                   <p className="text-slate-600 mb-4">{event.description}</p>
 
-                 <div className="flex flex-wrap gap-4 text-sm text-slate-500 mt-auto">
-                    {event.time && (
-                      <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md">
-                        <Clock className="w-4 h-4" /> {event.time}
-                      </div>
-                    )}
-                    {event.location && (
-                      <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md">
-                        <MapPin className="w-4 h-4" /> {event.location}
-                      </div>
-                    )}
+                   <div className="flex flex-wrap gap-4 text-sm text-slate-500 mt-auto">
+                      {event.time && (
+                        <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md">
+                          <Clock className="w-4 h-4" /> {event.time}
+                        </div>
+                      )}
+                      {event.location && (
+                        <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md">
+                          <MapPin className="w-4 h-4" /> {event.location}
+                        </div>
+                      )}
+                   </div>
                  </div>
+               </Card>
+             ))
+           ) : (
+             <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center shadow-sm">
+               <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-400">
+                 <CalendarIcon className="w-6 h-6" />
                </div>
-             </Card>
-           ))}
+               <p className="text-slate-500 font-medium">No upcoming events.</p>
+               <p className="text-xs text-slate-400 mt-1">Events created by the committee will appear here.</p>
+             </div>
+           )}
         </div>
       )}
     </div>

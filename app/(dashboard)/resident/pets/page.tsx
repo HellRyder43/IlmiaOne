@@ -7,21 +7,8 @@ import { Plus, Camera, Search, User, Home, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Pet } from '@/lib/types';
 
-// Mock Data for "My Pets"
-const myPets: Pet[] = [
-  { id: '1', name: 'Snowball', type: 'Cat', breed: 'Persian', photoUrl: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?q=80&w=800&auto=format&fit=crop', ownerName: 'Me', houseNumber: 'No. 12' },
-  { id: '2', name: 'Max', type: 'Dog', breed: 'Golden Retriever', photoUrl: 'https://images.unsplash.com/photo-1552053831-71594a27632d?q=80&w=800&auto=format&fit=crop', ownerName: 'Me', houseNumber: 'No. 12' },
-];
-
-// Mock Data for "Community Pets" (Includes my pets + others)
-const communityPets: Pet[] = [
-  ...myPets,
-  { id: '3', name: 'Luna', type: 'Dog', breed: 'Siberian Husky', photoUrl: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?q=80&w=800&auto=format&fit=crop', ownerName: 'Sarah J.', houseNumber: 'No. 88' },
-  { id: '4', name: 'Coco', type: 'Cat', breed: 'Siamese', photoUrl: 'https://images.unsplash.com/photo-1513245543132-31f507417b26?q=80&w=800&auto=format&fit=crop', ownerName: 'Mr. Lim', houseNumber: 'No. 20' },
-  { id: '5', name: 'Rocky', type: 'Dog', breed: 'French Bulldog', photoUrl: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?q=80&w=800&auto=format&fit=crop', ownerName: 'Ahmad', houseNumber: 'No. 5' },
-  { id: '6', name: 'Bella', type: 'Rabbit', breed: 'Holland Lop', photoUrl: 'https://images.unsplash.com/photo-1585110396065-88b7f67be862?q=80&w=800&auto=format&fit=crop', ownerName: 'Jessica', houseNumber: 'No. 42' },
-  { id: '7', name: 'Oreo', type: 'Cat', breed: 'Tuxedo', photoUrl: 'https://images.unsplash.com/photo-1573865526739-10659fec78a5?q=80&w=800&auto=format&fit=crop', ownerName: 'Raj', houseNumber: 'No. 15' },
-];
+const myPets: Pet[] = [];
+const communityPets: Pet[] = [];
 
 export default function PetsPage() {
   const [activeTab, setActiveTab] = useState<'my_pets' | 'community'>('my_pets');
@@ -209,35 +196,45 @@ export default function PetsPage() {
              />
            </div>
 
-           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {filteredCommunityPets.map(pet => (
-                 <Card key={pet.id} className="overflow-hidden hover:shadow-md transition-shadow">
-                    <div className="aspect-square relative bg-slate-100">
-                      <img src={pet.photoUrl} alt={pet.name} className="w-full h-full object-cover" />
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4 pt-12">
-                         <h3 className="text-white font-bold text-lg flex items-center gap-2">
-                           {pet.name}
-                           {pet.type === 'Dog' && <span className="text-sm">🐕</span>}
-                           {pet.type === 'Cat' && <span className="text-sm">🐈</span>}
-                         </h3>
-                         <p className="text-white/90 text-sm">{pet.breed}</p>
+           {filteredCommunityPets.length > 0 ? (
+             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {filteredCommunityPets.map(pet => (
+                   <Card key={pet.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                      <div className="aspect-square relative bg-slate-100">
+                        <img src={pet.photoUrl} alt={pet.name} className="w-full h-full object-cover" />
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4 pt-12">
+                           <h3 className="text-white font-bold text-lg flex items-center gap-2">
+                             {pet.name}
+                             {pet.type === 'Dog' && <span className="text-sm">🐕</span>}
+                             {pet.type === 'Cat' && <span className="text-sm">🐈</span>}
+                           </h3>
+                           <p className="text-white/90 text-sm">{pet.breed}</p>
+                        </div>
                       </div>
-                    </div>
-                    <CardContent className="p-4 bg-slate-50/50">
-                       <div className="flex items-center justify-between text-sm">
-                          <div className="flex items-center gap-2 text-slate-700 font-medium">
-                             <User className="w-3.5 h-3.5 text-slate-400" />
-                             {pet.ownerName}
-                          </div>
-                          <div className="flex items-center gap-2 text-slate-500">
-                             <Home className="w-3.5 h-3.5 text-slate-400" />
-                             {pet.houseNumber}
-                          </div>
-                       </div>
-                    </CardContent>
-                 </Card>
-              ))}
-           </div>
+                      <CardContent className="p-4 bg-slate-50/50">
+                         <div className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-2 text-slate-700 font-medium">
+                               <User className="w-3.5 h-3.5 text-slate-400" />
+                               {pet.ownerName}
+                            </div>
+                            <div className="flex items-center gap-2 text-slate-500">
+                               <Home className="w-3.5 h-3.5 text-slate-400" />
+                               {pet.houseNumber}
+                            </div>
+                         </div>
+                      </CardContent>
+                   </Card>
+                ))}
+             </div>
+           ) : (
+             <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center shadow-sm">
+               <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
+                 <Search className="w-8 h-8" />
+               </div>
+               <h3 className="text-xl font-bold text-slate-900">No pets registered yet</h3>
+               <p className="text-slate-500 mt-2">Community pets will appear here once registered.</p>
+             </div>
+           )}
         </div>
       )}
     </div>

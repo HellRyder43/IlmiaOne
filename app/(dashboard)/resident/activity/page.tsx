@@ -14,15 +14,7 @@ import {
 import { cn } from '@/lib/utils';
 import type { Activity } from '@/lib/types';
 
-const activities: Activity[] = [
-  { id: '1', type: 'VISITOR', title: 'Visitor Arrived', description: 'GrabFood Driver (Ali) has entered the guard house.', timestamp: '10:42 AM', metadata: { date: 'Today' } },
-  { id: '2', type: 'SYSTEM', title: 'Login Detected', description: 'New login from iPhone 13.', timestamp: '09:15 AM', metadata: { date: 'Today' } },
-  { id: '3', type: 'PAYMENT', title: 'Payment Successful', description: 'Maintenance Fees (Dec 2023) - RM 145.50', timestamp: '02:30 PM', metadata: { date: 'Yesterday' } },
-  { id: '4', type: 'VISITOR', title: 'Visitor Registered', description: 'Pass created for Sarah (Sister).', timestamp: '11:00 AM', metadata: { date: 'Yesterday' } },
-  { id: '5', type: 'MAINTENANCE', title: 'Community Notice', description: 'Water disruption alert for Jalan Merbhau.', timestamp: '09:00 AM', metadata: { date: 'Yesterday' } },
-  { id: '6', type: 'MAINTENANCE', title: 'Event Reminder', description: 'Gotong Royong is happening this Saturday!', timestamp: '5:00 PM', metadata: { date: 'Oct 25' } },
-  { id: '7', type: 'DOCUMENT', title: 'Invoice Generated', description: 'November 2023 Maintenance Fee is now available.', timestamp: '10:00 AM', metadata: { date: 'Oct 01' } },
-];
+const activities: Activity[] = [];
 
 const getActivityIcon = (type: string) => {
   switch (type) {
@@ -63,33 +55,43 @@ export default function ActivityLogPage() {
       </div>
 
       <div className="space-y-8">
-        {Object.entries(groupedActivities).map(([date, items]) => (
-          <div key={date} className="space-y-4">
-            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider pl-1">{date}</h3>
-            <Card className="border-slate-200 shadow-sm overflow-hidden">
-              <div className="divide-y divide-slate-100">
-                {items.map((item) => {
-                  const style = getActivityIcon(item.type);
-                  const Icon = style.icon;
-                  return (
-                    <div key={item.id} className="p-4 flex items-start hover:bg-slate-50 transition-colors">
-                      <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shrink-0 mt-1", style.bg, style.color)}>
-                        <Icon className="w-5 h-5" />
-                      </div>
-                      <div className="ml-4 flex-1">
-                        <div className="flex justify-between items-start">
-                          <p className="text-sm font-semibold text-slate-900">{item.title}</p>
-                          <span className="text-xs text-slate-400 font-mono">{item.timestamp}</span>
+        {Object.keys(groupedActivities).length > 0 ? (
+          Object.entries(groupedActivities).map(([date, items]) => (
+            <div key={date} className="space-y-4">
+              <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider pl-1">{date}</h3>
+              <Card className="border-slate-200 shadow-sm overflow-hidden">
+                <div className="divide-y divide-slate-100">
+                  {items.map((item) => {
+                    const style = getActivityIcon(item.type);
+                    const Icon = style.icon;
+                    return (
+                      <div key={item.id} className="p-4 flex items-start hover:bg-slate-50 transition-colors">
+                        <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shrink-0 mt-1", style.bg, style.color)}>
+                          <Icon className="w-5 h-5" />
                         </div>
-                        <p className="text-sm text-slate-600 mt-0.5">{item.description}</p>
+                        <div className="ml-4 flex-1">
+                          <div className="flex justify-between items-start">
+                            <p className="text-sm font-semibold text-slate-900">{item.title}</p>
+                            <span className="text-xs text-slate-400 font-mono">{item.timestamp}</span>
+                          </div>
+                          <p className="text-sm text-slate-600 mt-0.5">{item.description}</p>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </Card>
+                    );
+                  })}
+                </div>
+              </Card>
+            </div>
+          ))
+        ) : (
+          <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center shadow-sm">
+            <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-400">
+              <Calendar className="w-6 h-6" />
+            </div>
+            <p className="text-slate-500 font-medium">No recent activity.</p>
+            <p className="text-xs text-slate-400 mt-1">Your activity history will appear here.</p>
           </div>
-        ))}
+        )}
       </div>
     </div>
   );

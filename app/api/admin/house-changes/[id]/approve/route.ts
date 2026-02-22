@@ -24,7 +24,7 @@ export async function POST(
   const { data: request, error: fetchError } = await service
     .from('house_change_requests')
     .select(`
-      id, resident_id, requested_house_id, status,
+      id, resident_id, current_house_id, requested_house_id, status,
       profiles!house_change_requests_resident_id_fkey(full_name),
       current_house:houses!house_change_requests_current_house_id_fkey(house_number),
       requested_house:houses!house_change_requests_requested_house_id_fkey(house_number)
@@ -52,6 +52,26 @@ export async function POST(
 
   if (profileError) {
     return NextResponse.json({ error: 'Failed to update resident profile' }, { status: 500 })
+  }
+
+  // Update old house to VACANT
+  const { error: oldHouseError } = await service
+    .from('houses')
+    .update({ occupancy_status: 'VACANT' })
+    .eq('id', request.current_house_id)
+
+  if (oldHouseError) {
+    return NextResponse.json({ error: 'Failed to update old house status' }, { status: 500 })
+  }
+
+  // Update new house to OCCUPIED
+  const { error: newHouseError } = await service
+    .from('houses')
+    .update({ occupancy_status: 'OCCUPIED' })
+    .eq('id', request.requested_house_id)
+
+  if (newHouseError) {
+    return NextResponse.json({ error: 'Failed to update new house status' }, { status: 500 })
   }
 
   // Mark request as approved

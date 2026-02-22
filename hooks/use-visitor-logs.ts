@@ -84,7 +84,7 @@ export function useVisitorLogs() {
         phoneNumber: row.phone_number ?? undefined,
         checkInTime: row.check_in_time,
         checkOutTime: row.check_out_time ?? undefined,
-        status: row.status as 'INSIDE' | 'EXITED',
+        status: row.status as 'INSIDE' | 'EXITED' | 'DENIED',
         guardId: row.guard_id,
         entryMethod: row.entry_method as EntryLog['entryMethod'],
       }))

@@ -230,7 +230,7 @@ export interface EntryLog {
   phoneNumber?: string
   checkInTime: string
   checkOutTime?: string
-  status: 'INSIDE' | 'EXITED'
+  status: 'INSIDE' | 'EXITED' | 'DENIED'
   guardId: string
   entryMethod: 'QR_SCAN' | 'WALK_IN' | 'SELF_SERVICE'
 }

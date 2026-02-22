@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -8,15 +8,18 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog'
+import {
   Plus, Share2, Clock, CalendarDays, User, Truck, Hammer, X, QrCode,
-  Check, Loader2, Download, Bike, HelpCircle, XCircle,
+  Loader2, Download, Bike, HelpCircle, XCircle, Home, Car, Phone,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { useAuth } from '@/hooks/index'
 import { usePreRegistrations } from '@/hooks/use-pre-registrations'
-import type { VisitorType } from '@/lib/types'
+import type { VisitorType, VisitorPass } from '@/lib/types'
 import QRCode from 'react-qr-code'
 
 const preRegSchema = z.object({
@@ -54,39 +57,159 @@ const VISITOR_TYPE_OPTIONS: { value: VisitorType; label: string }[] = [
   { value: 'OTHERS', label: 'Others' },
 ]
 
-function QrDownloadButton({ qrCode, visitorName }: { qrCode: string; visitorName: string }) {
-  const svgRef = useRef<SVGSVGElement | null>(null)
-
-  const downloadQr = () => {
-    const svgEl = document.getElementById(`qr-${qrCode}`)
-    if (!svgEl) return
-
+function svgToCanvas(svgEl: Element, size: number): Promise<HTMLCanvasElement> {
+  return new Promise((resolve) => {
     const svgData = new XMLSerializer().serializeToString(svgEl)
     const canvas = document.createElement('canvas')
-    canvas.width = 256
-    canvas.height = 256
-    const ctx = canvas.getContext('2d')
+    canvas.width = size
+    canvas.height = size
+    const ctx = canvas.getContext('2d')!
     const img = new Image()
     img.onload = () => {
-      if (ctx) {
-        ctx.fillStyle = 'white'
-        ctx.fillRect(0, 0, 256, 256)
-        ctx.drawImage(img, 0, 0, 256, 256)
-      }
-      const link = document.createElement('a')
-      link.download = `visitor-pass-${visitorName.replace(/\s+/g, '-').toLowerCase()}.png`
-      link.href = canvas.toDataURL('image/png')
-      link.click()
+      ctx.fillStyle = 'white'
+      ctx.fillRect(0, 0, size, size)
+      ctx.drawImage(img, 0, 0, size, size)
+      resolve(canvas)
     }
     img.src = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svgData)))}`
+  })
+}
+
+async function generatePassImage(pass: VisitorPass, houseNumber: string): Promise<Blob> {
+  const W = 480
+  const H = 700
+  const canvas = document.createElement('canvas')
+  canvas.width = W
+  canvas.height = H
+  const ctx = canvas.getContext('2d')!
+
+  // Background
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, W, H)
+
+  // Indigo header
+  ctx.fillStyle = '#4f46e5'
+  ctx.fillRect(0, 0, W, 80)
+  ctx.fillStyle = '#ffffff'
+  ctx.font = 'bold 20px system-ui, -apple-system, sans-serif'
+  ctx.textAlign = 'center'
+  ctx.fillText('ILMIA ONE', W / 2, 35)
+  ctx.font = '14px system-ui, -apple-system, sans-serif'
+  ctx.fillStyle = '#c7d2fe'
+  ctx.fillText('Visitor Pass', W / 2, 58)
+
+  // QR code — render from hidden SVG
+  const svgEl = document.getElementById(`qr-${pass.qrCode}`)
+  if (svgEl) {
+    const qrCanvas = await svgToCanvas(svgEl, 240)
+    const qrX = (W - 240) / 2
+    const qrY = 100
+    // White border around QR
+    ctx.fillStyle = '#f8fafc'
+    ctx.fillRect(qrX - 16, qrY - 16, 272, 272)
+    ctx.strokeStyle = '#e2e8f0'
+    ctx.lineWidth = 1
+    ctx.strokeRect(qrX - 16, qrY - 16, 272, 272)
+    ctx.drawImage(qrCanvas, qrX, qrY, 240, 240)
   }
 
-  return (
-    <Button variant="outline" size="sm" className="gap-1.5 text-xs h-9" onClick={downloadQr}>
-      <Download className="w-3.5 h-3.5" />
-      Download QR
-    </Button>
-  )
+  // Detail rows
+  ctx.textAlign = 'left'
+  let y = 380
+  const labelX = 48
+  const valueX = 48
+
+  const drawRow = (label: string, value: string) => {
+    ctx.fillStyle = '#94a3b8'
+    ctx.font = '11px system-ui, -apple-system, sans-serif'
+    ctx.fillText(label.toUpperCase(), labelX, y)
+    y += 18
+    ctx.fillStyle = '#1e293b'
+    ctx.font = '15px system-ui, -apple-system, sans-serif'
+    ctx.fillText(value, valueX, y)
+    y += 30
+  }
+
+  drawRow('Visitor Name', pass.visitorName)
+  drawRow('Type', VISITOR_TYPE_OPTIONS.find(t => t.value === pass.visitorType)?.label ?? pass.visitorType)
+  drawRow('Expected Date', format(new Date(pass.expectedDate), 'd MMM yyyy'))
+  drawRow('House No.', `No. ${houseNumber}`)
+  if (pass.visitReason) drawRow('Reason', pass.visitReason)
+
+  // Footer
+  ctx.fillStyle = '#f8fafc'
+  ctx.fillRect(0, H - 50, W, 50)
+  ctx.fillStyle = '#94a3b8'
+  ctx.font = '11px system-ui, -apple-system, sans-serif'
+  ctx.textAlign = 'center'
+  ctx.fillText('Show this QR to the guard at the guardhouse entrance', W / 2, H - 22)
+
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => resolve(blob!), 'image/png')
+  })
+}
+
+async function handleShare(pass: VisitorPass, houseNumber: string) {
+  try {
+    const blob = await generatePassImage(pass, houseNumber)
+    const file = new File([blob], `visitor-pass-${pass.visitorName.replace(/\s+/g, '-').toLowerCase()}.png`, { type: 'image/png' })
+
+    // Tier 1: Native share with image file (mobile)
+    if (navigator.share && navigator.canShare?.({ files: [file] })) {
+      await navigator.share({
+        title: `Visitor Pass — ${pass.visitorName}`,
+        text: `Visitor pass for ${pass.visitorName} on ${format(new Date(pass.expectedDate), 'd MMM yyyy')}`,
+        files: [file],
+      })
+      return
+    }
+
+    // Tier 2: Native share text-only
+    if (navigator.share) {
+      await navigator.share({
+        title: `Visitor Pass — ${pass.visitorName}`,
+        text: `Visitor pass for ${pass.visitorName} on ${format(new Date(pass.expectedDate), 'd MMM yyyy')}. Pass code: ${pass.qrCode}`,
+      })
+      return
+    }
+
+    // Tier 3: Direct image download (desktop fallback)
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.download = file.name
+    link.href = url
+    link.click()
+    URL.revokeObjectURL(url)
+    toast.success('Pass image downloaded')
+  } catch (err) {
+    // User cancelled share sheet — not an error
+    if (err instanceof Error && err.name === 'AbortError') return
+    toast.error('Failed to share pass')
+  }
+}
+
+function handleDownloadQr(qrCode: string, visitorName: string) {
+  const svgEl = document.getElementById(`qr-${qrCode}`)
+  if (!svgEl) return
+
+  const svgData = new XMLSerializer().serializeToString(svgEl)
+  const canvas = document.createElement('canvas')
+  canvas.width = 256
+  canvas.height = 256
+  const ctx = canvas.getContext('2d')
+  const img = new Image()
+  img.onload = () => {
+    if (ctx) {
+      ctx.fillStyle = 'white'
+      ctx.fillRect(0, 0, 256, 256)
+      ctx.drawImage(img, 0, 0, 256, 256)
+    }
+    const link = document.createElement('a')
+    link.download = `visitor-pass-${visitorName.replace(/\s+/g, '-').toLowerCase()}.png`
+    link.href = canvas.toDataURL('image/png')
+    link.click()
+  }
+  img.src = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svgData)))}`
 }
 
 export default function VisitorsPage() {
@@ -97,6 +220,8 @@ export default function VisitorsPage() {
   const [filter, setFilter] = useState<'ACTIVE' | 'HISTORY'>('ACTIVE')
   const [revoking, setRevoking] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [selectedPass, setSelectedPass] = useState<VisitorPass | null>(null)
+  const [isSharing, setIsSharing] = useState(false)
 
   const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<PreRegFormData>({
     resolver: zodResolver(preRegSchema),
@@ -131,12 +256,22 @@ export default function VisitorsPage() {
     try {
       await revokePass(id)
       toast.success('Visitor pass revoked')
+      if (selectedPass?.id === id) setSelectedPass(null)
     } catch {
       toast.error('Failed to revoke pass')
     } finally {
       setRevoking(null)
     }
   }
+
+  const onShare = useCallback(async (pass: VisitorPass) => {
+    setIsSharing(true)
+    try {
+      await handleShare(pass, user?.houseNumber ?? '—')
+    } finally {
+      setIsSharing(false)
+    }
+  }, [user?.houseNumber])
 
   const filteredPasses = passes.filter(pass =>
     filter === 'ACTIVE' ? pass.status === 'ACTIVE' : pass.status !== 'ACTIVE',
@@ -348,7 +483,8 @@ export default function VisitorsPage() {
           {filteredPasses.map(pass => (
             <div
               key={pass.id}
-              className="group relative flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow"
+              onClick={() => setSelectedPass(pass)}
+              className="group relative flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
             >
               {/* Status strip */}
               <div className={cn(
@@ -368,7 +504,7 @@ export default function VisitorsPage() {
                   <div className="flex items-center gap-2">
                     {pass.status === 'ACTIVE' && (
                       <button
-                        onClick={() => handleRevoke(pass.id)}
+                        onClick={(e) => { e.stopPropagation(); handleRevoke(pass.id) }}
                         disabled={revoking === pass.id}
                         className="text-slate-300 hover:text-red-500 transition-colors"
                         title="Revoke pass"
@@ -420,22 +556,20 @@ export default function VisitorsPage() {
               {/* QR Section */}
               <div className="bg-slate-50 p-5 flex items-center justify-between gap-4">
                 <div className="space-y-2">
-                  <QrDownloadButton qrCode={pass.qrCode} visitorName={pass.visitorName} />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs h-9"
+                    onClick={(e) => { e.stopPropagation(); handleDownloadQr(pass.qrCode, pass.visitorName) }}
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Download QR
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     className="gap-1.5 text-xs h-9 w-full"
-                    onClick={async () => {
-                      if (navigator.share) {
-                        await navigator.share({
-                          title: `Visitor Pass — ${pass.visitorName}`,
-                          text: `Visitor pass for ${pass.visitorName} on ${format(new Date(pass.expectedDate), 'd MMM yyyy')}. Pass code: ${pass.qrCode}`,
-                        })
-                      } else {
-                        await navigator.clipboard.writeText(pass.qrCode)
-                        toast.success('Pass code copied!')
-                      }
-                    }}
+                    onClick={(e) => { e.stopPropagation(); onShare(pass) }}
                   >
                     <Share2 className="w-3.5 h-3.5" /> Share
                   </Button>
@@ -454,6 +588,143 @@ export default function VisitorsPage() {
           ))}
         </div>
       )}
+
+      {/* Pass Detail Dialog */}
+      <Dialog open={!!selectedPass} onOpenChange={(open) => { if (!open) setSelectedPass(null) }}>
+        <DialogContent className="max-w-md p-0 overflow-hidden">
+          {selectedPass && (
+            <>
+              {/* Status color strip */}
+              <div className={cn(
+                'h-2 w-full',
+                selectedPass.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-slate-300',
+              )} />
+
+              <DialogHeader className="px-6 pt-5 pb-0">
+                <div className="flex items-center justify-between">
+                  <DialogTitle className="text-xl font-bold text-slate-900">
+                    {selectedPass.visitorName}
+                  </DialogTitle>
+                  <Badge
+                    variant={selectedPass.status === 'ACTIVE' ? 'default' : 'secondary'}
+                    className={cn(
+                      'text-xs',
+                      selectedPass.status === 'ACTIVE' && 'bg-emerald-100 text-emerald-700 border-transparent',
+                    )}
+                  >
+                    {selectedPass.status}
+                  </Badge>
+                </div>
+              </DialogHeader>
+
+              <div className="px-6 pb-6 space-y-5">
+                {/* Large QR code */}
+                <div className="flex justify-center py-4">
+                  <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <QRCode
+                      id={`qr-dialog-${selectedPass.qrCode}`}
+                      value={selectedPass.qrCode}
+                      size={200}
+                      style={{ height: 'auto', maxWidth: '100%', width: '200px' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Detail rows */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className={cn(
+                      'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider border',
+                      TYPE_COLORS[selectedPass.visitorType],
+                    )}>
+                      {getTypeIcon(selectedPass.visitorType)}
+                      {VISITOR_TYPE_OPTIONS.find(t => t.value === selectedPass.visitorType)?.label ?? selectedPass.visitorType}
+                    </div>
+                  </div>
+
+                  <div className="grid gap-2.5 text-sm">
+                    <div className="flex items-center gap-3 text-slate-600">
+                      <CalendarDays className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>{format(new Date(selectedPass.expectedDate), 'EEEE, d MMM yyyy')}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-slate-600">
+                      <Clock className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>Expires {format(new Date(selectedPass.expiresAt), 'd MMM yyyy, h:mm a')}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-slate-600">
+                      <Home className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>House No. {user?.houseNumber ?? '—'}</span>
+                    </div>
+                    {selectedPass.visitReason && (
+                      <div className="flex items-start gap-3 text-slate-600">
+                        <QrCode className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                        <span>{selectedPass.visitReason}</span>
+                      </div>
+                    )}
+                    {selectedPass.vehicleNumber && (
+                      <div className="flex items-center gap-3 text-slate-600">
+                        <Car className="w-4 h-4 text-slate-400 shrink-0" />
+                        <span className="font-mono">{selectedPass.vehicleNumber}</span>
+                      </div>
+                    )}
+                    {selectedPass.phoneNumber && (
+                      <div className="flex items-center gap-3 text-slate-600">
+                        <Phone className="w-4 h-4 text-slate-400 shrink-0" />
+                        <span>{selectedPass.phoneNumber}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1 gap-2"
+                    disabled={isSharing}
+                    onClick={() => onShare(selectedPass)}
+                  >
+                    {isSharing
+                      ? <Loader2 className="w-4 h-4 animate-spin" />
+                      : <Share2 className="w-4 h-4" />
+                    }
+                    Share Pass
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 gap-2"
+                    onClick={() => {
+                      const svgEl = document.getElementById(`qr-dialog-${selectedPass.qrCode}`)
+                      if (!svgEl) return
+                      const svgData = new XMLSerializer().serializeToString(svgEl)
+                      const canvas = document.createElement('canvas')
+                      canvas.width = 256
+                      canvas.height = 256
+                      const ctx = canvas.getContext('2d')
+                      const img = new Image()
+                      img.onload = () => {
+                        if (ctx) {
+                          ctx.fillStyle = 'white'
+                          ctx.fillRect(0, 0, 256, 256)
+                          ctx.drawImage(img, 0, 0, 256, 256)
+                        }
+                        const link = document.createElement('a')
+                        link.download = `visitor-pass-${selectedPass.visitorName.replace(/\s+/g, '-').toLowerCase()}.png`
+                        link.href = canvas.toDataURL('image/png')
+                        link.click()
+                      }
+                      img.src = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svgData)))}`
+                    }}
+                  >
+                    <Download className="w-4 h-4" />
+                    Download QR
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

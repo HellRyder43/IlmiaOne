@@ -15,7 +15,7 @@ import { useVisitorLogs } from '@/hooks/use-visitor-logs'
 import { format } from 'date-fns'
 import type { VisitorType } from '@/lib/types'
 
-type FilterStatus = 'ALL' | 'INSIDE'
+type FilterStatus = 'ALL' | 'INSIDE' | 'DENIED'
 
 const TYPE_ICON: Record<VisitorType, React.ElementType> = {
   VISITOR: User,
@@ -116,6 +116,15 @@ export default function EntryLogsPage() {
             >
               Currently Inside
             </button>
+            <button
+              onClick={() => setFilter('DENIED')}
+              className={cn(
+                'px-4 py-2 rounded-md text-sm font-medium transition-all',
+                filter === 'DENIED' ? 'bg-white text-red-700 shadow-sm' : 'text-slate-500 hover:text-red-700',
+              )}
+            >
+              Denied
+            </button>
           </div>
 
           {/* Search */}
@@ -182,6 +191,8 @@ export default function EntryLogsPage() {
                         <td className="px-6 py-4">
                           {log.status === 'INSIDE' ? (
                             <Badge variant="default" className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-transparent">Inside</Badge>
+                          ) : log.status === 'DENIED' ? (
+                            <Badge variant="default" className="bg-red-100 text-red-700 hover:bg-red-200 border-transparent">Denied</Badge>
                           ) : (
                             <Badge variant="secondary" className="bg-slate-100 text-slate-500">Exited</Badge>
                           )}
@@ -295,6 +306,8 @@ export default function EntryLogsPage() {
                       <div className="flex flex-col items-end gap-1 shrink-0">
                         {isInside ? (
                           <Badge variant="default" className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-transparent">Inside</Badge>
+                        ) : log.status === 'DENIED' ? (
+                          <Badge variant="default" className="bg-red-100 text-red-700 hover:bg-red-200 border-transparent">Denied</Badge>
                         ) : (
                           <Badge variant="secondary" className="bg-slate-100 text-slate-500">Exited</Badge>
                         )}

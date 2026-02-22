@@ -424,6 +424,27 @@ export default function ScannerPage() {
     }
   }
 
+  const denyEntry = async () => {
+    if (!verifiedPass) return
+    setScanState('CONFIRMING')
+    try {
+      const res = await fetch('/api/guard/deny', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ preRegistrationId: verifiedPass.preReg.id }),
+      })
+      if (!res.ok) {
+        const body = await res.json()
+        throw new Error(body.error ?? 'Failed to deny entry')
+      }
+      toast.success(`Entry denied for ${verifiedPass.preReg.visitor_name}`)
+      resetScanner()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to log denial')
+      resetScanner()
+    }
+  }
+
   const onSubmitWalkIn = async (data: WalkInFormData) => {
     setIsSubmitting(true)
     try {
@@ -722,7 +743,7 @@ export default function ScannerPage() {
                   {/* Action buttons */}
                   <div className="px-5 py-4 bg-slate-900/80 border-t border-slate-800 grid grid-cols-2 gap-3">
                     <Button
-                      onClick={resetScanner}
+                      onClick={denyEntry}
                       className="h-12 bg-transparent border border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white transition-all"
                     >
                       <XCircle className="w-4 h-4 mr-1.5" />

@@ -35,6 +35,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth'
+import { cn } from '@/lib/utils'
 import type { Invoice } from '@/lib/types'
 
 // Mock data for Dashboard view only

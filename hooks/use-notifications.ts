@@ -31,11 +31,14 @@ export function useNotifications() {
   useEffect(() => {
     fetchNotifications()
 
+    let cancelled = false
     let channel: ReturnType<typeof supabase.channel> | null = null
 
     // Get user ID then subscribe with a per-user filter to avoid receiving
     // notifications intended for other users (which would cause duplicates).
     supabase.auth.getUser().then((result: Awaited<ReturnType<typeof supabase.auth.getUser>>) => {
+      if (cancelled) return
+
       const user = result.data.user
       if (!user) return
 
@@ -50,13 +53,17 @@ export function useNotifications() {
             filter: `user_id=eq.${user.id}`,
           },
           (payload: { new: AppNotification }) => {
-            setNotifications(prev => [payload.new, ...prev].slice(0, 20))
+            setNotifications(prev => {
+              if (prev.some(n => n.id === payload.new.id)) return prev
+              return [payload.new, ...prev].slice(0, 20)
+            })
           }
         )
         .subscribe()
     })
 
     return () => {
+      cancelled = true
       if (channel) supabase.removeChannel(channel)
     }
   }, [supabase, fetchNotifications])

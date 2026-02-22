@@ -33,7 +33,12 @@ export async function POST(
 
   const { data: request, error: fetchError } = await service
     .from('house_change_requests')
-    .select('id, resident_id, status')
+    .select(`
+      id, resident_id, status,
+      profiles!house_change_requests_resident_id_fkey(full_name),
+      current_house:houses!house_change_requests_current_house_id_fkey(house_number),
+      requested_house:houses!house_change_requests_requested_house_id_fkey(house_number)
+    `)
     .eq('id', id)
     .single()
 
@@ -44,6 +49,10 @@ export async function POST(
   if (request.status !== 'PENDING') {
     return NextResponse.json({ error: 'Request is no longer pending' }, { status: 409 })
   }
+
+  const residentName = (request.profiles as unknown as { full_name: string } | null)?.full_name ?? 'Unknown'
+  const fromHouse    = (request.current_house as unknown as { house_number: string } | null)?.house_number ?? '—'
+  const toHouse      = (request.requested_house as unknown as { house_number: string } | null)?.house_number ?? '—'
 
   const { error: updateError } = await service
     .from('house_change_requests')
@@ -63,7 +72,7 @@ export async function POST(
   await service.from('notifications').insert({
     user_id: request.resident_id,
     title:   'House Change Request Rejected',
-    message: `Your house number change request was rejected. Reason: ${reason}`,
+    message: `Your request to move from House ${fromHouse} to House ${toHouse} was rejected. Reason: ${reason}`,
     type:    'HOUSE_CHANGE_REJECTED',
     read:    false,
   })
@@ -74,8 +83,11 @@ export async function POST(
     entity_type: 'house_change_requests',
     entity_id:   id,
     metadata:    {
-      detail:     `Rejected house change request for resident ${request.resident_id}`,
-      residentId: request.resident_id,
+      detail:      `Rejected house change for ${residentName}: House ${fromHouse} → House ${toHouse}`,
+      residentId:  request.resident_id,
+      residentName,
+      fromHouse,
+      toHouse,
       reason,
     },
   })

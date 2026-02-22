@@ -23,7 +23,12 @@ export async function POST(
 
   const { data: request, error: fetchError } = await service
     .from('house_change_requests')
-    .select('id, resident_id, requested_house_id, status')
+    .select(`
+      id, resident_id, requested_house_id, status,
+      profiles!house_change_requests_resident_id_fkey(full_name),
+      current_house:houses!house_change_requests_current_house_id_fkey(house_number),
+      requested_house:houses!house_change_requests_requested_house_id_fkey(house_number)
+    `)
     .eq('id', id)
     .single()
 
@@ -34,6 +39,10 @@ export async function POST(
   if (request.status !== 'PENDING') {
     return NextResponse.json({ error: 'Request is no longer pending' }, { status: 409 })
   }
+
+  const residentName = (request.profiles as unknown as { full_name: string } | null)?.full_name ?? 'Unknown'
+  const fromHouse    = (request.current_house as unknown as { house_number: string } | null)?.house_number ?? '—'
+  const toHouse      = (request.requested_house as unknown as { house_number: string } | null)?.house_number ?? '—'
 
   // Update the resident's house_id
   const { error: profileError } = await service
@@ -63,7 +72,7 @@ export async function POST(
   await service.from('notifications').insert({
     user_id: request.resident_id,
     title:   'House Change Approved',
-    message: 'Your house number change request has been approved by the AJK.',
+    message: `Your request to move from House ${fromHouse} to House ${toHouse} has been approved by the AJK.`,
     type:    'HOUSE_CHANGE_APPROVED',
     read:    false,
   })
@@ -74,9 +83,11 @@ export async function POST(
     entity_type: 'house_change_requests',
     entity_id:   id,
     metadata:    {
-      detail:      `Approved house change request for resident ${request.resident_id}`,
+      detail:      `Approved house change for ${residentName}: House ${fromHouse} → House ${toHouse}`,
       residentId:  request.resident_id,
-      newHouseId:  request.requested_house_id,
+      residentName,
+      fromHouse,
+      toHouse,
     },
   })
 

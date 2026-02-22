@@ -188,12 +188,15 @@ export async function PUT(req: NextRequest) {
       )
     }
 
-    // Get caller's current house_id for the request record
+    // Get caller's current house_id + name for the request record and audit log
     const { data: currentProfile } = await service
       .from('profiles')
-      .select('house_id')
+      .select('full_name, house_id, houses(house_number)')
       .eq('id', claims.userId)
       .single()
+
+    const residentName  = (currentProfile as unknown as { full_name: string } | null)?.full_name ?? 'Unknown'
+    const fromHouseNum  = (currentProfile?.houses as unknown as { house_number: string } | null)?.house_number ?? '—'
 
     const { data: newRequest, error: insertError } = await service
       .from('house_change_requests')
@@ -222,7 +225,7 @@ export async function PUT(req: NextRequest) {
         ajkProfiles.map(p => ({
           user_id: p.id,
           title:   'House Change Request',
-          message: `A resident has requested a house number change to No. ${houseNumber}.`,
+          message: `${residentName} requested to move from House ${fromHouseNum} to House ${houseNumber}.`,
           type:    'HOUSE_CHANGE_REQUESTED',
           read:    false,
         })),
@@ -235,8 +238,10 @@ export async function PUT(req: NextRequest) {
       entity_type: 'house_change_requests',
       entity_id:   newRequest.id,
       metadata:    {
-        detail:               `Requested house change to No. ${houseNumber}`,
-        requestedHouseNumber: houseNumber,
+        detail:               `Requested house change: House ${fromHouseNum} → House ${houseNumber}`,
+        residentName,
+        fromHouse:            fromHouseNum,
+        toHouse:              houseNumber,
         requestedHouseId:     house.id,
       },
     })

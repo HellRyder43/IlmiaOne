@@ -26,10 +26,14 @@ export function useNotifications() {
   // Track whether this effect instance is still mounted
   const mountedRef = useRef(true)
 
-  const fetchNotifications = useCallback(async () => {
+  // Store userId for use in markAllRead
+  const userIdRef = useRef<string | null>(null)
+
+  const fetchNotifications = useCallback(async (userId: string) => {
     const { data } = await supabase
       .from('notifications')
       .select('id, title, message, type, read, created_at')
+      .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(20)
 
@@ -45,7 +49,6 @@ export function useNotifications() {
 
   useEffect(() => {
     mountedRef.current = true
-    fetchNotifications()
 
     let channel: ReturnType<typeof supabase.channel> | null = null
 
@@ -54,6 +57,9 @@ export function useNotifications() {
 
       const user = result.data.user
       if (!user) return
+
+      userIdRef.current = user.id
+      fetchNotifications(user.id)
 
       channel = supabase
         .channel(channelId)
@@ -98,10 +104,12 @@ export function useNotifications() {
   }, [supabase])
 
   const markAllRead = useCallback(async () => {
+    if (!userIdRef.current) return
     await supabase
       .from('notifications')
       .update({ read: true })
       .eq('read', false)
+      .eq('user_id', userIdRef.current)
     setNotifications(prev => prev.map(n => ({ ...n, read: true })))
   }, [supabase])
 

@@ -7,8 +7,8 @@ export async function GET(request: Request) {
   const token_hash = searchParams.get('token_hash')
   const type = searchParams.get('type') as EmailOtpType | null
   const code = searchParams.get('code')
-  let next = searchParams.get('next') ?? '/auth/reset-password'
-  if (!next.startsWith('/')) next = '/auth/reset-password'
+  let next = searchParams.get('next') ?? '/login'
+  if (!next.startsWith('/')) next = '/login'
 
   const supabase = await createClient()
   const forwardedHost = request.headers.get('x-forwarded-host')
@@ -33,5 +33,5 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.redirect(`${redirectBase}/auth/reset-password?error=invalid_code`)
+  return NextResponse.redirect(`${redirectBase}/login`)
 }

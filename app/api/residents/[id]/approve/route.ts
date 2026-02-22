@@ -27,7 +27,7 @@ export async function POST(
   // Fetch resident profile
   const { data: profile, error: fetchError } = await service
     .from('profiles')
-    .select('full_name, email, status')
+    .select('full_name, email, status, house_id')
     .eq('id', id)
     .single()
 
@@ -47,6 +47,18 @@ export async function POST(
 
   if (updateError) {
     return NextResponse.json({ error: 'Failed to approve' }, { status: 500 })
+  }
+
+  // Mark house as OCCUPIED now that a resident is approved there
+  if (profile.house_id) {
+    const { error: houseError } = await service
+      .from('houses')
+      .update({ occupancy_status: 'OCCUPIED' })
+      .eq('id', profile.house_id)
+
+    if (houseError) {
+      return NextResponse.json({ error: 'Failed to update house status' }, { status: 500 })
+    }
   }
 
   await service.from('audit_logs').insert({

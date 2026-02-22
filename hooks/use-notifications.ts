@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 export interface AppNotification {
@@ -17,6 +17,15 @@ export function useNotifications() {
   const [isLoading, setIsLoading] = useState(true)
   const supabase = useMemo(() => createClient(), [])
 
+  // Unique channel name per hook instance to prevent channel collisions
+  const channelId = useRef(`notifications-${crypto.randomUUID()}`).current
+
+  // Synchronous dedup set — immune to React state batching delays
+  const seenIds = useRef(new Set<string>())
+
+  // Track whether this effect instance is still mounted
+  const mountedRef = useRef(true)
+
   const fetchNotifications = useCallback(async () => {
     const { data } = await supabase
       .from('notifications')
@@ -24,26 +33,30 @@ export function useNotifications() {
       .order('created_at', { ascending: false })
       .limit(20)
 
-    if (data) setNotifications(data)
+    if (data) {
+      // Populate seenIds so Realtime events for already-fetched rows are ignored
+      for (const n of data) {
+        seenIds.current.add(n.id)
+      }
+      setNotifications(data)
+    }
     setIsLoading(false)
   }, [supabase])
 
   useEffect(() => {
+    mountedRef.current = true
     fetchNotifications()
 
-    let cancelled = false
     let channel: ReturnType<typeof supabase.channel> | null = null
 
-    // Get user ID then subscribe with a per-user filter to avoid receiving
-    // notifications intended for other users (which would cause duplicates).
     supabase.auth.getUser().then((result: Awaited<ReturnType<typeof supabase.auth.getUser>>) => {
-      if (cancelled) return
+      if (!mountedRef.current) return
 
       const user = result.data.user
       if (!user) return
 
       channel = supabase
-        .channel('notifications-realtime')
+        .channel(channelId)
         .on(
           'postgres_changes',
           {
@@ -53,20 +66,29 @@ export function useNotifications() {
             filter: `user_id=eq.${user.id}`,
           },
           (payload: { new: AppNotification }) => {
-            setNotifications(prev => {
-              if (prev.some(n => n.id === payload.new.id)) return prev
-              return [payload.new, ...prev].slice(0, 20)
-            })
+            // Synchronous dedup — prevents duplicates even when multiple
+            // Realtime callbacks fire before React processes state updates
+            if (seenIds.current.has(payload.new.id)) return
+            seenIds.current.add(payload.new.id)
+
+            setNotifications(prev => [payload.new, ...prev].slice(0, 20))
           }
         )
         .subscribe()
     })
 
     return () => {
-      cancelled = true
-      if (channel) supabase.removeChannel(channel)
+      mountedRef.current = false
+      if (channel) {
+        supabase.removeChannel(channel)
+      } else {
+        // Channel may not be assigned yet if cleanup races with async getUser
+        const existing = supabase.getChannels().find((c: { topic: string }) => c.topic === `realtime:${channelId}`)
+        if (existing) supabase.removeChannel(existing)
+      }
     }
-  }, [supabase, fetchNotifications])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase])
 
   const markAsRead = useCallback(async (id: string) => {
     await supabase.from('notifications').update({ read: true }).eq('id', id)

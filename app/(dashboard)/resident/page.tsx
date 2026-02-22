@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,6 +15,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -28,6 +29,9 @@ import {
   Download,
   AlertTriangle,
   Info,
+  Home,
+  ChevronDown,
+  Search,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth'
@@ -48,6 +52,7 @@ const resubmitSchema = z.object({
 })
 
 type ResubmitFormData = z.infer<typeof resubmitSchema>
+type HouseOption = { id: string; house_number: string; street: string | null }
 
 function ResubmitDialog({
   open,
@@ -59,6 +64,13 @@ function ResubmitDialog({
   user: { name: string; houseNumber?: string; icNumber?: string; residentType?: string }
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [housesData, setHousesData] = useState<HouseOption[]>([])
+  const [houseOpen, setHouseOpen] = useState(false)
+  const [houseSearch, setHouseSearch] = useState('')
+
+  useEffect(() => {
+    fetch('/api/houses').then(r => r.json()).then(setHousesData)
+  }, [])
 
   const form = useForm<ResubmitFormData>({
     resolver: zodResolver(resubmitSchema),
@@ -120,19 +132,91 @@ function ResubmitDialog({
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="houseNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>House Number</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+
+            {/* House number searchable dropdown */}
+            <div>
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                House Number
+              </label>
+              <div className="mt-2">
+                <Controller
+                  control={form.control}
+                  name="houseNumber"
+                  render={({ field, fieldState }) => {
+                    const selected = housesData.find(h => h.house_number === field.value)
+                    const filtered = housesData.filter(h => {
+                      const q = houseSearch.toLowerCase()
+                      return h.house_number.toLowerCase().includes(q) || (h.street ?? '').toLowerCase().includes(q)
+                    })
+                    return (
+                      <>
+                        <Popover open={houseOpen} onOpenChange={setHouseOpen}>
+                          <PopoverTrigger asChild>
+                            <button
+                              type="button"
+                              className={cn(
+                                'relative w-full flex items-center gap-2 pl-10 pr-4 py-2.5 rounded-lg border bg-white text-left text-sm shadow-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all',
+                                fieldState.error ? 'border-red-400' : 'border-slate-300'
+                              )}
+                            >
+                              <Home className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                              {selected ? (
+                                <span className="text-slate-900">
+                                  No. {selected.house_number}
+                                  {selected.street && <span className="text-slate-400"> · {selected.street}</span>}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400">Select your house</span>
+                              )}
+                              <ChevronDown className="ml-auto w-4 h-4 text-slate-400 shrink-0" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                            <div className="flex items-center border-b border-slate-200 px-3">
+                              <Search className="w-4 h-4 text-slate-400 shrink-0" />
+                              <input
+                                className="flex-1 py-2 pl-2 text-sm bg-transparent outline-none placeholder:text-slate-400"
+                                placeholder="Search house number or street..."
+                                value={houseSearch}
+                                onChange={e => setHouseSearch(e.target.value)}
+                                autoFocus
+                              />
+                            </div>
+                            <div className="max-h-52 overflow-y-auto py-1">
+                              {filtered.length === 0 ? (
+                                <p className="px-3 py-4 text-xs text-slate-400 text-center">No houses found</p>
+                              ) : (
+                                filtered.map(h => (
+                                  <button
+                                    key={h.id}
+                                    type="button"
+                                    onClick={() => {
+                                      field.onChange(h.house_number)
+                                      setHouseOpen(false)
+                                      setHouseSearch('')
+                                    }}
+                                    className={cn(
+                                      'w-full flex flex-col items-start px-3 py-2 text-sm hover:bg-slate-50 transition-colors',
+                                      field.value === h.house_number && 'bg-indigo-50 text-indigo-700'
+                                    )}
+                                  >
+                                    <span className="font-medium">No. {h.house_number}</span>
+                                    {h.street && <span className="text-xs text-slate-400">{h.street}</span>}
+                                  </button>
+                                ))
+                              )}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                        {fieldState.error && (
+                          <p className="mt-1 text-xs text-red-600">{fieldState.error.message}</p>
+                        )}
+                      </>
+                    )
+                  }}
+                />
+              </div>
+            </div>
             <FormField
               control={form.control}
               name="icNumber"

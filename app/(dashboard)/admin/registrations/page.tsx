@@ -46,6 +46,7 @@ interface PendingResident {
   house_id: string | null
   created_at: string
   updated_at: string
+  email_confirmed_at: string | null
   houses: { house_number: string; street: string | null; occupancy_status: string } | null
 }
 
@@ -75,15 +76,16 @@ function RegistrationsTab() {
   const supabase = useMemo(() => createClient(), [])
 
   const fetchPending = useCallback(async () => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, full_name, email, ic_number, resident_type, rejection_reason, house_id, created_at, updated_at, houses(house_number, street, occupancy_status)')
-      .eq('status', 'PENDING_APPROVAL')
-      .order('created_at', { ascending: true })
-
-    setResidents((data as PendingResident[]) ?? [])
-    setIsLoading(false)
-  }, [supabase])
+    try {
+      const res = await fetch('/api/admin/registrations/pending')
+      const body = await res.json()
+      setResidents(body.data ?? [])
+    } catch {
+      setResidents([])
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
     fetchPending()
@@ -228,6 +230,15 @@ function RegistrationsTab() {
                       {resident.ic_number && (
                         <span className="text-xs text-slate-500">IC: ****{resident.ic_number}</span>
                       )}
+                      {resident.email_confirmed_at ? (
+                        <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs gap-1 py-0">
+                          <CheckCircle2 className="w-3 h-3" /> Email verified
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-xs gap-1 py-0">
+                          <Clock className="w-3 h-3" /> Email not verified
+                        </Badge>
+                      )}
                       <span className="flex items-center gap-1 text-xs text-slate-400">
                         <Clock className="w-3 h-3" />
                         {formatDistanceToNow(new Date(resident.created_at), { addSuffix: true })}
@@ -283,6 +294,17 @@ function RegistrationsTab() {
                     <div className="flex items-center gap-2 text-sm text-slate-600">
                       <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                       <span>{detailTarget.email}</span>
+                    </div>
+                    <div className="pl-5">
+                      {detailTarget.email_confirmed_at ? (
+                        <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs gap-1">
+                          <CheckCircle2 className="w-3 h-3" /> Email verified
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-xs gap-1">
+                          <Clock className="w-3 h-3" /> Email not verified
+                        </Badge>
+                      )}
                     </div>
                     {detailTarget.ic_number && (
                       <div className="flex items-center gap-2 text-sm text-slate-600">

@@ -114,7 +114,7 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url)
     }
     if (protectedUserStatus === "REJECTED") {
-      if (pathname !== "/resident") {
+      if (pathname !== "/resident" && !pathname.startsWith('/api/')) {
         const url = request.nextUrl.clone()
         url.pathname = "/resident"
         return NextResponse.redirect(url)

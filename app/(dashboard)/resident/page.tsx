@@ -36,6 +36,7 @@ import {
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth'
 import { cn } from '@/lib/utils'
+import { createClient } from '@/lib/supabase/client'
 import type { Invoice } from '@/lib/types'
 
 // Mock data for Dashboard view only
@@ -64,6 +65,7 @@ function ResubmitDialog({
   onOpenChange: (open: boolean) => void
   user: { name: string; houseNumber?: string; icNumber?: string; residentType?: string }
 }) {
+  const supabase = React.useMemo(() => createClient(), [])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [housesData, setHousesData] = useState<HouseOption[]>([])
   const [houseOpen, setHouseOpen] = useState(false)
@@ -102,8 +104,8 @@ function ResubmitDialog({
       }
       toast.success('Resubmission sent! The committee will review your application.')
       onOpenChange(false)
-      // Reload to reflect new status
-      window.location.reload()
+      await supabase.auth.signOut()
+      window.location.href = '/login?reason=pending'
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Something went wrong')
     } finally {

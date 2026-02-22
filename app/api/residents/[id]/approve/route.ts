@@ -80,8 +80,8 @@ export async function POST(
     type: 'REGISTRATION_APPROVED',
   })
 
-  // Send approval email (non-blocking)
-  sendRegistrationApprovedEmail({
+  // Send approval email
+  await sendRegistrationApprovedEmail({
     residentName: profile.full_name,
     residentEmail: profile.email,
   }).catch(() => {})

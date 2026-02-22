@@ -114,10 +114,12 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url)
     }
     if (protectedUserStatus === "REJECTED") {
-      const url = request.nextUrl.clone()
-      url.pathname = "/login"
-      url.searchParams.set("reason", "rejected")
-      return NextResponse.redirect(url)
+      if (pathname !== "/resident") {
+        const url = request.nextUrl.clone()
+        url.pathname = "/resident"
+        return NextResponse.redirect(url)
+      }
+      return supabaseResponse
     }
 
     // Read allowed route prefixes from JWT (injected by custom_access_token_hook)

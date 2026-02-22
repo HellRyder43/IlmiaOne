@@ -70,10 +70,19 @@ function ResubmitDialog({
     },
   })
 
-  const onSubmit = async (_data: ResubmitFormData) => {
+  const onSubmit = async (data: ResubmitFormData) => {
     setIsSubmitting(true)
     try {
-      const res = await fetch('/api/auth/resubmit', { method: 'POST' })
+      const res = await fetch('/api/auth/resubmit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName: data.fullName,
+          houseNumber: data.houseNumber,
+          icNumber: data.icNumber,
+          residentType: data.residentType,
+        }),
+      })
       if (!res.ok) {
         const body = await res.json()
         throw new Error(body.error ?? 'Resubmission failed')

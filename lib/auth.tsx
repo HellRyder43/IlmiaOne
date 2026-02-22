@@ -147,10 +147,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await supabase.auth.signOut()
           throw new Error('pending_approval')
         }
-        if (profile.status === 'REJECTED') {
-          await supabase.auth.signOut()
-          throw new Error('rejected')
-        }
         if (profile.status === 'INACTIVE') {
           await supabase.auth.signOut()
           throw new Error('inactive')

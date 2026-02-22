@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { sendAdminRegistrationNotification } from '@/lib/email'
@@ -11,19 +12,33 @@ function createServiceClient() {
   )
 }
 
-export async function POST(_request: Request) {
+const resubmitSchema = z.object({
+  fullName: z.string().min(2),
+  houseNumber: z.string().min(1),
+  icNumber: z.string().min(4),
+  residentType: z.enum(['OWNER', 'TENANT']),
+})
+
+export async function POST(request: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const body = await request.json()
+  const parsed = resubmitSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Invalid request data' }, { status: 400 })
+  }
+  const { fullName, houseNumber, icNumber, residentType } = parsed.data
+
   const service = createServiceClient()
 
   // Verify the resident is currently REJECTED
   const { data: profile, error: fetchError } = await service
     .from('profiles')
-    .select('full_name, email, status, houses(house_number)')
+    .select('full_name, email, status')
     .eq('id', user.id)
     .single()
 
@@ -35,19 +50,35 @@ export async function POST(_request: Request) {
     return NextResponse.json({ error: 'Only rejected profiles can resubmit' }, { status: 400 })
   }
 
-  // Reset status to PENDING_APPROVAL and clear rejection reason
+  // Look up house_id from house_number
+  const { data: house, error: houseError } = await service
+    .from('houses')
+    .select('id')
+    .eq('house_number', houseNumber)
+    .single()
+
+  if (houseError || !house) {
+    return NextResponse.json({ error: `House number "${houseNumber}" not found` }, { status: 400 })
+  }
+
+  // Update profile with corrected fields and reset status
   const { error: updateError } = await service
     .from('profiles')
-    .update({ status: 'PENDING_APPROVAL', rejection_reason: null })
+    .update({
+      full_name: fullName,
+      house_id: house.id,
+      ic_number: icNumber,
+      resident_type: residentType,
+      status: 'PENDING_APPROVAL',
+      rejection_reason: null,
+    })
     .eq('id', user.id)
 
   if (updateError) {
     return NextResponse.json({ error: 'Failed to resubmit' }, { status: 500 })
   }
 
-  const houseNumber = (profile.houses as unknown as { house_number: string } | null)?.house_number ?? '—'
-
-  // Notify all ADMIN profiles in-app
+  // Notify all AJK profiles in-app
   const { data: admins } = await service
     .from('profiles')
     .select('id, email')
@@ -59,20 +90,20 @@ export async function POST(_request: Request) {
       admins.map((a: { id: string; email: string }) => ({
         user_id: a.id,
         title: 'Registration Resubmitted',
-        message: `${profile.full_name} from house ${houseNumber} has resubmitted their registration.`,
+        message: `${fullName} from house ${houseNumber} has resubmitted their registration.`,
         type: 'REGISTRATION_PENDING',
       }))
     )
 
-    // Email all admins (non-blocking)
-    admins.forEach((a: { id: string; email: string }) => {
-      sendAdminRegistrationNotification({
-        residentName: profile.full_name,
+    // Email all admins
+    for (const a of admins as { id: string; email: string }[]) {
+      await sendAdminRegistrationNotification({
+        residentName: fullName,
         houseNumber,
         residentEmail: profile.email,
         adminEmail: a.email,
       }).catch(() => {})
-    })
+    }
   }
 
   return NextResponse.json({ success: true })

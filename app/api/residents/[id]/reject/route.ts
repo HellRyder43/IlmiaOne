@@ -74,8 +74,8 @@ export async function POST(
     type: 'REGISTRATION_REJECTED',
   })
 
-  // Send rejection email (non-blocking)
-  sendRegistrationRejectedEmail({
+  // Send rejection email
+  await sendRegistrationRejectedEmail({
     residentName: profile.full_name,
     residentEmail: profile.email,
     reason: reason.trim(),

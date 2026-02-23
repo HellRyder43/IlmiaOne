@@ -62,12 +62,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: profileError.message }, { status: 500 })
   }
 
-  // Notify all ADMIN profiles in-app
-  const { data: admins } = await service
-    .from('profiles')
-    .select('id, email')
-    .in('role', ['AJK_LEADER', 'AJK_COMMITTEE'])
-    .eq('status', 'APPROVED')
+  // Find all roles that have the approve_registrations permission
+  const { data: eligibleRoles } = await service
+    .from('roles')
+    .select('value')
+    .contains('permissions', { actions: ['approve_registrations'] })
+
+  const eligibleRoleValues = (eligibleRoles ?? []).map((r: { value: string }) => r.value)
+
+  // Notify all profiles with an eligible role in-app
+  const { data: admins } = eligibleRoleValues.length
+    ? await service
+        .from('profiles')
+        .select('id, email')
+        .in('role', eligibleRoleValues)
+        .eq('status', 'APPROVED')
+    : { data: [] }
 
   if (admins?.length) {
     await service.from('notifications').insert(

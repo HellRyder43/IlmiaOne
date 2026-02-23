@@ -28,6 +28,7 @@ import {
   Users,
   ArrowLeft,
   ArrowRight,
+  AlertCircle,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
@@ -65,6 +66,7 @@ function capitalize(str: string) {
 function RegistrationsTab() {
   const [residents, setResidents] = useState<PendingResident[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const [detailTarget, setDetailTarget] = useState<PendingResident | null>(null)
   const [coResidents, setCoResidents] = useState<{ full_name: string; email: string }[]>([])
   const [houseMembers, setHouseMembers] = useState<{ id: string; name: string; relationship: string; phone_number: string | null }[]>([])
@@ -76,12 +78,17 @@ function RegistrationsTab() {
   const supabase = useMemo(() => createClient(), [])
 
   const fetchPending = useCallback(async () => {
+    setIsLoading(true)
+    setFetchError(null)
     try {
       const res = await fetch('/api/admin/registrations/pending')
+      if (!res.ok) throw new Error(`Failed to load registrations (${res.status})`)
       const body = await res.json()
       setResidents(body.data ?? [])
-    } catch {
-      setResidents([])
+      setFetchError(null)
+    } catch (err) {
+      setFetchError(err instanceof Error ? err.message : 'Failed to load registrations')
+      // Preserve last known state — do NOT setResidents([]) here
     } finally {
       setIsLoading(false)
     }
@@ -100,23 +107,30 @@ function RegistrationsTab() {
 
     if (resident.house_id) {
       setIsLoadingDetails(true)
-      const [profilesResult, membersResult] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('full_name, email')
-          .eq('house_id', resident.house_id)
-          .eq('status', 'APPROVED')
-          .eq('role', 'RESIDENT')
-          .neq('id', resident.id),
-        supabase
-          .from('house_members')
-          .select('id, name, relationship, phone_number')
-          .eq('house_id', resident.house_id)
-          .order('created_at', { ascending: true }),
-      ])
-      setCoResidents((profilesResult.data as { full_name: string; email: string }[]) ?? [])
-      setHouseMembers((membersResult.data as { id: string; name: string; relationship: string; phone_number: string | null }[]) ?? [])
-      setIsLoadingDetails(false)
+      try {
+        const [profilesResult, membersResult] = await Promise.all([
+          supabase
+            .from('profiles')
+            .select('full_name, email')
+            .eq('house_id', resident.house_id)
+            .eq('status', 'APPROVED')
+            .eq('role', 'RESIDENT')
+            .neq('id', resident.id),
+          supabase
+            .from('house_members')
+            .select('id, name, relationship, phone_number')
+            .eq('house_id', resident.house_id)
+            .order('created_at', { ascending: true }),
+        ])
+        setCoResidents((profilesResult.data as { full_name: string; email: string }[]) ?? [])
+        setHouseMembers((membersResult.data as { id: string; name: string; relationship: string; phone_number: string | null }[]) ?? [])
+      } catch {
+        // Supplementary data — degrade silently; dialog still opens
+        setCoResidents([])
+        setHouseMembers([])
+      } finally {
+        setIsLoadingDetails(false)
+      }
     }
   }
 
@@ -195,6 +209,13 @@ function RegistrationsTab() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-8 text-center text-slate-400 text-sm">Loading registrations…</div>
+          ) : fetchError ? (
+            <div className="py-12 text-center px-6">
+              <AlertCircle className="w-10 h-10 text-red-300 mx-auto mb-3" />
+              <p className="font-medium text-slate-600">Failed to load registrations</p>
+              <p className="text-sm text-slate-400 mt-1 mb-4">{fetchError}</p>
+              <Button variant="outline" size="sm" onClick={fetchPending}>Try Again</Button>
+            </div>
           ) : residents.length === 0 ? (
             <div className="py-16 text-center">
               <UserCheck className="w-12 h-12 text-slate-200 mx-auto mb-3" />

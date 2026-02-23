@@ -56,6 +56,7 @@ interface HouseRow {
 export function useAdminHouses() {
   const [allHouses, setAllHouses] = useState<HouseWithDetails[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [residencyFilter, setResidencyFilter] = useState('all')
@@ -64,8 +65,9 @@ export function useAdminHouses() {
 
   const fetchHouses = useCallback(async () => {
     setIsLoading(true)
+    setError(null)
 
-    const { data, error } = await supabase
+    const { data, error: fetchError } = await supabase
       .from('houses')
       .select(`
         id,
@@ -76,7 +78,8 @@ export function useAdminHouses() {
         house_members(id, name, relationship, phone_number)
       `)
 
-    if (error || !data) {
+    if (fetchError || !data) {
+      setError(fetchError?.message ?? 'Failed to fetch houses')
       setIsLoading(false)
       return
     }
@@ -137,5 +140,5 @@ export function useAdminHouses() {
     })
   }, [allHouses, search, statusFilter, residencyFilter])
 
-  return { houses, isLoading, search, setSearch, statusFilter, setStatusFilter, residencyFilter, setResidencyFilter }
+  return { houses, isLoading, error, search, setSearch, statusFilter, setStatusFilter, residencyFilter, setResidencyFilter }
 }

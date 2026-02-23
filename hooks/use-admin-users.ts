@@ -24,6 +24,7 @@ interface ProfileRow {
 export function useAdminUsers() {
   const [allUsers, setAllUsers] = useState<AdminUser[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
 
@@ -31,19 +32,20 @@ export function useAdminUsers() {
 
   const fetchUsers = useCallback(async () => {
     setIsLoading(true)
+    setError(null)
 
-    const { data, error } = await supabase
+    const { data, error: fetchError } = await supabase
       .from('profiles')
       .select('id, full_name, email, role, status, houses(house_number)')
       .order('full_name')
 
-    if (error) {
-      console.error('Failed to fetch users:', error)
+    if (fetchError) {
+      setError(fetchError.message)
       setIsLoading(false)
       return
     }
 
-    const mapped: AdminUser[] = ((data ?? []) as unknown as ProfileRow[]).map(row => {
+    const mapped: AdminUser[] = ((data ?? []) as unknown as ProfileRow[]).map((row: ProfileRow) => {
       const house = row.houses
       return {
         id: row.id,
@@ -75,5 +77,5 @@ export function useAdminUsers() {
     })
   }, [allUsers, search, roleFilter])
 
-  return { users, isLoading, search, setSearch, roleFilter, setRoleFilter, refetch: fetchUsers }
+  return { users, isLoading, error, search, setSearch, roleFilter, setRoleFilter, refetch: fetchUsers }
 }

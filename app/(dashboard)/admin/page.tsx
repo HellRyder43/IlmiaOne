@@ -234,13 +234,13 @@ export default function AdminDashboard() {
   } = useAdminStats();
 
   const {
-    houses, isLoading: housesLoading,
+    houses, isLoading: housesLoading, error: housesError,
     search, setSearch, statusFilter, setStatusFilter,
     residencyFilter, setResidencyFilter,
   } = useAdminHouses();
 
   const {
-    users, isLoading: usersLoading,
+    users, isLoading: usersLoading, error: usersError,
     search: userSearch, setSearch: setUserSearch,
     roleFilter, setRoleFilter,
     refetch: refetchUsers,
@@ -254,7 +254,7 @@ export default function AdminDashboard() {
 
   // ── Roles hook
   const {
-    roles, isLoading: rolesLoading,
+    roles, isLoading: rolesLoading, error: rolesError,
     updateRole, createRole, deleteRole,
   } = useAdminRoles();
 
@@ -553,6 +553,11 @@ export default function AdminDashboard() {
               </Button>
             </CardHeader>
             <CardContent>
+              {housesError && (
+                <div className="text-sm text-red-600 flex items-center gap-2 p-3 bg-red-50 rounded-lg mb-4 border border-red-100">
+                  <AlertCircle className="w-4 h-4 shrink-0" />{housesError}
+                </div>
+              )}
               <div className="space-y-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
                   <Input
@@ -707,6 +712,11 @@ export default function AdminDashboard() {
               </Button>
             </CardHeader>
             <CardContent>
+              {usersError && (
+                <div className="text-sm text-red-600 flex items-center gap-2 p-3 bg-red-50 rounded-lg mb-4 border border-red-100">
+                  <AlertCircle className="w-4 h-4 shrink-0" />{usersError}
+                </div>
+              )}
               <div className="space-y-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
                   <Input
@@ -868,6 +878,11 @@ export default function AdminDashboard() {
                 )}
               </CardHeader>
               <CardContent>
+                {rolesError && (
+                  <div className="text-sm text-red-600 flex items-center gap-2 p-3 bg-red-50 rounded-lg mb-3 border border-red-100">
+                    <AlertCircle className="w-4 h-4 shrink-0" />{rolesError}
+                  </div>
+                )}
                 {rolesLoading ? (
                   <div className="space-y-3">
                     {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-16 rounded-lg" />)}

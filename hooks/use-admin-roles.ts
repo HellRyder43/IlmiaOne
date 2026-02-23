@@ -22,19 +22,21 @@ export interface UpdateRoleData {
 export function useAdminRoles() {
   const [roles, setRoles] = useState<Role[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   // Stable Supabase client — used only to get the session for auth headers
   const supabase = useMemo(() => createClient(), [])
 
   const fetchRoles = useCallback(async () => {
     setIsLoading(true)
+    setError(null)
     try {
       const res = await fetch('/api/admin/roles')
       if (!res.ok) throw new Error('Failed to fetch roles')
       const data: Role[] = await res.json()
       setRoles(data)
-    } catch {
-      setRoles([])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch roles')
     } finally {
       setIsLoading(false)
     }
@@ -81,5 +83,5 @@ export function useAdminRoles() {
     await fetchRoles()
   }, [fetchRoles])
 
-  return { roles, isLoading, createRole, updateRole, deleteRole, refetch: fetchRoles }
+  return { roles, isLoading, error, createRole, updateRole, deleteRole, refetch: fetchRoles }
 }

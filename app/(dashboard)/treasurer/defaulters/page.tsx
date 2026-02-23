@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   Search, Download, AlertTriangle, Mail, MessageCircle,
-  FileWarning, ArrowUpRight, ShieldAlert
+  FileWarning, ArrowUpRight, ShieldAlert, Info
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -52,6 +52,12 @@ export default function Defaulters() {
 
   return (
     <div className="space-y-8 pb-10">
+      {/* Mock Data Banner */}
+      <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <Info className="h-4 w-4 shrink-0" />
+        <span>This page currently shows mock data. Live billing &amp; payment features will be available soon.</span>
+      </div>
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

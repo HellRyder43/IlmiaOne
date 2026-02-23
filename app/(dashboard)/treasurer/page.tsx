@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowUpRight, ArrowDownRight, DollarSign, Users, AlertCircle, FileText } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, DollarSign, Users, AlertCircle, FileText, Info } from 'lucide-react';
 
 export default function TreasurerOverview() {
   return (
@@ -12,6 +12,12 @@ export default function TreasurerOverview() {
       <div>
         <h1 className="text-3xl font-bold text-slate-900">Treasurer Dashboard</h1>
         <p className="text-slate-500 mt-2">Welcome back. Here is the financial health of the community.</p>
+      </div>
+
+      {/* Mock Data Banner */}
+      <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <Info className="h-4 w-4 shrink-0" />
+        <span>This page currently shows mock data. Live billing &amp; payment features will be available soon.</span>
       </div>
 
       {/* KPI Cards */}

@@ -11,7 +11,7 @@ import {
 import {
   Download, Filter, TrendingUp, TrendingDown,
   ArrowUpRight, ArrowDownRight, Wallet,
-  CheckCircle2, CreditCard
+  CheckCircle2, CreditCard, Info
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -118,6 +118,13 @@ export default function FinancialReports() {
            </Button>
         </div>
       </div>
+
+      {/* Mock Data Banner */}
+      <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <Info className="h-4 w-4 shrink-0" />
+        <span>This page currently shows mock data. Live billing &amp; payment features will be available soon.</span>
+      </div>
+
 
       {/* Navigation Tabs */}
       <div className="border-b border-slate-200">

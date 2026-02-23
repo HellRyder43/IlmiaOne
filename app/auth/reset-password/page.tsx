@@ -108,7 +108,11 @@ export default function ResetPasswordPage() {
     setIsSubmitting(false)
 
     if (error) {
-      toast.error(error.message)
+      if (error.message.includes('same password') || error.message.includes('different from the old')) {
+        toast.error('Your new password must be different from your current password.')
+      } else {
+        toast.error(error.message)
+      }
       return
     }
 

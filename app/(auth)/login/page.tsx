@@ -396,7 +396,11 @@ function ForgotPasswordPanel({ onBack }: { onBack: () => void }) {
     })
     setIsLoading(false)
     if (error) {
-      toast.error(error.message)
+      if (error.message.includes('security purposes') || error.message.includes('only request this once')) {
+        toast.error('Please wait 60 seconds before requesting another reset link.')
+      } else {
+        toast.error(error.message)
+      }
       return
     }
     setSent(true)

@@ -138,7 +138,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       password: credentials.password,
     })
 
-    if (error) throw new Error(error.message)
+    if (error) {
+      if (error.message === 'Invalid login credentials') {
+        throw new Error('Incorrect email or password. Please try again.')
+      }
+      if (error.message === 'Email not confirmed') {
+        throw new Error('Please verify your email before logging in. Check your inbox for the verification link.')
+      }
+      throw new Error(error.message)
+    }
 
     const { data: { user: authUser } } = await supabase.auth.getUser()
     if (authUser) {

@@ -164,6 +164,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: { session } } = await supabase.auth.getSession()
         const sessionUser = session ? extractUserFromSession(session) : null
         setUser({ ...profile, permissions: sessionUser?.permissions ?? EMPTY_PERMISSIONS })
+        // Fire-and-forget audit log (session is active, RLS satisfied)
+        supabase.from('audit_logs').insert({
+          user_id: authUser.id,
+          action: 'user_login',
+          entity_type: 'profiles',
+          entity_id: authUser.id,
+          metadata: {
+            detail: `${profile.full_name} signed in`,
+            email: authUser.email,
+            role: profile.role,
+          },
+        })
         const dashboard = ROLE_DASHBOARD[profile.role] ?? '/resident'
         router.replace(dashboard)
       }
@@ -210,6 +222,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const logout = async (): Promise<void> => {
+    // Fire-and-forget audit log before session is invalidated
+    if (user) {
+      supabase.from('audit_logs').insert({
+        user_id: user.id,
+        action: 'user_logout',
+        entity_type: 'profiles',
+        entity_id: user.id,
+        metadata: {
+          detail: `${user.name} signed out`,
+          role: user.role,
+        },
+      })
+    }
     await supabase.auth.signOut()
     setUser(null)
     window.location.href = '/login'

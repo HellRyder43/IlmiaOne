@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loadUserProfile = useCallback(async (userId: string): Promise<User | null> => {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('*, houses(house_number)')
+      .select('*, houses(house_number, street)')
       .eq('id', userId)
       .single()
 
@@ -83,7 +83,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email:           profile.email,
       role:            profile.role as UserRole,
       permissions:     EMPTY_PERMISSIONS,  // will be merged below
-      houseNumber:     (profile.houses as { house_number: string } | null)?.house_number,
+      houseNumber:     (profile.houses as { house_number: string; street: string | null } | null)?.house_number,
+      street:          (profile.houses as { house_number: string; street: string | null } | null)?.street ?? undefined,
       houseId:         profile.house_id,
       icNumber:        profile.ic_number,
       residentType:    profile.resident_type,

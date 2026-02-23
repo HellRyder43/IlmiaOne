@@ -302,7 +302,9 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
                 <div className="px-4 py-2 border-b border-slate-50">
                   <p className="text-sm font-medium text-slate-900">{user.name}</p>
                   {user.houseNumber && (
-                    <p className="text-xs text-slate-500">{user.houseNumber}</p>
+                    <p className="text-xs text-slate-500">
+                      No. {user.houseNumber}{user.street ? `, ${user.street}` : ''}
+                    </p>
                   )}
                   {user.email && (
                     <p className="text-xs text-slate-500 truncate">{user.email}</p>

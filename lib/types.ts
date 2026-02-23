@@ -51,6 +51,7 @@ export interface User {
   permissions:     RolePermissions
   avatarUrl?:      string
   houseNumber?:    string
+  street?:         string
   houseId?:        string
   icNumber?:       string
   residentType?:   ResidencyType

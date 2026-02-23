@@ -52,5 +52,20 @@ export async function POST(req: NextRequest) {
 
   if (logError) return NextResponse.json({ error: logError.message }, { status: 500 })
 
+  supabase.from('audit_logs').insert({
+    user_id: user.id,
+    action: 'visitor_entry_denied',
+    entity_type: 'visitor_logs',
+    entity_id: log.id,
+    metadata: {
+      detail: `Guard denied entry for ${preReg.visitor_name} to house ${house?.house_number ?? ''}`,
+      visitorName: preReg.visitor_name,
+      visitorType: preReg.visitor_type,
+      houseNumber: house?.house_number ?? '',
+      preRegistrationId,
+      entryMethod: 'QR_SCAN',
+    },
+  }).then(() => {})
+
   return NextResponse.json(log)
 }

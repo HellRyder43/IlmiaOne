@@ -78,5 +78,18 @@ export async function POST(request: Request) {
     )
   }
 
+  service.from('audit_logs').insert({
+    user_id: userId,
+    action: 'resident_registered',
+    entity_type: 'profiles',
+    entity_id: userId,
+    metadata: {
+      detail: `${fullName} submitted a registration request for house ${houseNumber}`,
+      fullName,
+      houseNumber,
+      residentType,
+    },
+  }).then(() => {})
+
   return NextResponse.json({ success: true })
 }

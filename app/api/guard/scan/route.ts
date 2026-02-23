@@ -72,5 +72,20 @@ export async function POST(req: NextRequest) {
     .update({ status: 'USED' })
     .eq('id', preRegistrationId)
 
+  supabase.from('audit_logs').insert({
+    user_id: user.id,
+    action: 'visitor_qr_entry',
+    entity_type: 'visitor_logs',
+    entity_id: log.id,
+    metadata: {
+      detail: `Guard admitted ${preReg.visitor_name} to house ${house?.house_number ?? ''} via QR scan`,
+      visitorName: preReg.visitor_name,
+      visitorType: preReg.visitor_type,
+      houseNumber: house?.house_number ?? '',
+      preRegistrationId,
+      entryMethod: 'QR_SCAN',
+    },
+  }).then(() => {})
+
   return NextResponse.json(log)
 }

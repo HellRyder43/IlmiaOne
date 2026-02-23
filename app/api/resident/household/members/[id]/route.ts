@@ -26,5 +26,17 @@ export async function DELETE(
     return NextResponse.json({ error: 'Member not found' }, { status: 404 })
   }
 
+  supabase.from('audit_logs').insert({
+    user_id: claims.userId,
+    action: 'household_member_removed',
+    entity_type: 'house_members',
+    entity_id: id,
+    metadata: {
+      detail: `Removed ${data.name} (${data.relationship}) from household`,
+      name: data.name,
+      relationship: data.relationship,
+    },
+  }).then(() => {})
+
   return NextResponse.json({ success: true })
 }

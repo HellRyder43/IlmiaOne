@@ -120,9 +120,15 @@ export async function POST(request: Request) {
   await service.from('audit_logs').insert({
     user_id: claims!.userId,
     action: 'user_invited',
-    entity_type: 'profile',
+    entity_type: 'profiles',
     entity_id: newUser.id,
-    metadata: { email, role, detail: `Invited ${email} as ${role}` },
+    metadata: {
+      email,
+      role,
+      fullName,
+      roleDisplayName: roleRecord.display_name,
+      detail: `Invited ${fullName} (${email}) as ${roleRecord.display_name}`,
+    },
   })
 
   return NextResponse.json({ success: true, userId: newUser.id, emailSent: true }, { status: 201 })

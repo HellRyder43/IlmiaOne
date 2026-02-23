@@ -106,5 +106,18 @@ export async function POST(request: Request) {
     }
   }
 
+  service.from('audit_logs').insert({
+    user_id: user.id,
+    action: 'registration_resubmitted',
+    entity_type: 'profiles',
+    entity_id: user.id,
+    metadata: {
+      detail: `${fullName} resubmitted registration for house ${houseNumber} after rejection`,
+      fullName,
+      houseNumber,
+      residentType,
+    },
+  }).then(() => {})
+
   return NextResponse.json({ success: true })
 }

@@ -55,5 +55,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to add member' }, { status: 500 })
   }
 
+  supabase.from('audit_logs').insert({
+    user_id: claims.userId,
+    action: 'household_member_added',
+    entity_type: 'house_members',
+    entity_id: data.id,
+    metadata: {
+      detail: `Added ${name} (${relationship}) as a household member`,
+      name,
+      relationship,
+    },
+  }).then(() => {})
+
   return NextResponse.json(data, { status: 201 })
 }

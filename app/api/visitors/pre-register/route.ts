@@ -38,5 +38,19 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+  supabase.from('audit_logs').insert({
+    user_id: user.id,
+    action: 'visitor_pass_created',
+    entity_type: 'visitor_pre_registrations',
+    entity_id: data.id,
+    metadata: {
+      detail: `Created visitor pass for ${visitorName} (${visitorType}) expected on ${expectedDate}`,
+      visitorName,
+      visitorType,
+      expectedDate,
+      houseId,
+    },
+  }).then(() => {})
+
   return NextResponse.json(data)
 }

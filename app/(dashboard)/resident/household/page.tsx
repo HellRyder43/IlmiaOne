@@ -76,6 +76,8 @@ export default function HouseholdPage() {
   const [isSavingHouse,   setIsSavingHouse]   = useState(false)
   const [isCancellingRequest, setIsCancellingRequest] = useState(false)
   const [allHouses, setAllHouses]             = useState<{ id: string; house_number: string; street: string | null }[]>([])
+  const [allHousesError, setAllHousesError]   = useState<string | null>(null)
+  const [housesError, setHousesError]         = useState<string | null>(null)
 
   const form = useForm<AddMemberForm>({
     resolver: zodResolver(addMemberSchema),
@@ -85,10 +87,14 @@ export default function HouseholdPage() {
   // Fetch all houses for the house-number dropdown (only when entering edit mode)
   useEffect(() => {
     if (!isEditingHouse || allHouses.length > 0) return
+    setHousesError(null)
     fetch('/api/houses')
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`Failed to load house list (${r.status})`)
+        return r.json()
+      })
       .then((houses: { id: string; house_number: string; street: string | null }[]) => setAllHouses(houses))
-      .catch(() => {})
+      .catch((err: Error) => setHousesError(err.message))
   }, [isEditingHouse, allHouses.length])
 
   const openHouseEdit = () => {
@@ -327,6 +333,11 @@ export default function HouseholdPage() {
                         </div>
                       </PopoverContent>
                     </Popover>
+                    {housesError && (
+                      <p className="text-xs text-red-500 flex items-center gap-1 mt-1">
+                        <AlertCircle className="w-3 h-3 shrink-0" />{housesError}
+                      </p>
+                    )}
                     <div className="flex gap-2">
                       <Button
                         size="sm"

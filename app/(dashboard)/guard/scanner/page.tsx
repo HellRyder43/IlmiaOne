@@ -15,7 +15,7 @@ import {
 import {
   QrCode, Camera, CheckCircle2, XCircle, AlertTriangle,
   Loader2, ShieldOff, ClipboardList, Search, ChevronDown,
-  User, Hammer, Bike, Truck, HelpCircle,
+  User, Hammer, Bike, Truck, HelpCircle, AlertCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -104,6 +104,7 @@ const STATUS_PILL: Record<ScanState, { label: string; cls: string }> = {
 interface WalkInFormProps {
   form: ReturnType<typeof useForm<WalkInFormData>>
   houses: HouseOption[]
+  housesError?: string | null
   isSubmitting: boolean
   onSubmit: (data: WalkInFormData) => Promise<void>
   onCancel?: () => void
@@ -112,7 +113,7 @@ interface WalkInFormProps {
 }
 
 function WalkInForm({
-  form, houses, isSubmitting, onSubmit, onCancel, showCancel, successVisible,
+  form, houses, housesError, isSubmitting, onSubmit, onCancel, showCancel, successVisible,
 }: WalkInFormProps) {
   const [houseOpen, setHouseOpen] = useState(false)
   const [houseSearch, setHouseSearch] = useState('')
@@ -254,6 +255,11 @@ function WalkInForm({
           {form.formState.errors.houseNumber && (
             <p className="text-xs text-red-500">{form.formState.errors.houseNumber.message}</p>
           )}
+          {housesError && (
+            <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+              <AlertCircle className="w-3 h-3 shrink-0" />{housesError}
+            </p>
+          )}
         </div>
 
         {/* Visit Reason */}
@@ -346,6 +352,7 @@ export default function ScannerPage() {
   const [cameraError, setCameraError] = useState(false)
   const [isManualOpen, setIsManualOpen] = useState(false)
   const [houses, setHouses] = useState<HouseOption[]>([])
+  const [housesError, setHousesError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [walkInSuccess, setWalkInSuccess] = useState(false)
 
@@ -358,9 +365,12 @@ export default function ScannerPage() {
 
   useEffect(() => {
     fetch('/api/houses')
-      .then(r => r.json())
-      .then((data: HouseOption[]) => setHouses(data))
-      .catch(() => {})
+      .then(r => {
+        if (!r.ok) throw new Error(`Could not load house list (${r.status})`)
+        return r.json()
+      })
+      .then((data: HouseOption[]) => { setHouses(data); setHousesError(null) })
+      .catch((err: Error) => setHousesError(err.message))
   }, [])
 
   const verifyQrCode = async (qrCode: string) => {
@@ -863,6 +873,7 @@ export default function ScannerPage() {
                 <WalkInForm
                   form={walkInForm}
                   houses={houses}
+                  housesError={housesError}
                   isSubmitting={isSubmitting}
                   onSubmit={onSubmitWalkIn}
                   successVisible={walkInSuccess}
@@ -885,6 +896,7 @@ export default function ScannerPage() {
             <WalkInForm
               form={walkInForm}
               houses={houses}
+              housesError={housesError}
               isSubmitting={isSubmitting}
               onSubmit={onSubmitWalkIn}
               onCancel={() => setIsManualOpen(false)}

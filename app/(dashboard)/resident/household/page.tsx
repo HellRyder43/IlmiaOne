@@ -76,7 +76,6 @@ export default function HouseholdPage() {
   const [isSavingHouse,   setIsSavingHouse]   = useState(false)
   const [isCancellingRequest, setIsCancellingRequest] = useState(false)
   const [allHouses, setAllHouses]             = useState<{ id: string; house_number: string; street: string | null }[]>([])
-  const [allHousesError, setAllHousesError]   = useState<string | null>(null)
   const [housesError, setHousesError]         = useState<string | null>(null)
 
   const form = useForm<AddMemberForm>({

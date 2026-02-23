@@ -15,7 +15,7 @@ import {
 import {
   QrCode, FileText, Users, AlertTriangle, ShieldCheck,
   Truck, Car, UserPlus, Loader2, Hammer, Bike, HelpCircle, User,
-  Search, ChevronDown,
+  Search, ChevronDown, AlertCircle,
 } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
@@ -53,6 +53,7 @@ export default function GuardDashboard() {
   const { stats, isLoading: statsLoading, refresh } = useGuardStats()
   const [isWalkInOpen, setIsWalkInOpen] = useState(false)
   const [houses, setHouses] = useState<HouseOption[]>([])
+  const [housesError, setHousesError] = useState<string | null>(null)
   const [houseOpen, setHouseOpen] = useState(false)
   const [houseSearch, setHouseSearch] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -71,9 +72,12 @@ export default function GuardDashboard() {
 
   useEffect(() => {
     fetch('/api/houses')
-      .then(r => r.json())
-      .then(setHouses)
-      .catch(() => {})
+      .then(r => {
+        if (!r.ok) throw new Error(`Could not load house list (${r.status})`)
+        return r.json()
+      })
+      .then((data: HouseOption[]) => { setHouses(data); setHousesError(null) })
+      .catch((err: Error) => setHousesError(err.message))
   }, [])
 
   const onSubmitWalkIn = async (data: WalkInFormData) => {
@@ -357,6 +361,11 @@ export default function GuardDashboard() {
                 }}
               />
               {errors.houseNumber && <p className="text-xs text-red-500">{errors.houseNumber.message}</p>}
+              {housesError && (
+                <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3 shrink-0" />{housesError}
+                </p>
+              )}
             </div>
 
             {/* Reason for Visit */}

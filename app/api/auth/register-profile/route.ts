@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { sendAdminRegistrationNotification } from '@/lib/email'
 
 function createServiceClient() {
   return createClient(
@@ -64,19 +65,28 @@ export async function POST(request: Request) {
   // Notify all ADMIN profiles in-app
   const { data: admins } = await service
     .from('profiles')
-    .select('id')
+    .select('id, email')
     .in('role', ['AJK_LEADER', 'AJK_COMMITTEE'])
     .eq('status', 'APPROVED')
 
   if (admins?.length) {
     await service.from('notifications').insert(
-      admins.map((a: { id: string }) => ({
+      admins.map((a: { id: string; email: string }) => ({
         user_id: a.id,
         title: 'New Registration Pending',
         message: `${fullName} from house ${houseNumber} has registered and is awaiting approval.`,
         type: 'REGISTRATION_PENDING',
       }))
     )
+
+    for (const a of admins as { id: string; email: string }[]) {
+      sendAdminRegistrationNotification({
+        residentName: fullName,
+        houseNumber,
+        residentEmail: email,
+        adminEmail: a.email,
+      }).catch(err => console.error('[email] notify-registration failed:', err))
+    }
   }
 
   service.from('audit_logs').insert({

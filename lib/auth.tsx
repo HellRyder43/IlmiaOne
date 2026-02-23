@@ -194,17 +194,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const body = await profileRes.json()
       throw new Error(body.error ?? 'Failed to create profile — please contact support.')
     }
-
-    // Fire-and-forget: send email notification to admins (non-blocking)
-    fetch('/api/auth/notify-registration', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        residentName: data.fullName,
-        houseNumber: data.houseNumber,
-        residentEmail: data.email,
-      }),
-    }).catch(() => {})
   }
 
   const logout = async (): Promise<void> => {

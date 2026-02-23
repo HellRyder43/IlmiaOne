@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { createClient } from '@/lib/supabase/client'
 
 export interface AdminUser {
   id: string
@@ -12,16 +11,7 @@ export interface AdminUser {
   street: string | null
   active: boolean
   createdVia: 'SELF_REGISTRATION' | 'INVITED'
-}
-
-interface ProfileRow {
-  id: string
-  full_name: string
-  email: string
-  role: string
-  status: string
-  created_via: string
-  houses: { house_number: string; street: string | null } | null
+  hasLoggedIn: boolean
 }
 
 export function useAdminUsers() {
@@ -31,40 +21,22 @@ export function useAdminUsers() {
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
 
-  const supabase = useMemo(() => createClient(), [])
-
   const fetchUsers = useCallback(async () => {
     setIsLoading(true)
     setError(null)
 
-    const { data, error: fetchError } = await supabase
-      .from('profiles')
-      .select('id, full_name, email, role, status, created_via, houses(house_number, street)')
-      .order('full_name')
-
-    if (fetchError) {
-      setError(fetchError.message)
+    const res = await fetch('/api/admin/users')
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      setError((body as { error?: string }).error ?? 'Failed to load users')
       setIsLoading(false)
       return
     }
 
-    const mapped: AdminUser[] = ((data ?? []) as unknown as ProfileRow[]).map((row: ProfileRow) => {
-      const house = row.houses
-      return {
-        id: row.id,
-        fullName: row.full_name,
-        email: row.email,
-        role: row.role,
-        houseNumber: house ? house.house_number : null,
-        street: house ? (house.street ?? null) : null,
-        active: row.status === 'APPROVED',
-        createdVia: (row.created_via as 'SELF_REGISTRATION' | 'INVITED') ?? 'SELF_REGISTRATION',
-      }
-    })
-
-    setAllUsers(mapped)
+    const data: AdminUser[] = await res.json()
+    setAllUsers(data)
     setIsLoading(false)
-  }, [supabase])
+  }, [])
 
   useEffect(() => {
     fetchUsers()

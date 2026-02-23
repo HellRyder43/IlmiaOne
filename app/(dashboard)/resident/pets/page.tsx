@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Camera, Search, User, Home, X } from 'lucide-react';
+import { Plus, Camera, Search, User, Home, X, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Pet } from '@/lib/types';
 
@@ -62,6 +62,12 @@ export default function PetsPage() {
              </button>
           </div>
         )}
+      </div>
+
+      {/* Coming soon banner */}
+      <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <Info className="w-4 h-4 mt-0.5 shrink-0 text-amber-500" />
+        <span>Pet registration is not yet available. This feature is coming soon.</span>
       </div>
 
       {isRegistering ? (
@@ -139,7 +145,7 @@ export default function PetsPage() {
       ) : activeTab === 'my_pets' ? (
         <div className="space-y-6">
           <div className="flex justify-end">
-            <Button className="gap-2" onClick={() => setIsRegistering(true)}>
+            <Button className="gap-2" disabled title="Pet registration not yet available">
               <Plus className="w-4 h-4" /> Register New Pet
             </Button>
           </div>
@@ -171,14 +177,14 @@ export default function PetsPage() {
 
             {/* Add New Placeholder */}
             <button
-              onClick={() => setIsRegistering(true)}
-              className="border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center aspect-[4/3] md:aspect-auto hover:bg-slate-50 transition-colors group p-8 min-h-[300px] md:min-h-0"
+              disabled
+              className="border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center aspect-[4/3] md:aspect-auto p-8 min-h-[300px] md:min-h-0 cursor-not-allowed opacity-60"
             >
-              <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4 group-hover:bg-white group-hover:shadow-sm transition-all">
-                <Plus className="w-8 h-8 text-slate-400 group-hover:text-primary-600" />
+              <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+                <Plus className="w-8 h-8 text-slate-400" />
               </div>
               <span className="font-semibold text-slate-700 text-lg">Register New Pet</span>
-              <span className="text-slate-400 text-sm mt-1">Add details and photo</span>
+              <span className="text-slate-400 text-sm mt-1">Coming soon</span>
             </button>
           </div>
         </div>

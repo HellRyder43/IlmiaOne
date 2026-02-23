@@ -7,19 +7,22 @@ const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://ilmiaone.org'
 export async function sendAdminRegistrationNotification({
   residentName,
   houseNumber,
+  street,
   residentEmail,
   adminEmail,
 }: {
   residentName: string
   houseNumber: string
+  street?: string
   residentEmail: string
   adminEmail: string
 }) {
   const approvalUrl = `${BASE_URL}/admin/registrations`
+  const addressDisplay = `${houseNumber}${street ? `, ${street}` : ''}`
   await resend.emails.send({
     from: FROM,
     to: adminEmail,
-    subject: `New Resident Registration — ${residentName}, House ${houseNumber}`,
+    subject: `New Resident Registration — ${residentName}, House ${addressDisplay}`,
     html: `
       <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;background:#f8fafc;">
         <div style="background:#fff;border-radius:12px;padding:32px;border:1px solid #e2e8f0;">
@@ -31,8 +34,8 @@ export async function sendAdminRegistrationNotification({
               <td style="padding:8px 0;color:#1e293b;font-size:14px;font-weight:600;">${residentName}</td>
             </tr>
             <tr>
-              <td style="padding:8px 0;color:#64748b;font-size:14px;">House Number</td>
-              <td style="padding:8px 0;color:#1e293b;font-size:14px;font-weight:600;">${houseNumber}</td>
+              <td style="padding:8px 0;color:#64748b;font-size:14px;">Address</td>
+              <td style="padding:8px 0;color:#1e293b;font-size:14px;font-weight:600;">${addressDisplay}</td>
             </tr>
             <tr>
               <td style="padding:8px 0;color:#64748b;font-size:14px;">Email</td>

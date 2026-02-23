@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   // Look up house ID from house number
   const { data: house } = await service
     .from('houses')
-    .select('id')
+    .select('id, street')
     .eq('house_number', houseNumber)
     .single()
 
@@ -83,6 +83,7 @@ export async function POST(request: Request) {
       sendAdminRegistrationNotification({
         residentName: fullName,
         houseNumber,
+        street: house?.street ?? undefined,
         residentEmail: email,
         adminEmail: a.email,
       }).catch(err => console.error('[email] notify-registration failed:', err))

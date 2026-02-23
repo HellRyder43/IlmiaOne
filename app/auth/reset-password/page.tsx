@@ -8,7 +8,7 @@ import { z } from 'zod'
 import type { AuthChangeEvent, Session, AuthError } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { Building2, Lock, Loader2, ArrowRight, AlertCircle, ArrowLeft } from 'lucide-react'
+import { Building2, Lock, Loader2, ArrowRight, AlertCircle, ArrowLeft, Eye, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
@@ -34,6 +34,8 @@ type ResetPasswordData = z.infer<typeof resetPasswordSchema>
 export default function ResetPasswordPage() {
   const [pageState, setPageState] = useState<PageState>('loading')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const router = useRouter()
   const supabase = useMemo(() => createClient(), [])
 
@@ -191,15 +193,22 @@ export default function ResetPasswordPage() {
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     placeholder="New Password"
                     autoComplete="new-password"
                     className={cn(
-                      'w-full pl-10 pr-4 py-2.5 h-11 rounded-lg border bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm shadow-sm',
+                      'w-full pl-10 pr-10 py-2.5 h-11 rounded-lg border bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm shadow-sm',
                       errors.password ? 'border-red-400' : 'border-slate-300'
                     )}
                     {...register('password')}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(v => !v)}
+                    className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
                 </div>
                 {errors.password && (
                   <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>
@@ -210,15 +219,22 @@ export default function ResetPasswordPage() {
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
                   <input
-                    type="password"
+                    type={showConfirmPassword ? 'text' : 'password'}
                     placeholder="Confirm New Password"
                     autoComplete="new-password"
                     className={cn(
-                      'w-full pl-10 pr-4 py-2.5 h-11 rounded-lg border bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm shadow-sm',
+                      'w-full pl-10 pr-10 py-2.5 h-11 rounded-lg border bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm shadow-sm',
                       errors.confirmPassword ? 'border-red-400' : 'border-slate-300'
                     )}
                     {...register('confirmPassword')}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(v => !v)}
+                    className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
                 </div>
                 {errors.confirmPassword && (
                   <p className="mt-1 text-xs text-red-600">{errors.confirmPassword.message}</p>

@@ -12,6 +12,15 @@ const SKIP_WORDS = new Set([
   'mr', 'mrs', 'ms', 'miss',
 ])
 
+export function getFirstName(name: string): string {
+  const parts = name
+    .trim()
+    .split(/\s+/)
+    .filter(p => !SKIP_WORDS.has(p.toLowerCase().replace(/\.$/, '')))
+
+  return parts[0] ?? name.split(/\s+/)[0] ?? name
+}
+
 export function getInitials(name: string): string {
   const parts = name
     .trim()

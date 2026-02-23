@@ -32,7 +32,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/lib/auth'
-import { cn } from '@/lib/utils'
+import { cn, getFirstName } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 
 
@@ -309,7 +309,7 @@ export default function ResidentDashboard() {
 
       <div>
         <h1 className="text-3xl font-bold text-slate-900">
-          Welcome back, {user?.name?.split(' ')[0] ?? 'Resident'} 👋
+          Welcome back, {user?.name ? getFirstName(user.name) : 'Resident'} 👋
         </h1>
         <p className="text-slate-500 mt-2">Here&apos;s what&apos;s happening in your neighbourhood today.</p>
       </div>

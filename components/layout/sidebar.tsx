@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LogOut } from 'lucide-react'
@@ -73,9 +74,7 @@ export function Sidebar({ isMobileMenuOpen, onClose }: SidebarProps) {
       >
         {/* Logo Section */}
         <div className="h-16 flex items-center px-6 border-b border-slate-100 shrink-0">
-          <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center mr-3">
-            <span className="text-white font-bold text-lg">I</span>
-          </div>
+          <Image src="/favicon-32x32.png" alt="Ilmia One" width={32} height={32} className="rounded-lg mr-3" />
           <span className="font-bold text-slate-900 text-lg">Ilmia One</span>
         </div>
 

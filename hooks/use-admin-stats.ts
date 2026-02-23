@@ -78,7 +78,7 @@ export function useAdminStats() {
       supabase
         .from('profiles')
         .select('id', { count: 'exact', head: true })
-        .eq('role', 'RESIDENT')
+        .in('role', ['RESIDENT', 'AJK_COMMITTEE', 'AJK_LEADER'])
         .eq('status', 'APPROVED'),
       supabase
         .from('profiles')

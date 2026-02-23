@@ -143,6 +143,15 @@ export async function PUT(req: NextRequest) {
 
     // AJK members can update house directly; residents submit a change request
     if (callerRole === 'AJK_COMMITTEE' || callerRole === 'AJK_LEADER') {
+      // Get current house_id before updating
+      const { data: currentProfile } = await service
+        .from('profiles')
+        .select('house_id')
+        .eq('id', claims.userId)
+        .single()
+
+      const oldHouseId = (currentProfile as { house_id: string | null } | null)?.house_id ?? null
+
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ house_id: house.id })
@@ -150,6 +159,28 @@ export async function PUT(req: NextRequest) {
 
       if (updateError) {
         return NextResponse.json({ error: 'Failed to update house number' }, { status: 500 })
+      }
+
+      // Mark new house as OCCUPIED
+      await service
+        .from('houses')
+        .update({ occupancy_status: 'OCCUPIED' })
+        .eq('id', house.id)
+
+      // If they had a different previous house, check if it's now empty
+      if (oldHouseId && oldHouseId !== house.id) {
+        const { count } = await service
+          .from('profiles')
+          .select('id', { count: 'exact', head: true })
+          .eq('house_id', oldHouseId)
+          .eq('status', 'APPROVED')
+
+        if ((count ?? 0) === 0) {
+          await service
+            .from('houses')
+            .update({ occupancy_status: 'VACANT' })
+            .eq('id', oldHouseId)
+        }
       }
 
       await supabase.from('audit_logs').insert({

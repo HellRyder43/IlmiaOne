@@ -86,7 +86,24 @@ export async function POST(request: Request) {
 
   if (profileError) {
     // Rollback: delete the auth user we just created
-    await service.auth.admin.deleteUser(newUser.id)
+    const { error: deleteError } = await service.auth.admin.deleteUser(newUser.id)
+    if (deleteError) {
+      // Orphaned auth user — log it for manual cleanup
+      console.error('[invite] rollback failed — orphaned auth user:', newUser.id, deleteError.message)
+      await service.from('audit_logs').insert({
+        user_id: claims!.userId,
+        action: 'orphaned_auth_user',
+        entity_type: 'profiles',
+        entity_id: newUser.id,
+        metadata: {
+          detail: 'Profile insert failed and auth user rollback also failed — manual cleanup required',
+          email,
+          profileError: profileError.message,
+          deleteError: deleteError.message,
+        },
+      }).then(({ error }) => { if (error) console.error('[audit_log] orphan log failed:', error.message) })
+      return NextResponse.json({ error: 'Account partially created. Contact administrator.' }, { status: 500 })
+    }
     return NextResponse.json({ error: profileError.message }, { status: 500 })
   }
 
@@ -114,7 +131,7 @@ export async function POST(request: Request) {
     email,
     roleDisplayName: roleRecord.display_name,
     inviteLink: linkData.properties.action_link,
-  }).catch(() => {})
+  }).catch(err => console.error('[email] staff invite email failed:', err))
 
   // Audit log
   await service.from('audit_logs').insert({

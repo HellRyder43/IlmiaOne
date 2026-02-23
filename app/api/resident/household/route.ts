@@ -161,11 +161,22 @@ export async function PUT(req: NextRequest) {
         return NextResponse.json({ error: 'Failed to update house number' }, { status: 500 })
       }
 
-      // Mark new house as OCCUPIED
-      await service
+      // Mark new house as OCCUPIED (non-fatal — profile update already succeeded)
+      const { error: newOccupancyError } = await service
         .from('houses')
         .update({ occupancy_status: 'OCCUPIED' })
         .eq('id', house.id)
+
+      if (newOccupancyError) {
+        console.error('[household] failed to mark new house as OCCUPIED:', newOccupancyError.message)
+        await service.from('audit_logs').insert({
+          user_id: claims.userId,
+          action: 'house_occupancy_sync_failed',
+          entity_type: 'houses',
+          entity_id: house.id,
+          metadata: { detail: `Failed to mark house ${houseNumber} as OCCUPIED after house update`, error: newOccupancyError.message },
+        }).then(({ error }) => { if (error) console.error('[audit_log] occupancy sync log failed:', error.message) })
+      }
 
       // If they had a different previous house, check if it's now empty
       if (oldHouseId && oldHouseId !== house.id) {
@@ -176,10 +187,14 @@ export async function PUT(req: NextRequest) {
           .eq('status', 'APPROVED')
 
         if ((count ?? 0) === 0) {
-          await service
+          const { error: oldOccupancyError } = await service
             .from('houses')
             .update({ occupancy_status: 'VACANT' })
             .eq('id', oldHouseId)
+
+          if (oldOccupancyError) {
+            console.error('[household] failed to mark old house as VACANT:', oldOccupancyError.message)
+          }
         }
       }
 

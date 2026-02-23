@@ -49,7 +49,8 @@ export async function POST(
     return NextResponse.json({ error: 'Failed to approve' }, { status: 500 })
   }
 
-  // Mark house as OCCUPIED now that a resident is approved there
+  // Mark house as OCCUPIED now that a resident is approved there (non-fatal)
+  let houseOccupancySynced = true
   if (profile.house_id) {
     const { error: houseError } = await service
       .from('houses')
@@ -57,7 +58,15 @@ export async function POST(
       .eq('id', profile.house_id)
 
     if (houseError) {
-      return NextResponse.json({ error: 'Failed to update house status' }, { status: 500 })
+      houseOccupancySynced = false
+      // Log the failure but do NOT block approval — profile is already APPROVED
+      await service.from('audit_logs').insert({
+        user_id: claims!.userId,
+        action: 'house_occupancy_sync_failed',
+        entity_type: 'houses',
+        entity_id: profile.house_id,
+        metadata: { detail: `Failed to mark house as OCCUPIED after approving ${profile.full_name}`, error: houseError.message },
+      }).then(({ error }) => { if (error) console.error('[audit_log] occupancy sync failed log error:', error.message) })
     }
   }
 
@@ -84,7 +93,7 @@ export async function POST(
   await sendRegistrationApprovedEmail({
     residentName: profile.full_name,
     residentEmail: profile.email,
-  }).catch(() => {})
+  }).catch(err => console.error('[email] approval email failed:', err))
 
-  return NextResponse.json({ success: true })
+  return NextResponse.json({ success: true, houseOccupancySynced })
 }

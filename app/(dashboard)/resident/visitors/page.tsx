@@ -344,6 +344,10 @@ export default function VisitorsPage() {
                     <div className="relative">
                       <input
                         {...register('visitorName')}
+                        onInput={(e) => {
+                          const el = e.currentTarget
+                          el.value = el.value.replace(/(?:^|\s)\S/g, c => c.toUpperCase())
+                        }}
                         className="flex h-11 w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all shadow-sm"
                         placeholder="e.g. John Doe"
                       />

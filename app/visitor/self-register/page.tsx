@@ -142,6 +142,10 @@ export default function SelfRegisterPage() {
                 <input
                   {...register('visitorName')}
                   placeholder="e.g. Ahmad bin Razak"
+                  onInput={(e) => {
+                    const el = e.currentTarget
+                    el.value = el.value.replace(/(?:^|\s)\S/g, c => c.toUpperCase())
+                  }}
                   className="w-full h-11 rounded-lg border border-slate-300 bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
                 />
                 {errors.visitorName && <p className="text-xs text-red-500">{errors.visitorName.message}</p>}

@@ -202,6 +202,7 @@ function RegisterForm() {
             onInput={(e) => {
               const el = e.currentTarget
               el.value = el.value.replace(/[^a-zA-Z\s\-'@]/g, '')
+              el.value = el.value.replace(/(?:^|\s)\S/g, c => c.toUpperCase())
             }}
             className={cn(
               'w-full pl-10 pr-4 py-2.5 rounded-lg border bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-sm shadow-sm',

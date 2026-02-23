@@ -164,18 +164,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: { session } } = await supabase.auth.getSession()
         const sessionUser = session ? extractUserFromSession(session) : null
         setUser({ ...profile, permissions: sessionUser?.permissions ?? EMPTY_PERMISSIONS })
-        // Audit log insert (session is active, RLS satisfied)
-        supabase.from('audit_logs').insert({
-          user_id: authUser.id,
-          action: 'user_login',
-          entity_type: 'profiles',
-          entity_id: authUser.id,
-          metadata: {
-            detail: `${profile.name} signed in`,
-            email: authUser.email,
-            role: profile.role,
-          },
-        }).then(({ error }: { error: { message: string } | null }) => { if (error) console.error('[audit_log] login insert failed:', error.message) })
+        // Audit log insert (session is active, RLS satisfied) — skip for super-admin
+        if (authUser.email !== 'admin@ilmiaone.com') {
+          supabase.from('audit_logs').insert({
+            user_id: authUser.id,
+            action: 'user_login',
+            entity_type: 'profiles',
+            entity_id: authUser.id,
+            metadata: {
+              detail: `${profile.name} signed in`,
+              email: authUser.email,
+              role: profile.role,
+            },
+          }).then(({ error }: { error: { message: string } | null }) => { if (error) console.error('[audit_log] login insert failed:', error.message) })
+        }
         const dashboard = ROLE_DASHBOARD[profile.role] ?? '/resident'
         router.replace(dashboard)
       }
@@ -222,8 +224,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const logout = async (): Promise<void> => {
-    // Await audit log before navigating — hard reload aborts in-flight fetches
-    if (user) {
+    // Await audit log before navigating — hard reload aborts in-flight fetches; skip for super-admin
+    if (user && user.email !== 'admin@ilmiaone.com') {
       await supabase.from('audit_logs').insert({
         user_id: user.id,
         action: 'user_logout',

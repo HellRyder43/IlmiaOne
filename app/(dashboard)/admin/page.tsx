@@ -663,8 +663,22 @@ export default function AdminDashboard() {
                                       </Tooltip>
                                     </TooltipProvider>
                                   )}
-                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0"><Edit className="w-4 h-4" /></Button>
-                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-600 hover:text-red-700"><Trash2 className="w-4 h-4" /></Button>
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span><Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled><Edit className="w-4 h-4" /></Button></span>
+                                      </TooltipTrigger>
+                                      <TooltipContent>House editing not yet available</TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span><Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-600 hover:text-red-700" disabled><Trash2 className="w-4 h-4" /></Button></span>
+                                      </TooltipTrigger>
+                                      <TooltipContent>House deletion not yet available</TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
                                 </div>
                               </td>
                             </tr>
@@ -806,8 +820,22 @@ export default function AdminDashboard() {
                                 </div>
                               </div>
                               <div className="flex gap-1 shrink-0 ml-2">
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0"><Edit className="w-4 h-4" /></Button>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-600 hover:text-red-700"><Trash2 className="w-4 h-4" /></Button>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span><Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled><Edit className="w-4 h-4" /></Button></span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>User editing not yet available</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span><Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-600 hover:text-red-700" disabled><Trash2 className="w-4 h-4" /></Button></span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>User deletion not yet available</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                               </div>
                             </div>
                           </CardContent>

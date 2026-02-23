@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       houseNumber,
       entryMethod: 'WALK_IN',
     },
-  }).then(() => {})
+  }).then(({ error }) => { if (error) console.error('[audit_log] insert failed:', error.message) })
 
   return NextResponse.json(data)
 }

@@ -36,7 +36,7 @@ export async function DELETE(
       name: data.name,
       relationship: data.relationship,
     },
-  }).then(() => {})
+  }).then(({ error }) => { if (error) console.error('[audit_log] insert failed:', error.message) })
 
   return NextResponse.json({ success: true })
 }

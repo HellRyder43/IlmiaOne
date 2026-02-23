@@ -89,7 +89,7 @@ export async function POST(request: Request) {
       houseNumber,
       residentType,
     },
-  }).then(() => {})
+  }).then(({ error }) => { if (error) console.error('[audit_log] insert failed:', error.message) })
 
   return NextResponse.json({ success: true })
 }

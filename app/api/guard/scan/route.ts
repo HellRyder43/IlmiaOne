@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
       preRegistrationId,
       entryMethod: 'QR_SCAN',
     },
-  }).then(() => {})
+  }).then(({ error }) => { if (error) console.error('[audit_log] insert failed:', error.message) })
 
   return NextResponse.json(log)
 }

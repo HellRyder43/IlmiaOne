@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
       name,
       relationship,
     },
-  }).then(() => {})
+  }).then(({ error }) => { if (error) console.error('[audit_log] insert failed:', error.message) })
 
   return NextResponse.json(data, { status: 201 })
 }

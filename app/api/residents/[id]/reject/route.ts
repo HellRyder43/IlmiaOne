@@ -79,7 +79,7 @@ export async function POST(
     residentName: profile.full_name,
     residentEmail: profile.email,
     reason: reason.trim(),
-  }).catch(() => {})
+  }).catch(err => console.error('[email] rejection email failed:', err))
 
   return NextResponse.json({ success: true })
 }

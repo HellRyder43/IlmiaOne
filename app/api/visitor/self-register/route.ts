@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
       houseNumber,
       entryMethod: 'SELF_SERVICE',
     },
-  }).then(() => {})
+  }).then(({ error }) => { if (error) console.error('[audit_log] insert failed:', error.message) })
 
   return NextResponse.json(data)
 }

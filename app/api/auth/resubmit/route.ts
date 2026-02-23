@@ -102,7 +102,7 @@ export async function POST(request: Request) {
         houseNumber,
         residentEmail: profile.email,
         adminEmail: a.email,
-      }).catch(() => {})
+      }).catch(err => console.error('[email] admin notification email failed:', err))
     }
   }
 
@@ -117,7 +117,7 @@ export async function POST(request: Request) {
       houseNumber,
       residentType,
     },
-  }).then(() => {})
+  }).then(({ error }) => { if (error) console.error('[audit_log] resubmit insert failed:', error.message) })
 
   return NextResponse.json({ success: true })
 }

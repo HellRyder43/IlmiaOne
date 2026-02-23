@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       expectedDate,
       houseId,
     },
-  }).then(() => {})
+  }).then(({ error }) => { if (error) console.error('[audit_log] insert failed:', error.message) })
 
   return NextResponse.json(data)
 }

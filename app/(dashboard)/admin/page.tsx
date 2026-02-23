@@ -783,9 +783,9 @@ export default function AdminDashboard() {
                   <div className="grid md:grid-cols-2 gap-4">
                     {[...Array(4)].map((_, i) => (
                       <Card key={i} className="border-slate-200">
-                        <CardContent className="p-6">
-                          <div className="flex items-start gap-4">
-                            <Skeleton className="w-12 h-12 rounded-full" />
+                        <CardContent className="p-4 sm:p-6">
+                          <div className="flex items-start gap-3 sm:gap-4">
+                            <Skeleton className="w-10 h-10 sm:w-12 sm:h-12 rounded-full" />
                             <div className="flex-1 space-y-2">
                               <Skeleton className="h-4 w-32" />
                               <Skeleton className="h-3 w-48" />
@@ -809,97 +809,97 @@ export default function AdminDashboard() {
                       const roleDisplay = getRoleDisplayName(u.role);
                       return (
                         <Card key={u.id} className="border-slate-200">
-                          <CardContent className="p-6">
-                            <div className="flex items-start justify-between">
-                              <div className="flex items-start gap-4 flex-1 min-w-0">
-                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg shrink-0">
-                                  {getInitials(u.fullName)}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 mb-1">
+                          <CardContent className="p-4 sm:p-6">
+                            <div className="flex items-start gap-3 sm:gap-4">
+                              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white font-bold text-base sm:text-lg shrink-0">
+                                {getInitials(u.fullName)}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between gap-2 mb-1">
+                                  <div className="flex items-center gap-2 min-w-0">
                                     <h4 className="font-semibold text-slate-900 truncate">{u.fullName}</h4>
                                     <div className={cn('w-2 h-2 rounded-full shrink-0', u.active ? 'bg-emerald-500' : 'bg-slate-300')} />
                                   </div>
-                                  <p className="text-sm text-slate-500 mb-2 truncate">{u.email}</p>
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <span className={cn('inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border', ROLE_BADGE_COLORS[roleColor] ?? ROLE_BADGE_COLORS.slate)}>
-                                      <span className={cn('w-1.5 h-1.5 rounded-full', ROLE_DOT_COLORS[roleColor] ?? ROLE_DOT_COLORS.slate)} />
-                                      {roleDisplay}
-                                    </span>
-                                    {u.houseNumber && (
-                                      <Badge variant="secondary" className="text-xs">House {u.houseNumber}</Badge>
+                                  <div className="flex gap-1 shrink-0">
+                                    {canManageUsers && u.createdVia === 'INVITED' && (
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              className="h-8 w-8 p-0 text-amber-600 hover:text-amber-700"
+                                              onClick={() => handleResendInvite(u.id, u.email)}
+                                              disabled={resendingInviteFor === u.id}
+                                            >
+                                              {resendingInviteFor === u.id
+                                                ? <Loader2 className="w-4 h-4 animate-spin" />
+                                                : <Mail className="w-4 h-4" />}
+                                            </Button>
+                                          </TooltipTrigger>
+                                          <TooltipContent>Resend invite link (one-time use)</TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
                                     )}
-                                    {u.createdVia === 'INVITED' ? (
-                                      <Badge variant="outline" className="text-xs border-amber-300 text-amber-700 bg-amber-50">
-                                        Invited
-                                      </Badge>
-                                    ) : (
-                                      <Badge variant="outline" className="text-xs border-slate-300 text-slate-500">
-                                        Self-Registered
-                                      </Badge>
-                                    )}
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span><Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled><Edit className="w-4 h-4" /></Button></span>
+                                        </TooltipTrigger>
+                                        <TooltipContent>User editing not yet available</TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span><Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-600 hover:text-red-700" disabled><Trash2 className="w-4 h-4" /></Button></span>
+                                        </TooltipTrigger>
+                                        <TooltipContent>User deletion not yet available</TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
                                   </div>
-
-                                  {/* Role change — only shown when caller has assign_user_role */}
-                                  {canAssignRole && !isCurrentUser && (
-                                    <div className="mt-3">
-                                      <Select
-                                        value={u.role}
-                                        onValueChange={newRoleVal => setRoleChangePending({ userId: u.id, newRole: newRoleVal })}
-                                        disabled={changingRoleFor === u.id}
-                                      >
-                                        <SelectTrigger className="h-8 text-xs w-full">
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          {roles.map(r => (
-                                            <SelectItem key={r.value} value={r.value} className="text-xs">
-                                              {r.displayName}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                    </div>
+                                </div>
+                                <p className="text-sm text-slate-500 mb-2 truncate">{u.email}</p>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className={cn('inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border', ROLE_BADGE_COLORS[roleColor] ?? ROLE_BADGE_COLORS.slate)}>
+                                    <span className={cn('w-1.5 h-1.5 rounded-full', ROLE_DOT_COLORS[roleColor] ?? ROLE_DOT_COLORS.slate)} />
+                                    {roleDisplay}
+                                  </span>
+                                  {u.houseNumber && (
+                                    <Badge variant="secondary" className="text-xs">House {u.houseNumber}</Badge>
+                                  )}
+                                  {u.createdVia === 'INVITED' ? (
+                                    <Badge variant="outline" className="text-xs border-amber-300 text-amber-700 bg-amber-50">
+                                      Invited
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="text-xs border-slate-300 text-slate-500">
+                                      Self-Registered
+                                    </Badge>
                                   )}
                                 </div>
-                              </div>
-                              <div className="flex gap-1 shrink-0 ml-2">
-                                {canManageUsers && u.createdVia === 'INVITED' && (
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-8 w-8 p-0 text-amber-600 hover:text-amber-700"
-                                          onClick={() => handleResendInvite(u.id, u.email)}
-                                          disabled={resendingInviteFor === u.id}
-                                        >
-                                          {resendingInviteFor === u.id
-                                            ? <Loader2 className="w-4 h-4 animate-spin" />
-                                            : <Mail className="w-4 h-4" />}
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>Resend invite link (one-time use)</TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
+
+                                {/* Role change — only shown when caller has assign_user_role */}
+                                {canAssignRole && !isCurrentUser && (
+                                  <div className="mt-3">
+                                    <Select
+                                      value={u.role}
+                                      onValueChange={newRoleVal => setRoleChangePending({ userId: u.id, newRole: newRoleVal })}
+                                      disabled={changingRoleFor === u.id}
+                                    >
+                                      <SelectTrigger className="h-8 text-xs w-full">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {roles.map(r => (
+                                          <SelectItem key={r.value} value={r.value} className="text-xs">
+                                            {r.displayName}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
                                 )}
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <span><Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled><Edit className="w-4 h-4" /></Button></span>
-                                    </TooltipTrigger>
-                                    <TooltipContent>User editing not yet available</TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <span><Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-600 hover:text-red-700" disabled><Trash2 className="w-4 h-4" /></Button></span>
-                                    </TooltipTrigger>
-                                    <TooltipContent>User deletion not yet available</TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
                               </div>
                             </div>
                           </CardContent>

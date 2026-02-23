@@ -172,7 +172,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
     })
 
-    if (authError) throw new Error(authError.message)
+    if (authError) {
+      if (authError.message === 'User already registered') {
+        throw new Error('An account with this email already exists. Please log in instead.')
+      }
+      throw new Error(authError.message)
+    }
     if (!authData.user) throw new Error('Registration failed — please try again.')
 
     // Profile creation + in-app notifications done server-side via service role

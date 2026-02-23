@@ -933,7 +933,7 @@ export default function AdminDashboard() {
                                 </td>
                                 <td className="px-4 py-3">
                                   <span className="text-sm text-slate-600">
-                                    {u.houseNumber ? `House ${u.houseNumber}` : '—'}
+                                    {u.houseNumber ? `${u.houseNumber}${u.street ? `, ${u.street}` : ''}` : '—'}
                                   </span>
                                 </td>
                                 <td className="px-4 py-3">
@@ -1013,7 +1013,7 @@ export default function AdminDashboard() {
                                     {roleDisplay}
                                   </span>
                                   {u.houseNumber && (
-                                    <Badge variant="secondary" className="text-xs">House {u.houseNumber}</Badge>
+                                    <Badge variant="secondary" className="text-xs">{u.houseNumber}{u.street ? `, ${u.street}` : ''}</Badge>
                                   )}
                                   {u.createdVia === 'INVITED' ? (
                                     <Badge variant="outline" className="text-xs border-amber-300 text-amber-700 bg-amber-50">Invited</Badge>

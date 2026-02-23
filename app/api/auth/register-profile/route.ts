@@ -54,6 +54,7 @@ export async function POST(request: Request) {
     ic_number: icNumber.slice(-4),
     resident_type: residentType,
     status: 'PENDING_APPROVAL',
+    created_via: 'SELF_REGISTRATION',
   })
 
   if (profileError) {

@@ -82,6 +82,7 @@ export async function POST(request: Request) {
     role,
     status: 'APPROVED',
     house_id: null,
+    created_via: 'INVITED',
   })
 
   if (profileError) {

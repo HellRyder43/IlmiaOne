@@ -126,7 +126,7 @@ export async function sendStaffInviteEmail({
           <h2 style="margin:0 0 8px;color:#1e293b;font-size:20px;">You've been invited to Ilmia One</h2>
           <p style="color:#64748b;margin:0 0 24px;font-size:14px;">Hi ${fullName}, you've been added to the community portal as <strong style="color:#1e293b;">${roleDisplayName}</strong>.</p>
           <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:16px;margin-bottom:24px;">
-            <p style="color:#92400e;font-size:14px;margin:0;">This link expires in 24 hours.</p>
+            <p style="color:#92400e;font-size:14px;margin:0;">This link can only be used <strong>once</strong> and expires in 24 hours. If you've already opened it, ask your administrator to resend the invite.</p>
           </div>
           <a href="${inviteLink}" style="display:inline-block;background:#4f46e5;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;">Set Your Password</a>
         </div>

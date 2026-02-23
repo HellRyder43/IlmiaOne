@@ -10,6 +10,7 @@ export interface AdminUser {
   role: string
   houseNumber: string | null
   active: boolean
+  createdVia: 'SELF_REGISTRATION' | 'INVITED'
 }
 
 interface ProfileRow {
@@ -18,6 +19,7 @@ interface ProfileRow {
   email: string
   role: string
   status: string
+  created_via: string
   houses: { house_number: string } | null
 }
 
@@ -36,7 +38,7 @@ export function useAdminUsers() {
 
     const { data, error: fetchError } = await supabase
       .from('profiles')
-      .select('id, full_name, email, role, status, houses(house_number)')
+      .select('id, full_name, email, role, status, created_via, houses(house_number)')
       .order('full_name')
 
     if (fetchError) {
@@ -54,6 +56,7 @@ export function useAdminUsers() {
         role: row.role,
         houseNumber: house ? house.house_number : null,
         active: row.status === 'APPROVED',
+        createdVia: (row.created_via as 'SELF_REGISTRATION' | 'INVITED') ?? 'SELF_REGISTRATION',
       }
     })
 

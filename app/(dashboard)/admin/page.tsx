@@ -55,6 +55,8 @@ import {
   Shield,
   Lock,
   UserPlus,
+  Mail,
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -222,6 +224,7 @@ export default function AdminDashboard() {
   const { user, hasPermission } = useAuth();
   const canManageRoles = hasPermission('manage_roles');
   const canAssignRole  = hasPermission('assign_user_role');
+  const canManageUsers = hasPermission('manage_users');
   const canViewHouseholdMembers = hasPermission('view_household_members');
 
   // ── View household members dialog state
@@ -350,6 +353,7 @@ export default function AdminDashboard() {
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [inviteForm, setInviteForm] = useState({ email: '', fullName: '', role: '' });
   const [inviting, setInviting] = useState(false);
+  const [resendingInviteFor, setResendingInviteFor] = useState<string | null>(null);
 
   const handleInviteStaff = async () => {
     setInviting(true);
@@ -377,6 +381,27 @@ export default function AdminDashboard() {
       toast.error('Failed to send invite');
     } finally {
       setInviting(false);
+    }
+  };
+
+  const handleResendInvite = async (userId: string, email: string) => {
+    setResendingInviteFor(userId);
+    try {
+      const res = await fetch('/api/admin/staff/invite/resend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        toast.error(body.error ?? 'Failed to resend invite');
+        return;
+      }
+      toast.success(`Invite resent to ${email}`);
+    } catch {
+      toast.error('Failed to resend invite');
+    } finally {
+      setResendingInviteFor(null);
     }
   };
 
@@ -804,6 +829,15 @@ export default function AdminDashboard() {
                                     {u.houseNumber && (
                                       <Badge variant="secondary" className="text-xs">House {u.houseNumber}</Badge>
                                     )}
+                                    {u.createdVia === 'INVITED' ? (
+                                      <Badge variant="outline" className="text-xs border-amber-300 text-amber-700 bg-amber-50">
+                                        Invited
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="outline" className="text-xs border-slate-300 text-slate-500">
+                                        Self-Registered
+                                      </Badge>
+                                    )}
                                   </div>
 
                                   {/* Role change — only shown when caller has assign_user_role */}
@@ -830,6 +864,26 @@ export default function AdminDashboard() {
                                 </div>
                               </div>
                               <div className="flex gap-1 shrink-0 ml-2">
+                                {canManageUsers && u.createdVia === 'INVITED' && (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-8 w-8 p-0 text-amber-600 hover:text-amber-700"
+                                          onClick={() => handleResendInvite(u.id, u.email)}
+                                          disabled={resendingInviteFor === u.id}
+                                        >
+                                          {resendingInviteFor === u.id
+                                            ? <Loader2 className="w-4 h-4 animate-spin" />
+                                            : <Mail className="w-4 h-4" />}
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>Resend invite link (one-time use)</TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                )}
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>

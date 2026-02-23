@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { toast } from 'sonner'
 
 export interface AppNotification {
   id: string
@@ -97,21 +98,31 @@ export function useNotifications() {
   }, [supabase])
 
   const markAsRead = useCallback(async (id: string) => {
-    await supabase.from('notifications').update({ read: true }).eq('id', id)
-    setNotifications(prev =>
-      prev.map(n => (n.id === id ? { ...n, read: true } : n))
-    )
-  }, [supabase])
+    const snapshot = notifications
+    setNotifications(prev => prev.map(n => (n.id === id ? { ...n, read: true } : n)))
+    const { error } = await supabase.from('notifications').update({ read: true }).eq('id', id)
+    if (error) {
+      setNotifications(snapshot)
+      toast.error('Failed to mark notification as read')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase, notifications])
 
   const markAllRead = useCallback(async () => {
     if (!userIdRef.current) return
-    await supabase
+    const snapshot = notifications
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+    const { error } = await supabase
       .from('notifications')
       .update({ read: true })
       .eq('read', false)
       .eq('user_id', userIdRef.current)
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })))
-  }, [supabase])
+    if (error) {
+      setNotifications(snapshot)
+      toast.error('Failed to mark all notifications as read')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase, notifications])
 
   const unreadCount = notifications.filter(n => !n.read).length
 

@@ -39,6 +39,13 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   Settings,
   Home,
   ShieldCheck,
@@ -57,6 +64,7 @@ import {
   UserPlus,
   Mail,
   Loader2,
+  MoreHorizontal,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -780,87 +788,240 @@ export default function AdminDashboard() {
                 </div>
 
                 {usersLoading ? (
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {[...Array(4)].map((_, i) => (
-                      <Card key={i} className="border-slate-200">
-                        <CardContent className="p-4 sm:p-6">
-                          <div className="flex items-start gap-3 sm:gap-4">
-                            <Skeleton className="w-10 h-10 sm:w-12 sm:h-12 rounded-full" />
-                            <div className="flex-1 space-y-2">
-                              <Skeleton className="h-4 w-32" />
-                              <Skeleton className="h-3 w-48" />
-                              <Skeleton className="h-5 w-20" />
+                  <>
+                    {/* Desktop skeleton */}
+                    <div className="hidden md:block border border-slate-200 rounded-lg overflow-x-auto">
+                      <table className="table-fixed w-full">
+                        <thead className="bg-slate-50 border-b border-slate-200">
+                          <tr>
+                            <th className="text-left px-4 py-3 w-[35%] text-xs font-medium text-slate-500 uppercase tracking-wide">User</th>
+                            <th className="text-left px-4 py-3 w-[20%] text-xs font-medium text-slate-500 uppercase tracking-wide">Role</th>
+                            <th className="text-left px-4 py-3 w-[12%] text-xs font-medium text-slate-500 uppercase tracking-wide">House</th>
+                            <th className="text-left px-4 py-3 w-[20%] text-xs font-medium text-slate-500 uppercase tracking-wide">Created Via</th>
+                            <th className="px-4 py-3 w-[13%]" />
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {[...Array(4)].map((_, i) => (
+                            <tr key={i}>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-3">
+                                  <Skeleton className="w-9 h-9 rounded-full shrink-0" />
+                                  <div className="space-y-1.5">
+                                    <Skeleton className="h-3.5 w-28" />
+                                    <Skeleton className="h-3 w-40" />
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3"><Skeleton className="h-5 w-20 rounded-full" /></td>
+                              <td className="px-4 py-3"><Skeleton className="h-3.5 w-12" /></td>
+                              <td className="px-4 py-3"><Skeleton className="h-5 w-24 rounded-full" /></td>
+                              <td className="px-4 py-3 text-right"><Skeleton className="h-8 w-8 rounded ml-auto" /></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {/* Mobile skeleton */}
+                    <div className="md:hidden space-y-2">
+                      {[...Array(4)].map((_, i) => (
+                        <div key={i} className="border border-slate-100 rounded-lg bg-white p-3">
+                          <div className="flex items-center gap-3">
+                            <Skeleton className="w-9 h-9 rounded-full shrink-0" />
+                            <div className="flex-1 space-y-1.5">
+                              <Skeleton className="h-3.5 w-28" />
+                              <Skeleton className="h-3 w-40" />
+                              <div className="flex gap-1.5 mt-1">
+                                <Skeleton className="h-5 w-20 rounded-full" />
+                                <Skeleton className="h-5 w-16 rounded-full" />
+                              </div>
                             </div>
+                            <Skeleton className="h-8 w-8 rounded shrink-0" />
                           </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
                 ) : users.length === 0 ? (
                   <div className="text-center py-12 text-slate-500">
                     <Users className="w-10 h-10 mx-auto mb-3 text-slate-300" />
                     <p className="text-sm">No users found</p>
                   </div>
                 ) : (
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {users.map(u => {
-                      const isCurrentUser = u.id === user?.id;
-                      const roleColor = getRoleColor(u.role);
-                      const roleDisplay = getRoleDisplayName(u.role);
-                      return (
-                        <Card key={u.id} className="border-slate-200">
-                          <CardContent className="p-4 sm:p-6">
-                            <div className="flex items-start gap-3 sm:gap-4">
-                              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white font-bold text-base sm:text-lg shrink-0">
+                  <>
+                    {/* Desktop table */}
+                    <div className="hidden md:block border border-slate-200 rounded-lg overflow-x-auto">
+                      <table className="table-fixed w-full">
+                        <thead className="bg-slate-50 border-b border-slate-200">
+                          <tr>
+                            <th className="text-left px-4 py-3 w-[35%] text-xs font-medium text-slate-500 uppercase tracking-wide">User</th>
+                            <th className="text-left px-4 py-3 w-[20%] text-xs font-medium text-slate-500 uppercase tracking-wide">Role</th>
+                            <th className="text-left px-4 py-3 w-[12%] text-xs font-medium text-slate-500 uppercase tracking-wide">House</th>
+                            <th className="text-left px-4 py-3 w-[20%] text-xs font-medium text-slate-500 uppercase tracking-wide">Created Via</th>
+                            <th className="px-4 py-3 w-[13%]" />
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {users.map(u => {
+                            const isCurrentUser = u.id === user?.id;
+                            const roleColor = getRoleColor(u.role);
+                            const roleDisplay = getRoleDisplayName(u.role);
+                            const menu = (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                    {resendingInviteFor === u.id
+                                      ? <Loader2 className="w-4 h-4 animate-spin" />
+                                      : <MoreHorizontal className="w-4 h-4" />}
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-48">
+                                  {canManageUsers && u.createdVia === 'INVITED' && (
+                                    <>
+                                      <DropdownMenuItem
+                                        className="gap-2 text-amber-700 focus:text-amber-700"
+                                        onClick={() => handleResendInvite(u.id, u.email)}
+                                        disabled={resendingInviteFor === u.id}
+                                      >
+                                        <Mail className="w-4 h-4" />
+                                        Resend Invite Email
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                    </>
+                                  )}
+                                  <DropdownMenuItem disabled className="gap-2 text-slate-400 cursor-not-allowed">
+                                    <Edit className="w-4 h-4" />
+                                    Edit User
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem disabled className="gap-2 text-red-400 cursor-not-allowed">
+                                    <Trash2 className="w-4 h-4" />
+                                    Delete User
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            );
+                            return (
+                              <tr key={u.id} className="hover:bg-slate-50 transition-colors">
+                                <td className="px-4 py-3">
+                                  <div className="flex items-center gap-3 min-w-0">
+                                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
+                                      {getInitials(u.fullName)}
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-medium text-sm text-slate-900 truncate">{u.fullName}</span>
+                                        <div className={cn('w-2 h-2 rounded-full shrink-0', u.active ? 'bg-emerald-500' : 'bg-slate-300')} />
+                                        {isCurrentUser && (
+                                          <Badge variant="outline" className="text-xs ml-1 shrink-0">You</Badge>
+                                        )}
+                                      </div>
+                                      <p className="text-xs text-slate-500 truncate">{u.email}</p>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3">
+                                  {canAssignRole && !isCurrentUser ? (
+                                    <Select
+                                      value={u.role}
+                                      onValueChange={newRoleVal => setRoleChangePending({ userId: u.id, newRole: newRoleVal })}
+                                      disabled={changingRoleFor === u.id}
+                                    >
+                                      <SelectTrigger className="h-8 text-xs w-full">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {roles.map(r => (
+                                          <SelectItem key={r.value} value={r.value} className="text-xs">
+                                            {r.displayName}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  ) : (
+                                    <span className={cn('inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border', ROLE_BADGE_COLORS[roleColor] ?? ROLE_BADGE_COLORS.slate)}>
+                                      <span className={cn('w-1.5 h-1.5 rounded-full', ROLE_DOT_COLORS[roleColor] ?? ROLE_DOT_COLORS.slate)} />
+                                      {roleDisplay}
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3">
+                                  <span className="text-sm text-slate-600">
+                                    {u.houseNumber ? `House ${u.houseNumber}` : '—'}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3">
+                                  {u.createdVia === 'INVITED' ? (
+                                    <Badge variant="outline" className="text-xs border-amber-300 text-amber-700 bg-amber-50">Invited</Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="text-xs border-slate-300 text-slate-500">Self-Registered</Badge>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3 text-right">
+                                  {menu}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Mobile list */}
+                    <div className="md:hidden space-y-2">
+                      {users.map(u => {
+                        const isCurrentUser = u.id === user?.id;
+                        const roleColor = getRoleColor(u.role);
+                        const roleDisplay = getRoleDisplayName(u.role);
+                        const menu = (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 shrink-0">
+                                {resendingInviteFor === u.id
+                                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                                  : <MoreHorizontal className="w-4 h-4" />}
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              {canManageUsers && u.createdVia === 'INVITED' && (
+                                <>
+                                  <DropdownMenuItem
+                                    className="gap-2 text-amber-700 focus:text-amber-700"
+                                    onClick={() => handleResendInvite(u.id, u.email)}
+                                    disabled={resendingInviteFor === u.id}
+                                  >
+                                    <Mail className="w-4 h-4" />
+                                    Resend Invite Email
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                </>
+                              )}
+                              <DropdownMenuItem disabled className="gap-2 text-slate-400 cursor-not-allowed">
+                                <Edit className="w-4 h-4" />
+                                Edit User
+                              </DropdownMenuItem>
+                              <DropdownMenuItem disabled className="gap-2 text-red-400 cursor-not-allowed">
+                                <Trash2 className="w-4 h-4" />
+                                Delete User
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        );
+                        return (
+                          <div key={u.id} className="border border-slate-100 rounded-lg bg-white p-3">
+                            <div className="flex items-start gap-3">
+                              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm shrink-0 mt-0.5">
                                 {getInitials(u.fullName)}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-start justify-between gap-2 mb-1">
-                                  <div className="flex items-center gap-2 min-w-0">
-                                    <h4 className="font-semibold text-slate-900 truncate">{u.fullName}</h4>
-                                    <div className={cn('w-2 h-2 rounded-full shrink-0', u.active ? 'bg-emerald-500' : 'bg-slate-300')} />
-                                  </div>
-                                  <div className="flex gap-1 shrink-0">
-                                    {canManageUsers && u.createdVia === 'INVITED' && (
-                                      <TooltipProvider>
-                                        <Tooltip>
-                                          <TooltipTrigger asChild>
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              className="h-8 w-8 p-0 text-amber-600 hover:text-amber-700"
-                                              onClick={() => handleResendInvite(u.id, u.email)}
-                                              disabled={resendingInviteFor === u.id}
-                                            >
-                                              {resendingInviteFor === u.id
-                                                ? <Loader2 className="w-4 h-4 animate-spin" />
-                                                : <Mail className="w-4 h-4" />}
-                                            </Button>
-                                          </TooltipTrigger>
-                                          <TooltipContent>Resend invite link (one-time use)</TooltipContent>
-                                        </Tooltip>
-                                      </TooltipProvider>
-                                    )}
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <span><Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled><Edit className="w-4 h-4" /></Button></span>
-                                        </TooltipTrigger>
-                                        <TooltipContent>User editing not yet available</TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <span><Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-600 hover:text-red-700" disabled><Trash2 className="w-4 h-4" /></Button></span>
-                                        </TooltipTrigger>
-                                        <TooltipContent>User deletion not yet available</TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
-                                  </div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-medium text-sm text-slate-900 truncate">{u.fullName}</span>
+                                  <div className={cn('w-2 h-2 rounded-full shrink-0', u.active ? 'bg-emerald-500' : 'bg-slate-300')} />
+                                  {isCurrentUser && (
+                                    <Badge variant="outline" className="text-xs shrink-0">You</Badge>
+                                  )}
                                 </div>
-                                <p className="text-sm text-slate-500 mb-2 truncate">{u.email}</p>
-                                <div className="flex flex-wrap items-center gap-2">
+                                <p className="text-xs text-slate-500 truncate">{u.email}</p>
+                                <div className="flex flex-wrap gap-1.5 mt-1.5">
                                   <span className={cn('inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border', ROLE_BADGE_COLORS[roleColor] ?? ROLE_BADGE_COLORS.slate)}>
                                     <span className={cn('w-1.5 h-1.5 rounded-full', ROLE_DOT_COLORS[roleColor] ?? ROLE_DOT_COLORS.slate)} />
                                     {roleDisplay}
@@ -869,19 +1030,13 @@ export default function AdminDashboard() {
                                     <Badge variant="secondary" className="text-xs">House {u.houseNumber}</Badge>
                                   )}
                                   {u.createdVia === 'INVITED' ? (
-                                    <Badge variant="outline" className="text-xs border-amber-300 text-amber-700 bg-amber-50">
-                                      Invited
-                                    </Badge>
+                                    <Badge variant="outline" className="text-xs border-amber-300 text-amber-700 bg-amber-50">Invited</Badge>
                                   ) : (
-                                    <Badge variant="outline" className="text-xs border-slate-300 text-slate-500">
-                                      Self-Registered
-                                    </Badge>
+                                    <Badge variant="outline" className="text-xs border-slate-300 text-slate-500">Self-Registered</Badge>
                                   )}
                                 </div>
-
-                                {/* Role change — only shown when caller has assign_user_role */}
                                 {canAssignRole && !isCurrentUser && (
-                                  <div className="mt-3">
+                                  <div className="mt-2">
                                     <Select
                                       value={u.role}
                                       onValueChange={newRoleVal => setRoleChangePending({ userId: u.id, newRole: newRoleVal })}
@@ -901,12 +1056,13 @@ export default function AdminDashboard() {
                                   </div>
                                 )}
                               </div>
+                              {menu}
                             </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
                 )}
               </div>
             </CardContent>

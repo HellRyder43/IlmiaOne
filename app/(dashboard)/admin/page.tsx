@@ -775,18 +775,6 @@ export default function AdminDashboard() {
                   </Select>
                 </div>
 
-                {/* Status legend */}
-                <div className="flex items-center gap-4 text-xs text-slate-500">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                    Active
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-slate-300 shrink-0" />
-                    Inactive
-                  </span>
-                </div>
-
                 {usersLoading ? (
                   <>
                     {/* Desktop skeleton */}
@@ -910,7 +898,6 @@ export default function AdminDashboard() {
                                     <div className="min-w-0">
                                       <div className="flex items-center gap-2">
                                         <span className="font-medium text-sm text-slate-900 truncate">{u.fullName}</span>
-                                        <div className={cn('w-2 h-2 rounded-full shrink-0', u.active ? 'bg-emerald-500' : 'bg-slate-300')} />
                                         {isCurrentUser && (
                                           <Badge variant="outline" className="text-xs ml-1 shrink-0">You</Badge>
                                         )}
@@ -1015,7 +1002,6 @@ export default function AdminDashboard() {
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-1.5">
                                   <span className="font-medium text-sm text-slate-900 truncate">{u.fullName}</span>
-                                  <div className={cn('w-2 h-2 rounded-full shrink-0', u.active ? 'bg-emerald-500' : 'bg-slate-300')} />
                                   {isCurrentUser && (
                                     <Badge variant="outline" className="text-xs shrink-0">You</Badge>
                                   )}

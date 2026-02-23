@@ -171,7 +171,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           entity_type: 'profiles',
           entity_id: authUser.id,
           metadata: {
-            detail: `${profile.full_name} signed in`,
+            detail: `${profile.name} signed in`,
             email: authUser.email,
             role: profile.role,
           },

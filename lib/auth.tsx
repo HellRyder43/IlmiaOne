@@ -175,7 +175,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             email: authUser.email,
             role: profile.role,
           },
-        }).then(({ error }) => { if (error) console.error('[audit_log] login insert failed:', error.message) })
+        }).then(({ error }: { error: { message: string } | null }) => { if (error) console.error('[audit_log] login insert failed:', error.message) })
         const dashboard = ROLE_DASHBOARD[profile.role] ?? '/resident'
         router.replace(dashboard)
       }

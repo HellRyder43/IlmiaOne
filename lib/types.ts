@@ -114,15 +114,17 @@ export interface VisitorPass {
 // Pet Registry types
 export interface Pet {
   id: string
+  ownerId: string
+  houseId?: string
   name: string
   type: string
   breed: string
   photoUrl: string
-  age?: number
+  vaccinationStatus: boolean
   ownerName?: string
   houseNumber?: string
-  vaccinationStatus?: boolean
   registrationDate?: string
+  age?: number
 }
 
 // Household types

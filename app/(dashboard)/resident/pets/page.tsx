@@ -16,13 +16,11 @@ import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import type { Pet } from '@/lib/types';
 
-const PET_TYPES = ['Dog', 'Cat', 'Rabbit', 'Bird', 'Other'] as const;
-type PetTypeValue = typeof PET_TYPES[number];
-
+const PET_TYPES = ['Cat', 'Rabbit', 'Bird', 'Other'] as const;
 const petSchema = z.object({
   name:              z.string().min(1, 'Pet name is required').max(50, 'Max 50 characters'),
   type:              z.enum(PET_TYPES),
-  breed:             z.string().min(1, 'Breed is required').max(50, 'Max 50 characters'),
+  breed:             z.string().max(50, 'Max 50 characters').optional(),
   vaccinationStatus: z.boolean(),
 });
 
@@ -30,7 +28,6 @@ type PetFormValues = z.infer<typeof petSchema>;
 
 function petTypeEmoji(type: string) {
   switch (type) {
-    case 'Dog':    return '🐕';
     case 'Cat':    return '🐈';
     case 'Rabbit': return '🐇';
     case 'Bird':   return '🐦';
@@ -273,7 +270,7 @@ export default function PetsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">Breed</label>
+                  <label className="text-sm font-medium text-slate-700">Breed <span className="text-slate-400 font-normal">(optional)</span></label>
                   <input
                     {...register('breed')}
                     type="text"

@@ -83,7 +83,6 @@ export async function POST(req: NextRequest) {
 
   if (!name?.trim()) return NextResponse.json({ error: 'Pet name is required' }, { status: 400 })
   if (!type?.trim()) return NextResponse.json({ error: 'Pet type is required' }, { status: 400 })
-  if (!breed?.trim()) return NextResponse.json({ error: 'Breed is required' }, { status: 400 })
 
   const service = createServiceClient()
 
@@ -105,7 +104,7 @@ export async function POST(req: NextRequest) {
       house_id:           (profile as { house_id: string | null }).house_id ?? null,
       name:               name.trim(),
       type:               type.trim(),
-      breed:              breed.trim(),
+      breed:              breed?.trim() ?? '',
       photo_url:          photoUrl ?? '',
       vaccination_status: vaccinationStatus ?? false,
     })

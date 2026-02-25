@@ -6,7 +6,7 @@ import type { Pet } from '@/lib/types'
 export interface PetFormInput {
   name: string
   type: string
-  breed: string
+  breed?: string
   vaccinationStatus: boolean
   photoUrl?: string
 }

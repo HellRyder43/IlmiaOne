@@ -17,6 +17,7 @@ export function usePets(currentUserId: string | null): {
   isLoading:    boolean
   error:        string | null
   createPet:    (input: PetFormInput) => Promise<Pet>
+  updatePet:    (id: string, input: Partial<PetFormInput>) => Promise<Pet>
   deletePet:    (id: string) => Promise<void>
   refresh:      () => Promise<void>
 } {
@@ -66,6 +67,21 @@ export function usePets(currentUserId: string | null): {
     return pet
   }
 
+  const updatePet = async (id: string, input: Partial<PetFormInput>): Promise<Pet> => {
+    const res = await fetch(`/api/resident/pets/${id}`, {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(input),
+    })
+    if (!res.ok) {
+      const body = await res.json()
+      throw new Error((body as { error?: string }).error ?? 'Failed to update pet')
+    }
+    const { pet } = await res.json() as { pet: Pet }
+    setPets(prev => prev.map(p => p.id === id ? pet : p))
+    return pet
+  }
+
   const deletePet = async (id: string): Promise<void> => {
     // Optimistic remove
     setPets(prev => prev.filter(p => p.id !== id))
@@ -79,5 +95,5 @@ export function usePets(currentUserId: string | null): {
     }
   }
 
-  return { myPets, communityPets, isLoading, error, createPet, deletePet, refresh: fetchPets }
+  return { myPets, communityPets, isLoading, error, createPet, updatePet, deletePet, refresh: fetchPets }
 }

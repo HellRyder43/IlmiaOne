@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
   }
 
-  const { data: pet, error: insertError } = await service
+  const { data: inserted, error: insertError } = await service
     .from('pets')
     .insert({
       owner_id:           claims.userId,
@@ -108,6 +108,16 @@ export async function POST(req: NextRequest) {
       photo_url:          photoUrl ?? '',
       vaccination_status: vaccinationStatus ?? false,
     })
+    .select('id')
+    .single()
+
+  if (insertError || !inserted) {
+    return NextResponse.json({ error: 'Failed to register pet' }, { status: 500 })
+  }
+
+  // Fetch the full row with joins in a separate query
+  const { data: pet, error: fetchError } = await service
+    .from('pets')
     .select(`
       id,
       owner_id,
@@ -121,10 +131,11 @@ export async function POST(req: NextRequest) {
       profiles!pets_owner_id_fkey ( full_name ),
       houses!pets_house_id_fkey ( house_number )
     `)
+    .eq('id', (inserted as { id: string }).id)
     .single()
 
-  if (insertError || !pet) {
-    return NextResponse.json({ error: 'Failed to register pet' }, { status: 500 })
+  if (fetchError || !pet) {
+    return NextResponse.json({ error: 'Failed to retrieve registered pet' }, { status: 500 })
   }
 
   const row = pet as unknown as {

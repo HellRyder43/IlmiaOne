@@ -30,7 +30,7 @@ export async function GET() {
       vaccination_status,
       created_at,
       profiles!pets_owner_id_fkey ( full_name ),
-      houses!pets_house_id_fkey ( house_number )
+      houses!pets_house_id_fkey ( house_number, street )
     `)
     .order('created_at', { ascending: false })
 
@@ -49,7 +49,7 @@ export async function GET() {
     vaccination_status: boolean
     created_at: string
     profiles: { full_name: string } | null
-    houses: { house_number: string } | null
+    houses: { house_number: string; street: string | null } | null
   }[]).map(row => ({
     id:                row.id,
     ownerId:           row.owner_id,
@@ -61,6 +61,7 @@ export async function GET() {
     vaccinationStatus: row.vaccination_status,
     ownerName:         row.profiles?.full_name,
     houseNumber:       row.houses?.house_number,
+    street:            row.houses?.street ?? undefined,
     registrationDate:  row.created_at,
   }))
 
@@ -129,7 +130,7 @@ export async function POST(req: NextRequest) {
       vaccination_status,
       created_at,
       profiles!pets_owner_id_fkey ( full_name ),
-      houses!pets_house_id_fkey ( house_number )
+      houses!pets_house_id_fkey ( house_number, street )
     `)
     .eq('id', (inserted as { id: string }).id)
     .single()
@@ -149,7 +150,7 @@ export async function POST(req: NextRequest) {
     vaccination_status: boolean
     created_at: string
     profiles: { full_name: string } | null
-    houses: { house_number: string } | null
+    houses: { house_number: string; street: string | null } | null
   }
 
   const result: Pet = {
@@ -163,6 +164,7 @@ export async function POST(req: NextRequest) {
     vaccinationStatus: row.vaccination_status,
     ownerName:         row.profiles?.full_name,
     houseNumber:       row.houses?.house_number,
+    street:            row.houses?.street ?? undefined,
     registrationDate:  row.created_at,
   }
 

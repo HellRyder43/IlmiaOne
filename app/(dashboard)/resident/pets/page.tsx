@@ -8,7 +8,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Camera, Search, User, Home, X, Syringe, AlertCircle } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Plus, Camera, Search, User, Home, MapPin, X, Syringe, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePets } from '@/hooks/use-pets';
 import { useAuth } from '@/lib/auth';
@@ -59,6 +60,7 @@ export default function PetsPage() {
   const [photoPreview,    setPhotoPreview]    = useState<string | null>(null);
   const [photoError,      setPhotoError]      = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [selectedPet,     setSelectedPet]     = useState<Pet | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -446,7 +448,7 @@ export default function PetsPage() {
           ) : filteredCommunityPets.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {filteredCommunityPets.map(pet => (
-                <Card key={pet.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                <Card key={pet.id} className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer" onClick={() => setSelectedPet(pet)}>
                   <div className="aspect-square relative bg-slate-100">
                     {pet.photoUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -472,7 +474,9 @@ export default function PetsPage() {
                       </div>
                       <div className="flex items-center gap-2 text-slate-500">
                         <Home className="w-3.5 h-3.5 text-slate-400" />
-                        {pet.houseNumber ? `No. ${pet.houseNumber}` : '—'}
+                        {pet.houseNumber
+                          ? [pet.street, `No. ${pet.houseNumber}`].filter(Boolean).join(', ')
+                          : '—'}
                       </div>
                     </div>
                     <Badge
@@ -506,6 +510,73 @@ export default function PetsPage() {
               </p>
             </div>
           )}
+
+          {/* Pet Detail Dialog */}
+          <Dialog open={!!selectedPet} onOpenChange={open => { if (!open) setSelectedPet(null); }}>
+            <DialogContent className="max-w-sm">
+              {selectedPet && (
+                <>
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 text-xl">
+                      {selectedPet.name}
+                      <span>{petTypeEmoji(selectedPet.type)}</span>
+                    </DialogTitle>
+                  </DialogHeader>
+
+                  <div className="aspect-square w-full rounded-xl overflow-hidden bg-slate-100 mt-2">
+                    {selectedPet.photoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={selectedPet.photoUrl}
+                        alt={selectedPet.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-7xl">
+                        {petTypeEmoji(selectedPet.type)}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-3 mt-1">
+                    {selectedPet.breed && (
+                      <p className="text-sm text-slate-600">
+                        <span className="font-medium text-slate-800">Breed:</span> {selectedPet.breed}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <User className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span>{selectedPet.ownerName ?? '—'}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <Home className="w-4 h-4 text-slate-400 shrink-0" />
+                      {selectedPet.houseNumber
+                        ? [selectedPet.street, `No. ${selectedPet.houseNumber}`].filter(Boolean).join(', ')
+                        : '—'}
+                    </div>
+                    {selectedPet.street && (
+                      <div className="flex items-center gap-2 text-sm text-slate-500">
+                        <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
+                        {selectedPet.street}
+                      </div>
+                    )}
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        'text-xs w-full justify-center mt-1',
+                        selectedPet.vaccinationStatus
+                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                          : 'border-slate-200 bg-slate-50 text-slate-500',
+                      )}
+                    >
+                      <Syringe className="w-3 h-3 mr-1" />
+                      {selectedPet.vaccinationStatus ? 'Vaccination up to date' : 'Not vaccinated'}
+                    </Badge>
+                  </div>
+                </>
+              )}
+            </DialogContent>
+          </Dialog>
         </div>
       )}
     </div>

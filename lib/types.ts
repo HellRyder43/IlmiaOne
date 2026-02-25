@@ -123,6 +123,7 @@ export interface Pet {
   vaccinationStatus: boolean
   ownerName?: string
   houseNumber?: string
+  street?: string
   registrationDate?: string
   age?: number
 }

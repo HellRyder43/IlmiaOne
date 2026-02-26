@@ -610,110 +610,6 @@ export default function PetsPage() {
             </div>
           )}
 
-          {/* Edit Pet Dialog */}
-          <Dialog open={!!editingPet} onOpenChange={open => { if (!open) closeEditForm(); }}>
-            <DialogContent className="max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Edit Pet</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={editHandleSubmit(onEditSubmit)} className="space-y-5 mt-2">
-                <input
-                  ref={editFileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png"
-                  className="hidden"
-                  onChange={handleEditPhotoChange}
-                />
-                <button
-                  type="button"
-                  onClick={() => editFileInputRef.current?.click()}
-                  className="w-full flex flex-col items-center justify-center p-5 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer group"
-                >
-                  {editPhotoPreview ? (
-                    <div className="relative w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-md">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={editPhotoPreview} alt="Pet preview" className="w-full h-full object-cover" />
-                    </div>
-                  ) : (
-                    <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-sm mb-3 group-hover:scale-110 transition-transform">
-                      <Camera className="w-7 h-7 text-slate-400 group-hover:text-indigo-500" />
-                    </div>
-                  )}
-                  <p className="text-sm font-medium text-slate-700 mt-2">
-                    {editPhotoPreview ? 'Change Photo' : 'Upload Pet Photo'}
-                  </p>
-                  <p className="text-xs text-slate-400 mt-0.5">PNG, JPG up to 5MB (optional)</p>
-                </button>
-                {editPhotoError && (
-                  <p className="flex items-center gap-1.5 text-xs text-red-600">
-                    <AlertCircle className="w-3.5 h-3.5" /> {editPhotoError}
-                  </p>
-                )}
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">Pet Name</label>
-                    <input
-                      {...editRegister('name')}
-                      type="text"
-                      className="w-full px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm shadow-sm"
-                    />
-                    {editErrors.name && (
-                      <p className="text-xs text-red-600">{editErrors.name.message}</p>
-                    )}
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">Pet Type</label>
-                    <select
-                      {...editRegister('type')}
-                      className="w-full px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 shadow-sm"
-                    >
-                      {PET_TYPES.map(t => (
-                        <option key={t} value={t}>{t}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">Breed <span className="text-slate-400 font-normal">(optional)</span></label>
-                  <input
-                    {...editRegister('breed')}
-                    type="text"
-                    placeholder="e.g. Domestic Shorthair"
-                    className="w-full px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm shadow-sm"
-                  />
-                </div>
-
-                <div className="flex items-center gap-3 p-4 rounded-lg bg-slate-50 border border-slate-200">
-                  <input
-                    {...editRegister('vaccinationStatus')}
-                    id="editVaccinationStatus"
-                    type="checkbox"
-                    className="w-4 h-4 accent-indigo-600 cursor-pointer"
-                  />
-                  <label htmlFor="editVaccinationStatus" className="flex items-center gap-2 text-sm font-medium text-slate-700 cursor-pointer">
-                    <Syringe className="w-4 h-4 text-emerald-500" />
-                    Vaccination up to date
-                  </label>
-                </div>
-
-                <div className="flex justify-end gap-3 pt-1">
-                  <Button type="button" variant="ghost" onClick={closeEditForm} disabled={isEditSubmitting}>
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={isEditSubmitting || !!editPhotoError}
-                    className="bg-slate-900 hover:bg-slate-800 text-white px-8"
-                  >
-                    {isEditSubmitting ? 'Saving…' : 'Save Changes'}
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
-
           {/* Pet Detail Dialog */}
           <Dialog open={!!selectedPet} onOpenChange={open => { if (!open) setSelectedPet(null); }}>
             <DialogContent className="max-w-sm">
@@ -776,6 +672,110 @@ export default function PetsPage() {
           </Dialog>
         </div>
       )}
+
+      {/* Edit Pet Dialog — outside tab conditional so it renders on My Pets tab */}
+      <Dialog open={!!editingPet} onOpenChange={open => { if (!open) closeEditForm(); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Pet</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={editHandleSubmit(onEditSubmit)} className="space-y-5 mt-2">
+            <input
+              ref={editFileInputRef}
+              type="file"
+              accept="image/jpeg,image/png"
+              className="hidden"
+              onChange={handleEditPhotoChange}
+            />
+            <button
+              type="button"
+              onClick={() => editFileInputRef.current?.click()}
+              className="w-full flex flex-col items-center justify-center p-5 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer group"
+            >
+              {editPhotoPreview ? (
+                <div className="relative w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-md">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={editPhotoPreview} alt="Pet preview" className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-sm mb-3 group-hover:scale-110 transition-transform">
+                  <Camera className="w-7 h-7 text-slate-400 group-hover:text-indigo-500" />
+                </div>
+              )}
+              <p className="text-sm font-medium text-slate-700 mt-2">
+                {editPhotoPreview ? 'Change Photo' : 'Upload Pet Photo'}
+              </p>
+              <p className="text-xs text-slate-400 mt-0.5">PNG, JPG up to 5MB (optional)</p>
+            </button>
+            {editPhotoError && (
+              <p className="flex items-center gap-1.5 text-xs text-red-600">
+                <AlertCircle className="w-3.5 h-3.5" /> {editPhotoError}
+              </p>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">Pet Name</label>
+                <input
+                  {...editRegister('name')}
+                  type="text"
+                  className="w-full px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm shadow-sm"
+                />
+                {editErrors.name && (
+                  <p className="text-xs text-red-600">{editErrors.name.message}</p>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">Pet Type</label>
+                <select
+                  {...editRegister('type')}
+                  className="w-full px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 shadow-sm"
+                >
+                  {PET_TYPES.map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700">Breed <span className="text-slate-400 font-normal">(optional)</span></label>
+              <input
+                {...editRegister('breed')}
+                type="text"
+                placeholder="e.g. Domestic Shorthair"
+                className="w-full px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all text-sm shadow-sm"
+              />
+            </div>
+
+            <div className="flex items-center gap-3 p-4 rounded-lg bg-slate-50 border border-slate-200">
+              <input
+                {...editRegister('vaccinationStatus')}
+                id="editVaccinationStatus"
+                type="checkbox"
+                className="w-4 h-4 accent-indigo-600 cursor-pointer"
+              />
+              <label htmlFor="editVaccinationStatus" className="flex items-center gap-2 text-sm font-medium text-slate-700 cursor-pointer">
+                <Syringe className="w-4 h-4 text-emerald-500" />
+                Vaccination up to date
+              </label>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-1">
+              <Button type="button" variant="ghost" onClick={closeEditForm} disabled={isEditSubmitting}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isEditSubmitting || !!editPhotoError}
+                className="bg-slate-900 hover:bg-slate-800 text-white px-8"
+              >
+                {isEditSubmitting ? 'Saving…' : 'Save Changes'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

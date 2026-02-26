@@ -116,6 +116,12 @@ export default function ResetPasswordPage() {
       return
     }
 
+    try {
+      await fetch('/api/auth/complete-invite', { method: 'POST' })
+    } catch {
+      // Non-critical — password was set successfully
+    }
+
     toast.success('Password updated successfully')
     router.push('/login')
   }

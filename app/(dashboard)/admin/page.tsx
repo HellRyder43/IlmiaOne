@@ -864,7 +864,7 @@ export default function AdminDashboard() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-48">
-                                  {canManageUsers && u.createdVia === 'INVITED' && !u.hasLoggedIn && (
+                                  {canManageUsers && u.createdVia === 'INVITED' && !u.inviteAccepted && (
                                     <>
                                       <DropdownMenuItem
                                         className="gap-2 text-amber-700 focus:text-amber-700"
@@ -969,7 +969,7 @@ export default function AdminDashboard() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
-                              {canManageUsers && u.createdVia === 'INVITED' && !u.hasLoggedIn && (
+                              {canManageUsers && u.createdVia === 'INVITED' && !u.inviteAccepted && (
                                 <>
                                   <DropdownMenuItem
                                     className="gap-2 text-amber-700 focus:text-amber-700"

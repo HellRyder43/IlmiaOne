@@ -12,6 +12,7 @@ export interface AdminUser {
   active: boolean
   createdVia: 'SELF_REGISTRATION' | 'INVITED'
   hasLoggedIn: boolean
+  inviteAccepted: boolean
 }
 
 export function useAdminUsers() {

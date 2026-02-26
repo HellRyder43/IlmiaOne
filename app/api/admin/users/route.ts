@@ -32,7 +32,7 @@ export async function GET() {
   // Fetch profiles with house join
   const { data: profiles, error: profilesError } = await service
     .from('profiles')
-    .select('id, full_name, email, role, status, created_via, houses(house_number, street)')
+    .select('id, full_name, email, role, status, created_via, invite_accepted_at, houses(house_number, street)')
     .order('full_name')
 
   if (profilesError) {
@@ -46,6 +46,7 @@ export async function GET() {
     role: string
     status: string
     created_via: string
+    invite_accepted_at: string | null
     houses: { house_number: string; street: string | null } | { house_number: string; street: string | null }[] | null
   }
 
@@ -61,6 +62,7 @@ export async function GET() {
       active: row.status === 'APPROVED',
       createdVia: (row.created_via ?? 'SELF_REGISTRATION') as 'SELF_REGISTRATION' | 'INVITED',
       hasLoggedIn: !!signInMap[row.id],
+      inviteAccepted: !!row.invite_accepted_at,
     }
   })
 

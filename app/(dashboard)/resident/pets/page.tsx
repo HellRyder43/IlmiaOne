@@ -574,7 +574,7 @@ export default function PetsPage() {
                       <div className="flex items-center gap-2 text-slate-500">
                         <Home className="w-3.5 h-3.5 text-slate-400" />
                         {pet.houseNumber
-                          ? [pet.street, `No. ${pet.houseNumber}`].filter(Boolean).join(', ')
+                          ? [`No. ${pet.houseNumber}`, pet.street].filter(Boolean).join(', ')
                           : '—'}
                       </div>
                     </div>

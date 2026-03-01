@@ -169,6 +169,7 @@ export interface CalendarEvent {
   time?: string
   location?: string
   description?: string
+  imageUrls?: string[]
   createdBy?: string
 }
 

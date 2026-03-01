@@ -39,6 +39,7 @@ export const NAVIGATION_BY_ROUTE: Record<string, NavItem[]> = {
     { href: '/treasurer',             label: 'Overview',          icon: LayoutDashboard },
     { href: '/treasurer/reports',     label: 'Financial Reports', icon: Wallet },
     { href: '/treasurer/defaulters',  label: 'Defaulter List',    icon: Users },
+    { href: '/treasurer/calendar',    label: 'Community Calendar', icon: Calendar },
   ],
   guard: [
     { href: '/guard',         label: 'Guard Dashboard', icon: ShieldCheck },
